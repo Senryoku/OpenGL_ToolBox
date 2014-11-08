@@ -1,0 +1,89 @@
+\hypertarget{class_time_manager}{\section{Time\+Manager Class Reference}
+\label{class_time_manager}\index{Time\+Manager@{Time\+Manager}}
+}
+Inheritance diagram for Time\+Manager\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{class_time_manager}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{class_time_manager_a09f5df0345b8e585badbd57cbaf3b506}{using {\bfseries Real} = double}\label{class_time_manager_a09f5df0345b8e585badbd57cbaf3b506}
+
+\item 
+\hypertarget{class_time_manager_a4162b0016503de524079dd23e68ba697}{using {\bfseries Time\+Point} = std\+::chrono\+::high\+\_\+resolution\+\_\+clock\+::time\+\_\+point}\label{class_time_manager_a4162b0016503de524079dd23e68ba697}
+
+\item 
+\hypertarget{class_time_manager_a93d275e53c96a786c78b9b31cd729fb3}{using {\bfseries Seconds} = std\+::chrono\+::duration$<$ Real $>$}\label{class_time_manager_a93d275e53c96a786c78b9b31cd729fb3}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{class_time_manager_ab1c3cbb48ad68d928bb8b9a4ef210ed6}{Time\+Manager} ()
+\begin{DoxyCompactList}\small\item\em Default Constructor. \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_a97d902b19861efc099141eeb846671a3}{void \hyperlink{class_time_manager_a97d902b19861efc099141eeb846671a3}{update} ()}\label{class_time_manager_a97d902b19861efc099141eeb846671a3}
+
+\begin{DoxyCompactList}\small\item\em Manages the internals timers -\/ should be called once each frame. This is where the actual job is done ! \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_ae47f04150537e55eab595762e0bb0d18}{Real \hyperlink{class_time_manager_ae47f04150537e55eab595762e0bb0d18}{get\+Timerate} () const }\label{class_time_manager_ae47f04150537e55eab595762e0bb0d18}
+
+\begin{DoxyCompactList}\small\item\em Returns the current Timerate (1.\+f means normal game speed, always $>$= 0.\+f) \end{DoxyCompactList}\item 
+void \hyperlink{class_time_manager_a59b542c461ec5142fecd03b78e105fcd}{set\+Timerate} (Real value)
+\begin{DoxyCompactList}\small\item\em Sets the timerate to value. \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_aa65b353c86f1c628a904888fd5ff0cf2}{Real \hyperlink{class_time_manager_aa65b353c86f1c628a904888fd5ff0cf2}{get\+Real\+Delta\+Time} () const }\label{class_time_manager_aa65b353c86f1c628a904888fd5ff0cf2}
+
+\begin{DoxyCompactList}\small\item\em Returns the last frame 'real' time duration in seconds This is clamped to avoid 0 cancelation at really high F\+P\+S and too long frames (when moving the window for example). \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_ae9f23854e9a4bc1af43cb528acfbdf8e}{Real \hyperlink{class_time_manager_ae9f23854e9a4bc1af43cb528acfbdf8e}{get\+Delta\+Time} () const }\label{class_time_manager_ae9f23854e9a4bc1af43cb528acfbdf8e}
+
+\begin{DoxyCompactList}\small\item\em Returns the last frame in-\/game duration in seconds (equivalent to \hyperlink{class_time_manager_ae47f04150537e55eab595762e0bb0d18}{get\+Timerate()}$\ast$get\+Real\+Delta\+Time()) \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_a6d952d8906d03dce397c7e2835adad1b}{Real \hyperlink{class_time_manager_a6d952d8906d03dce397c7e2835adad1b}{get\+Instant\+Frame\+Rate} () const }\label{class_time_manager_a6d952d8906d03dce397c7e2835adad1b}
+
+\begin{DoxyCompactList}\small\item\em Returns frame rate based on the last frame duration. \end{DoxyCompactList}\item 
+\hypertarget{class_time_manager_a8941e2d56292730e3301d0920da7e658}{Real {\bfseries get\+Runtime} () const }\label{class_time_manager_a8941e2d56292730e3301d0920da7e658}
+
+\item 
+\hypertarget{class_time_manager_a3c48c5df2a7dcbcf23f8acdd5872705c}{float \& {\bfseries get\+Runtime\+Ref} ()}\label{class_time_manager_a3c48c5df2a7dcbcf23f8acdd5872705c}
+
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{class_time_manager_ab1c3cbb48ad68d928bb8b9a4ef210ed6}{\index{Time\+Manager@{Time\+Manager}!Time\+Manager@{Time\+Manager}}
+\index{Time\+Manager@{Time\+Manager}!Time\+Manager@{Time\+Manager}}
+\subsubsection[{Time\+Manager}]{\setlength{\rightskip}{0pt plus 5cm}Time\+Manager\+::\+Time\+Manager (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}}\label{class_time_manager_ab1c3cbb48ad68d928bb8b9a4ef210ed6}
+
+
+Default Constructor. 
+
+
+
+\subsection{Member Function Documentation}
+\hypertarget{class_time_manager_a59b542c461ec5142fecd03b78e105fcd}{\index{Time\+Manager@{Time\+Manager}!set\+Timerate@{set\+Timerate}}
+\index{set\+Timerate@{set\+Timerate}!Time\+Manager@{Time\+Manager}}
+\subsubsection[{set\+Timerate}]{\setlength{\rightskip}{0pt plus 5cm}void Time\+Manager\+::set\+Timerate (
+\begin{DoxyParamCaption}
+\item[{Real}]{value}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_time_manager_a59b542c461ec5142fecd03b78e105fcd}
+
+
+Sets the timerate to value. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em value} & \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+src/\+Core/Time\+Manager.\+hpp\item 
+src/\+Core/Time\+Manager.\+cpp\end{DoxyCompactItemize}

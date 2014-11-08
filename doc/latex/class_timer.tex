@@ -1,0 +1,117 @@
+\hypertarget{class_timer}{\section{Timer Class Reference}
+\label{class_timer}\index{Timer@{Timer}}
+}
+
+
+{\ttfamily \#include $<$Timer.\+hpp$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{class_timer_aab51589602494ed3f9aba851dc00ff45}{Timer} (bool run=false)
+\item 
+\hypertarget{class_timer_a3a8b5272198d029779dc9302a54305a8}{void {\bfseries start} ()}\label{class_timer_a3a8b5272198d029779dc9302a54305a8}
+
+\item 
+\hypertarget{class_timer_a9020542d73357a4eef512eefaf57524b}{void {\bfseries reset} ()}\label{class_timer_a9020542d73357a4eef512eefaf57524b}
+
+\item 
+\hypertarget{class_timer_a0289effad7b573c508bc27e405900a23}{void {\bfseries pause} ()}\label{class_timer_a0289effad7b573c508bc27e405900a23}
+
+\item 
+\hypertarget{class_timer_aa4dd50d7ed48ac73efed2950749d35d6}{void {\bfseries unpause} ()}\label{class_timer_aa4dd50d7ed48ac73efed2950749d35d6}
+
+\item 
+{\footnotesize template$<$typename Unit $>$ }\\Unit \hyperlink{class_timer_a36b9bf710c37b6394c93960c515ba20c}{running\+Time} () const 
+\item 
+std\+::chrono\+::nanoseconds \hyperlink{class_timer_a9c9acd2b0e51984bbaf6b066f0b47f03}{nanoseconds} () const 
+\item 
+std\+::chrono\+::microseconds \hyperlink{class_timer_a9965655cf9bd4ee646af97e7558797e3}{microseconds} () const 
+\item 
+std\+::chrono\+::milliseconds \hyperlink{class_timer_a39c96e027b87ce416be309668dc02c2a}{milliseconds} () const 
+\item 
+std\+::chrono\+::seconds \hyperlink{class_timer_a9eea487e771e45f9983e4cb8aab3f876}{seconds} () const 
+\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{class_timer_abbdf0c13bc0413398fc244c28299f5b4}{{\footnotesize template$<$typename Char\+T , typename Traits $>$ }\\std\+::basic\+\_\+ostream$<$ Char\+T, \\*
+Traits $>$ \& {\bfseries operator$<$$<$} (std\+::basic\+\_\+ostream$<$ Char\+T, Traits $>$ \&out, const \hyperlink{class_timer}{Timer} \&t)}\label{class_timer_abbdf0c13bc0413398fc244c28299f5b4}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Extremely simple \hyperlink{class_timer}{Timer} class using C++11 chrono library 
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{class_timer_aab51589602494ed3f9aba851dc00ff45}{\index{Timer@{Timer}!Timer@{Timer}}
+\index{Timer@{Timer}!Timer@{Timer}}
+\subsubsection[{Timer}]{\setlength{\rightskip}{0pt plus 5cm}Timer\+::\+Timer (
+\begin{DoxyParamCaption}
+\item[{bool}]{run = {\ttfamily false}}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}}\label{class_timer_aab51589602494ed3f9aba851dc00ff45}
+
+\begin{DoxyParams}{Parameters}
+{\em run} & Pass true to start the \hyperlink{class_timer}{Timer} right away \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{class_timer_a9965655cf9bd4ee646af97e7558797e3}{\index{Timer@{Timer}!microseconds@{microseconds}}
+\index{microseconds@{microseconds}!Timer@{Timer}}
+\subsubsection[{microseconds}]{\setlength{\rightskip}{0pt plus 5cm}std\+::chrono\+::microseconds Timer\+::microseconds (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_timer_a9965655cf9bd4ee646af97e7558797e3}
+\begin{DoxyReturn}{Returns}
+Running time in microseconds 
+\end{DoxyReturn}
+\hypertarget{class_timer_a39c96e027b87ce416be309668dc02c2a}{\index{Timer@{Timer}!milliseconds@{milliseconds}}
+\index{milliseconds@{milliseconds}!Timer@{Timer}}
+\subsubsection[{milliseconds}]{\setlength{\rightskip}{0pt plus 5cm}std\+::chrono\+::milliseconds Timer\+::milliseconds (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_timer_a39c96e027b87ce416be309668dc02c2a}
+\begin{DoxyReturn}{Returns}
+Running time in milliseconds 
+\end{DoxyReturn}
+\hypertarget{class_timer_a9c9acd2b0e51984bbaf6b066f0b47f03}{\index{Timer@{Timer}!nanoseconds@{nanoseconds}}
+\index{nanoseconds@{nanoseconds}!Timer@{Timer}}
+\subsubsection[{nanoseconds}]{\setlength{\rightskip}{0pt plus 5cm}std\+::chrono\+::nanoseconds Timer\+::nanoseconds (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_timer_a9c9acd2b0e51984bbaf6b066f0b47f03}
+\begin{DoxyReturn}{Returns}
+Running time in nanoseconds 
+\end{DoxyReturn}
+\hypertarget{class_timer_a36b9bf710c37b6394c93960c515ba20c}{\index{Timer@{Timer}!running\+Time@{running\+Time}}
+\index{running\+Time@{running\+Time}!Timer@{Timer}}
+\subsubsection[{running\+Time}]{\setlength{\rightskip}{0pt plus 5cm}template$<$typename Unit $>$ Unit Timer\+::running\+Time (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_timer_a36b9bf710c37b6394c93960c515ba20c}
+\begin{DoxyReturn}{Returns}
+Running time in Unit 
+\end{DoxyReturn}
+\hypertarget{class_timer_a9eea487e771e45f9983e4cb8aab3f876}{\index{Timer@{Timer}!seconds@{seconds}}
+\index{seconds@{seconds}!Timer@{Timer}}
+\subsubsection[{seconds}]{\setlength{\rightskip}{0pt plus 5cm}std\+::chrono\+::seconds Timer\+::seconds (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) const\hspace{0.3cm}{\ttfamily [inline]}}}\label{class_timer_a9eea487e771e45f9983e4cb8aab3f876}
+\begin{DoxyReturn}{Returns}
+Running time in seconds 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/Timer.\+hpp\end{DoxyCompactItemize}

@@ -1,0 +1,53 @@
+\hypertarget{class_cubic_spline_1_1_control_point}{\section{Cubic\+Spline$<$ T, R $>$\+:\+:Control\+Point Class Reference}
+\label{class_cubic_spline_1_1_control_point}\index{Cubic\+Spline$<$ T, R $>$\+::\+Control\+Point@{Cubic\+Spline$<$ T, R $>$\+::\+Control\+Point}}
+}
+
+
+{\ttfamily \#include $<$Cubic\+Spline.\+hpp$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_af599da00be5d4c064ff8f014147aa97e}{{\bfseries Control\+Point} (const \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} \&)=default}\label{class_cubic_spline_1_1_control_point_af599da00be5d4c064ff8f014147aa97e}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a60e070a59f5e4e952dfde49e273f6c29}{{\bfseries Control\+Point} (\hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} \&\&)=default}\label{class_cubic_spline_1_1_control_point_a60e070a59f5e4e952dfde49e273f6c29}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_abe4fb6190bbabd312f9ed5148edd1b79}{{\bfseries Control\+Point} (T position, T speed=T(), R time=R())}\label{class_cubic_spline_1_1_control_point_abe4fb6190bbabd312f9ed5148edd1b79}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a7b40d5fd4c424527bc3f14b684d2220e}{bool \hyperlink{class_cubic_spline_1_1_control_point_a7b40d5fd4c424527bc3f14b684d2220e}{is\+Dirty} () const }\label{class_cubic_spline_1_1_control_point_a7b40d5fd4c424527bc3f14b684d2220e}
+
+\begin{DoxyCompactList}\small\item\em Should not be used outside of \hyperlink{class_cubic_spline}{Cubic\+Spline}. \end{DoxyCompactList}\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a4ee3d17f52f9ca2fc2e3f6e5f1002993}{void \hyperlink{class_cubic_spline_1_1_control_point_a4ee3d17f52f9ca2fc2e3f6e5f1002993}{set\+Dirty} (bool b=true)}\label{class_cubic_spline_1_1_control_point_a4ee3d17f52f9ca2fc2e3f6e5f1002993}
+
+\begin{DoxyCompactList}\small\item\em Should not be used outside of \hyperlink{class_cubic_spline}{Cubic\+Spline}. \end{DoxyCompactList}\item 
+\hypertarget{class_cubic_spline_1_1_control_point_ad2b7492828bf99deccd63ec109ba5108}{const T \& {\bfseries get\+Position} () const }\label{class_cubic_spline_1_1_control_point_ad2b7492828bf99deccd63ec109ba5108}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_ac044ae5f2b8433a929d796260f842a35}{const T \& {\bfseries get\+Speed} () const }\label{class_cubic_spline_1_1_control_point_ac044ae5f2b8433a929d796260f842a35}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_aa69647374610bc460af1513594e8f4a0}{const R \& {\bfseries get\+Time} () const }\label{class_cubic_spline_1_1_control_point_aa69647374610bc460af1513594e8f4a0}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a91ead5475ce1d812f4840d53773820ec}{void {\bfseries set\+Position} (const T \&v)}\label{class_cubic_spline_1_1_control_point_a91ead5475ce1d812f4840d53773820ec}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a731e83e46d7c80febbf1f785e802bdb9}{void {\bfseries set\+Speed} (const T \&v)}\label{class_cubic_spline_1_1_control_point_a731e83e46d7c80febbf1f785e802bdb9}
+
+\item 
+\hypertarget{class_cubic_spline_1_1_control_point_a265dd8e9d9f16d8a4f4aacaa212f678e}{void {\bfseries set\+Time} (const R \&v)}\label{class_cubic_spline_1_1_control_point_a265dd8e9d9f16d8a4f4aacaa212f678e}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T, typename R = float$>$class Cubic\+Spline$<$ T, R $>$\+::\+Control\+Point}
+
+\hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} Describes a point in space (T) where an object following the spline should be at a given time (R), at a given speed (T). Speed and Time can be omitted, in this case, the \hyperlink{class_cubic_spline}{Cubic\+Spline} class will use default values for there two properties. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/Cubic\+Spline.\+hpp\end{DoxyCompactItemize}

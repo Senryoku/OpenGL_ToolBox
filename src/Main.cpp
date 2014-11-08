@@ -1,0 +1,352 @@
+#include <cstdlib>
+#include <ctime>
+#include <sstream>
+#include <map>
+#include <random>
+
+#define GLEW_STATIC
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#define GLM_FORCE_RADIANS
+#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp> // glm::translate
+#include <glm/gtc/type_ptr.hpp> // glm::value_ptr
+#include <AntTweakBar.h>
+
+#include <AllShader.hpp>
+#include <CubeMap.hpp>
+#include <ResourcesManager.hpp>
+#include <Timer.hpp>
+#include <TimeManager.hpp>
+#include <Framebuffer.hpp>
+#include <Material.hpp>
+
+#include <Tools/StringConversion.hpp>
+#include <stb_image_write.hpp>
+
+#include <CubicSpline.hpp>
+	
+int		_width = 1366;
+int		_height = 720;
+
+glm::vec3 _resolution(_width, _height, 0.0);
+glm::vec4 _mouse(0.0);
+
+float _time = 0.f;
+float	_frameTime;
+float	_frameRate;
+
+Framebuffer<Texture2D>	_firstPass;
+	
+void error_callback(int error, const char* description)
+{
+	std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
+}
+
+void resize_callback(GLFWwindow* window, int width, int height)
+{
+	_width = width;
+	_height = height;
+
+	glViewport(0, 0, _width, _height);
+	_resolution = glm::vec3(_width, _height, 0.0);
+	
+	glOrtho(-1.0f, -1.0f, 1.0f, 1.0f, 0.1f, 10000.0f);
+	
+	_firstPass = Framebuffer<Texture2D>(_width, _height, true);
+	_firstPass.init();
+	
+	TwWindowSize(_width, _height);
+	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
+}
+
+// Hackish way to add basic support of GLFW3 to AntTweakBar
+// There may have some problems: http://sourceforge.net/p/anttweakbar/tickets/11/
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	// Quick GLFW3 compatibility hack...
+	int twkey = key;
+	switch(twkey)
+	{
+		case GLFW_KEY_LEFT: twkey = TW_KEY_LEFT; break;
+		case GLFW_KEY_RIGHT: twkey = TW_KEY_RIGHT; break;
+		case GLFW_KEY_UP: twkey = TW_KEY_UP; break;
+		case GLFW_KEY_DOWN: twkey = TW_KEY_DOWN; break;
+		case GLFW_KEY_ESCAPE: twkey = 256 + 1; break;
+		case GLFW_KEY_ENTER: twkey = 256 + 38; break;
+		case GLFW_KEY_KP_ENTER: twkey = 62; break;
+		case GLFW_KEY_BACKSPACE: twkey = 256 + 39; break;
+		case GLFW_KEY_SPACE: twkey = 32; break;
+		default: break;
+	}
+	
+	if(!TwEventKeyGLFW(twkey, action))
+	{
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+			glfwSetWindowShouldClose(window, GL_TRUE);
+			
+		if(key == GLFW_KEY_R && action == GLFW_PRESS)
+		{
+			ResourcesManager::getInstance().reloadShaders();
+		}
+	}
+}
+
+inline void TwEventMouseButtonGLFW3(GLFWwindow* window, int button, int action, int mods)
+{	
+	if(!TwEventMouseButtonGLFW(button, action))
+	{
+		float z = _mouse.z;
+		float w = _mouse.w;
+		if(button == GLFW_MOUSE_BUTTON_1)
+		{
+			if(action == GLFW_PRESS)
+			{
+				z = 1.0;
+			} else {
+				z = 0.0;
+			}
+		} else if(button == GLFW_MOUSE_BUTTON_2) {
+			if(action == GLFW_PRESS)
+			{
+				w = 1.0;
+			} else {
+				w = 0.0;
+			}
+		}
+		_mouse = glm::vec4(_mouse.x, _mouse.y, z, w);
+	}
+}
+
+inline void TwEventMousePosGLFW3(GLFWwindow* window, double xpos, double ypos)
+{
+	if(!TwMouseMotion(int(xpos), int(ypos)))
+	{
+		_mouse = glm::vec4(xpos, ypos, _mouse.z, _mouse.w);
+	}
+}
+
+inline void TwEventMouseWheelGLFW3(GLFWwindow* window, double xoffset, double yoffset) { TwEventMouseWheelGLFW(yoffset); }
+
+inline void TwEventKeyGLFW3(GLFWwindow* window, int key, int scancode, int action, int mods) { TwEventKeyGLFW(key, action); }
+
+inline void TwEventCharGLFW3(GLFWwindow* window, int codepoint) { TwEventCharGLFW(codepoint, GLFW_PRESS); }
+
+int main(int argc, char* argv[])
+{
+	if (glfwInit() == false)
+	{
+		std::cerr << "Error: couldn't initialize GLFW." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	glfwSetErrorCallback(error_callback);
+    GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
+	
+	if (!window)
+	{
+		std::cerr << "Error: couldn't create window." << std::endl;
+		glfwTerminate();
+		exit(EXIT_FAILURE);
+	}
+
+	glfwMakeContextCurrent(window);
+	
+	if(glewInit() != GLEW_OK)
+	{
+		std::cerr << "Error: couldn't initialize GLEW." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	
+	// Callback Setting
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun) TwEventMouseButtonGLFW3);
+	glfwSetCursorPosCallback(window, (GLFWcursorposfun) TwEventMousePosGLFW3);
+	glfwSetScrollCallback(window, (GLFWscrollfun) TwEventMouseWheelGLFW3);
+	glfwSetCharCallback(window, (GLFWcharfun)TwEventCharGLFW3);
+	
+	glfwSetWindowSizeCallback(window, resize_callback);
+	
+	TwInit(TW_OPENGL, nullptr);
+	TwWindowSize(_width, _height);
+	
+	Timer T(true);
+	CubicSpline<glm::dvec3, double> S({
+								glm::dvec3(0.0, 0.0, 0.0), 
+								glm::dvec3(1.0, 1.0, 0.0),
+								glm::dvec3(1.0, 0.0, 0.0),
+								glm::dvec3(1.0, -1.0, 0.0),
+								glm::dvec3(-0.3, 0.8, 0.0),
+								glm::dvec3(-0.5, 0.2, 0.0),
+								glm::dvec3(-0.4, 0.0, 0.0),
+								glm::dvec3(-0.8, -0.2, 0.0),
+								glm::dvec3(-0.9, -0.2, 0.0)
+							});
+				
+			
+	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
+	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
+	RayTracerVS.compile();
+
+	FragmentShader& RayTracerFS = ResourcesManager::getInstance().getShader<FragmentShader>("RayTracerFS");
+	RayTracerFS.loadFromFile("src/GLSL/fs.glsl");
+	RayTracerFS.compile();
+	
+	Program& RayTracer = ResourcesManager::getInstance().getProgram("RayTracer");
+	RayTracer.attachShader(RayTracerVS);
+	RayTracer.attachShader(RayTracerFS);
+	RayTracer.link();
+
+	FragmentShader& EyeFS = ResourcesManager::getInstance().getShader<FragmentShader>("EyeFS");
+	EyeFS.loadFromFile("src/GLSL/EyeFS.glsl");
+	EyeFS.compile();
+	
+	Program& Eye = ResourcesManager::getInstance().getProgram("Eye");
+	Eye.attachShader(RayTracerVS);
+	Eye.attachShader(EyeFS);
+	Eye.link();
+	
+	CubeMap& CM = ResourcesManager::getInstance().getTexture<CubeMap>("Sky");
+	/*
+	CM.load({"in/skybox/xpos.png",
+				"in/skybox/xneg.png",
+				"in/skybox/ypos.png",
+				"in/skybox/yneg.png",
+				"in/skybox/zpos.png",
+				"in/skybox/zneg.png"
+	});
+	*/
+
+	#define CUBEMAP_FOLDER "Tantolunden6"
+
+	CM.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
+				"in/" CUBEMAP_FOLDER "/negx.jpg",
+				"in/" CUBEMAP_FOLDER "/posy.jpg",
+				"in/" CUBEMAP_FOLDER "/negy.jpg",
+				"in/" CUBEMAP_FOLDER "/posz.jpg",
+				"in/" CUBEMAP_FOLDER "/negz.jpg"
+	});
+			
+	Texture2D& Tex = ResourcesManager::getInstance().getTexture<Texture2D>("Tex");
+	Tex.load("in/Tex0.jpg");
+	
+	//Material& RayTraced = ResourcesManager::getInstance().getMaterial("RayTraced");
+	Material RayTraced;
+	RayTraced.setShadingProgram(RayTracer);
+	RayTraced.setAttributeRef("iChannel0", CM);
+	RayTraced.setAttributeRef("iChannel2", Tex);
+		
+	RayTraced.setAttributeRef("iGlobalTime", _time);
+	RayTraced.setAttributeRef("iResolution", _resolution);
+	RayTraced.setAttributeRef("iMouse", _mouse);
+	
+	RayTraced.setAttribute("ArmCount", 4.0f);
+	RayTraced.setAttribute("SphereCount", 4);
+	RayTraced.setAttribute("SizeMult", 0.9f);
+	RayTraced.setAttribute("SpeedMult", 1.15f);
+	
+	RayTraced.createAntTweakBar("RayTracing Param");
+		
+	/*
+	RayTraced.setAttribute("Steps", 100);
+	RayTraced.setAttribute("Epsilon", 0.0025);
+	RayTraced.setAttribute("TimeScale", 1.0);
+	
+	RayTraced.setAttribute("Energy", 1.0);
+	RayTraced.setAttribute("Radius", 1.1);
+	RayTraced.setAttribute("InitialPotential", -5.0);
+	RayTraced.setAttribute("Far", 7.0);
+	*/
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	_firstPass = Framebuffer<Texture2D>(_width, _height, true);
+	_firstPass.init();
+
+	Texture2D& Noise = ResourcesManager::getInstance().getTexture<Texture2D>("Noise");
+	Noise.load("in/noise_rgba.png");
+	
+	Material EyeMat;
+	EyeMat.setShadingProgram(Eye);
+	EyeMat.setAttributeRef("iGlobalTime", _time);
+	EyeMat.setAttribute("iResolution", glm::vec3(512.0, 512.0, 0.0));
+	EyeMat.setAttributeRef("iMouse", _mouse);
+	EyeMat.setAttributeRef("iChannel0", Noise);
+	
+	Framebuffer<Texture2D>	EyeTex(512, 512, false);
+	EyeTex.init();
+	
+	RayTraced.setAttributeRef("iChannel1", EyeTex.getColor());
+	
+	while(!glfwWindowShouldClose(window))
+	{	
+		TimeManager::getInstance().update();
+		_frameTime = TimeManager::getInstance().getRealDeltaTime();
+		_time += _frameTime;
+		_frameRate = TimeManager::getInstance().getInstantFrameRate();
+		
+		std::ostringstream oss;
+		oss << _frameRate;
+		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
+		
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		EyeTex.bind();
+		EyeMat.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		Program::useNone();
+		EyeTex.unbind();
+		
+		glViewport(0, 0, _width, _height);
+		
+		RayTraced.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		Program::useNone();
+	
+		/*
+		// TEMP: Test Débile de la Spline ! :D
+		glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
+		glBegin(GL_LINE_STRIP);
+		for(double i = 0.0; i < S.getEndTime(); i += 0.01)
+		{
+			const glm::dvec3 p = S(i);
+			glVertex3f((float) p.x, (float) p.y, (float) p.z);
+		}
+		glEnd();
+		
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		glPointSize(4.f);
+		glBegin(GL_POINTS);
+		for(const auto& p : S)
+		{	
+			const auto& v = p.getPosition();
+			glVertex3f((float) v.x, (float) v.y, (float) v.z);
+		}
+		glEnd();
+		
+		glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+		glBegin(GL_LINES);
+		for(const auto& p : S)
+		{
+			const auto& v = p.getPosition();
+			glVertex3f((float) v.x, (float) v.y, (float) v.z);
+			auto t = v + 0.1 * p.getSpeed();
+			glVertex3f((float) t.x, (float) t.y, (float) t.z);
+		}
+		glEnd();
+		
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+		*/
+		
+		TwDraw();
+		
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+	
+	TwTerminate();
+	
+	glfwDestroyWindow(window);
+}

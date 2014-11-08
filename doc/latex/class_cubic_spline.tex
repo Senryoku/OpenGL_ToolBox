@@ -1,0 +1,153 @@
+\hypertarget{class_cubic_spline}{\section{Cubic\+Spline$<$ T, R $>$ Class Template Reference}
+\label{class_cubic_spline}\index{Cubic\+Spline$<$ T, R $>$@{Cubic\+Spline$<$ T, R $>$}}
+}
+
+
+{\ttfamily \#include $<$Cubic\+Spline.\+hpp$>$}
+
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{class_cubic_spline_aa96fa0cae57adc1b3b54ba6c77449bf9}{Cubic\+Spline} ()=default
+\item 
+\hyperlink{class_cubic_spline_a7dda562cc8c8e21795fae07cd795e34f}{Cubic\+Spline} (const \hyperlink{class_cubic_spline}{Cubic\+Spline}$<$ T, R $>$ \&)=default
+\item 
+\hyperlink{class_cubic_spline_a60273994d7a74bd9b32710fe85930886}{Cubic\+Spline} (\hyperlink{class_cubic_spline}{Cubic\+Spline}$<$ T, R $>$ \&\&)=default
+\item 
+\hyperlink{class_cubic_spline_ada95f74924601a63f49e5a9750b26820}{Cubic\+Spline} (const std\+::initializer\+\_\+list$<$ T $>$ \&L)
+\item 
+\hyperlink{class_cubic_spline_a1585facd63ce5a5a6d792bb74e463530}{Cubic\+Spline} (const std\+::initializer\+\_\+list$<$ \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} $>$ \&L)
+\item 
+{\footnotesize template$<$class Iterator $>$ }\\\hyperlink{class_cubic_spline_a0b0fb22f91f159696773a7c9886917d3}{Cubic\+Spline} (Iterator Begin, Iterator End)
+\item 
+\hypertarget{class_cubic_spline_a63b02c717562f6188361d1cef7de36a0}{\hyperlink{class_cubic_spline}{Cubic\+Spline} \& {\bfseries operator=} (const \hyperlink{class_cubic_spline}{Cubic\+Spline} \&)=default}\label{class_cubic_spline_a63b02c717562f6188361d1cef7de36a0}
+
+\item 
+\hypertarget{class_cubic_spline_a6611d30ab9e2bc9da998da7284cde8a9}{\hyperlink{class_cubic_spline}{Cubic\+Spline} \& {\bfseries operator=} (\hyperlink{class_cubic_spline}{Cubic\+Spline} \&\&)=default}\label{class_cubic_spline_a6611d30ab9e2bc9da998da7284cde8a9}
+
+\item 
+\hypertarget{class_cubic_spline_a4b74494e4824a178cc6ee4af3bf4e6d0}{size\+\_\+t {\bfseries get\+Point\+Count} () const }\label{class_cubic_spline_a4b74494e4824a178cc6ee4af3bf4e6d0}
+
+\item 
+\hypertarget{class_cubic_spline_a0d6abd3a3216bb408d9623795633c291}{void {\bfseries operator+=} (const \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} \&C)}\label{class_cubic_spline_a0d6abd3a3216bb408d9623795633c291}
+
+\item 
+\hypertarget{class_cubic_spline_acdf11d783a0dd7617a102da6eed6f2f7}{void {\bfseries add} (const \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} \&C)}\label{class_cubic_spline_acdf11d783a0dd7617a102da6eed6f2f7}
+
+\item 
+\hypertarget{class_cubic_spline_ae588b1125265af223147542c2ea4a321}{R {\bfseries get\+Start\+Time} () const }\label{class_cubic_spline_ae588b1125265af223147542c2ea4a321}
+
+\item 
+\hypertarget{class_cubic_spline_a42c5272bdcc5e87703ae92f09f84d6ee}{R {\bfseries get\+End\+Time} () const }\label{class_cubic_spline_a42c5272bdcc5e87703ae92f09f84d6ee}
+
+\item 
+\hypertarget{class_cubic_spline_ac9e8435d327ccae34a5669ab521c89ab}{T {\bfseries operator()} (R t)}\label{class_cubic_spline_ac9e8435d327ccae34a5669ab521c89ab}
+
+\item 
+\hypertarget{class_cubic_spline_a9b3b37f8854ccb600a86143037968185}{T {\bfseries get} (R t)}\label{class_cubic_spline_a9b3b37f8854ccb600a86143037968185}
+
+\item 
+\hypertarget{class_cubic_spline_abbc03595baa0e3bbc6d9323156b036b6}{T {\bfseries get\+Speed} (R t)}\label{class_cubic_spline_abbc03595baa0e3bbc6d9323156b036b6}
+
+\item 
+\hypertarget{class_cubic_spline_aa90bb69636898cae50fa444178a1bb21}{T {\bfseries get\+Acceleration} (R t)}\label{class_cubic_spline_aa90bb69636898cae50fa444178a1bb21}
+
+\item 
+\hypertarget{class_cubic_spline_a721c7701df60b26a29ad0a8a161670a9}{void {\bfseries linear\+Timing} (R t=static\+\_\+cast$<$ R $>$(1.\+0))}\label{class_cubic_spline_a721c7701df60b26a29ad0a8a161670a9}
+
+\item 
+\hypertarget{class_cubic_spline_a7a7893b6a340d6d92d2f485050a8a177}{void {\bfseries catmull\+Rom} ()}\label{class_cubic_spline_a7a7893b6a340d6d92d2f485050a8a177}
+
+\item 
+\hypertarget{class_cubic_spline_a33beb7f9777ad224b90724d897a785d7}{std\+::vector$<$ \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} $>$\\*
+\+::iterator {\bfseries begin} ()}\label{class_cubic_spline_a33beb7f9777ad224b90724d897a785d7}
+
+\item 
+\hypertarget{class_cubic_spline_af2d1718c8f709bded0f22211ce5bdcbb}{std\+::vector$<$ \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} $>$\\*
+\+::iterator {\bfseries end} ()}\label{class_cubic_spline_af2d1718c8f709bded0f22211ce5bdcbb}
+
+\item 
+\hypertarget{class_cubic_spline_a29a317e8ea68912e4a6aa8e038441437}{std\+::vector$<$ \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} $>$\\*
+\+::const\+\_\+iterator {\bfseries begin} () const }\label{class_cubic_spline_a29a317e8ea68912e4a6aa8e038441437}
+
+\item 
+\hypertarget{class_cubic_spline_a004685a928570acac100be18fe42b4fe}{std\+::vector$<$ \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} $>$\\*
+\+::const\+\_\+iterator {\bfseries end} () const }\label{class_cubic_spline_a004685a928570acac100be18fe42b4fe}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T, typename R = float$>$class Cubic\+Spline$<$ T, R $>$}
+
+\hyperlink{class_cubic_spline}{Cubic\+Spline} Describes a \hyperlink{class_cubic_spline}{Cubic\+Spline} defined by Control\+Points. Each \hyperlink{class_cubic_spline_1_1_control_point}{Control\+Point} consist of at least a position, and optionally a speed (tangent) and a time (these two can be set to default values, giving you a \mbox{[}0, 1\mbox{]} catmull-\/rom spline).
+
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000001}{Todo}]Easier point insertion ? Auto sorting if time is specified ? 
+
+Comment the whole thing\end{DoxyRefDesc}
+
+
+
+\begin{DoxyParams}{Parameters}
+{\em T} & Well defined vector class (addition, multiplication whith a scalar R) \\
+\hline
+{\em R} & Scalar type of the vector class (default\+: float) \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{class_cubic_spline_aa96fa0cae57adc1b3b54ba6c77449bf9}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [default]}}}\label{class_cubic_spline_aa96fa0cae57adc1b3b54ba6c77449bf9}
+Default Constructor \hypertarget{class_cubic_spline_a7dda562cc8c8e21795fae07cd795e34f}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+\item[{const {\bf Cubic\+Spline}$<$ T, R $>$ \&}]{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [default]}}}\label{class_cubic_spline_a7dda562cc8c8e21795fae07cd795e34f}
+Copy Constructor \hypertarget{class_cubic_spline_a60273994d7a74bd9b32710fe85930886}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+\item[{{\bf Cubic\+Spline}$<$ T, R $>$ \&\&}]{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [default]}}}\label{class_cubic_spline_a60273994d7a74bd9b32710fe85930886}
+Move Constructor \hypertarget{class_cubic_spline_ada95f74924601a63f49e5a9750b26820}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+\item[{const std\+::initializer\+\_\+list$<$ T $>$ \&}]{L}
+\end{DoxyParamCaption}
+)}}\label{class_cubic_spline_ada95f74924601a63f49e5a9750b26820}
+Constructor by list of positions \hypertarget{class_cubic_spline_a1585facd63ce5a5a6d792bb74e463530}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+\item[{const std\+::initializer\+\_\+list$<$ {\bf Control\+Point} $>$ \&}]{L}
+\end{DoxyParamCaption}
+)}}\label{class_cubic_spline_a1585facd63ce5a5a6d792bb74e463530}
+Constructor by list of Control\+Points \hypertarget{class_cubic_spline_a0b0fb22f91f159696773a7c9886917d3}{\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\index{Cubic\+Spline@{Cubic\+Spline}!Cubic\+Spline@{Cubic\+Spline}}
+\subsubsection[{Cubic\+Spline}]{\setlength{\rightskip}{0pt plus 5cm}template$<$class T , typename R  = float$>$ template$<$class Iterator $>$ {\bf Cubic\+Spline}$<$ T, R $>$\+::{\bf Cubic\+Spline} (
+\begin{DoxyParamCaption}
+\item[{Iterator}]{Begin, }
+\item[{Iterator}]{End}
+\end{DoxyParamCaption}
+)}}\label{class_cubic_spline_a0b0fb22f91f159696773a7c9886917d3}
+Constructor by list of positions 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/Cubic\+Spline.\+hpp\end{DoxyCompactItemize}

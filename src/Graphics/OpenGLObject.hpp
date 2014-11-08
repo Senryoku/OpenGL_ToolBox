@@ -1,0 +1,50 @@
+#pragma once
+
+#define GLEW_STATIC
+#include <GL/glew.h>
+
+/**
+ * Base class for every OpenGL Object
+**/
+class OpenGLObject
+{
+public:
+	OpenGLObject();
+	/**
+	 * Constructs a instance managing an existing OpenGL Object.
+	 * (Copy-constructor is generally a better option)
+	**/
+	OpenGLObject(GLuint handle);
+	OpenGLObject(const OpenGLObject&) =default;
+	OpenGLObject(OpenGLObject&&) =default;
+	OpenGLObject& operator=(const OpenGLObject&) =default;
+	OpenGLObject& operator=(OpenGLObject&&) =default;
+	virtual ~OpenGLObject();
+	
+	/** 
+	 * Returns OpenGL name of the object
+	**/
+	GLuint getName() const { return _handle; }
+	
+	/** 
+	 * Sets the OpenGL name of the object managed by this instance
+	 * /!\ Use with caution ! (assignment operator is probably what you're looking for)
+	**/
+	void setName(GLuint N) { _handle = N; }
+	
+	/**
+	 * Returns true if the object seems valid.
+	 * Can be overloaded for concrete types if there is other attributes to test.
+	**/
+	virtual inline bool isValid() const { return _handle != 0; }
+	
+	/**
+	 * Syntactic sugar for isValid().
+	 * Allow the use of quick tests :
+	 * @code if(OpenGLObject_Instance) { ... }
+	**/
+	inline operator bool() const { return isValid(); }
+	
+protected:
+	GLuint	_handle; ///< OpenGL name of the managed object
+};
