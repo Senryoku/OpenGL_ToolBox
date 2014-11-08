@@ -35,7 +35,7 @@ void ComputeShader::initProgram()
 
 GLint ComputeShader::getProgramID() const
 {
-	return (_standalone) ? _program->getID() : 0;
+	return (_standalone) ? _program->getName() : 0;
 }
 	
 void ComputeShader::compile()

@@ -13,7 +13,6 @@ POINTO = $(patsubst $(SRC)/%,$(OBJ)/%,$(POINTOP))
 GLFWROOT = ../glfw/
 GLMROOT = ../glm/
 ANTTWEAKBARROOT = ../../Source/AntTweakBar/
-SPLINEINCLUDE = ../Spline/include
 
 ifeq ($(SHELL), sh.exe) 
 OS := Win
@@ -31,10 +30,10 @@ LIBS :=
 endif
 ifeq ($(OS), Win)
 RM = del
-LIBS :=   -L "extlib/" -L "$(ANTTWEAKBARROOT)/lib" -lAntTweakBar -lglfw3 -lgdi32 -lopengl32 
+LIBS := -L "$(ANTTWEAKBARROOT)/lib" -lAntTweakBar -lglfw3 -lgdi32 -lopengl32 
 endif
 
-OPT := -std=c++11 -Wall -I "$(SPLINEINCLUDE)" -I "$(GLFWROOT)/include" -I "$(SRC)" -I "$(SRC)/Graphics" -I "$(SRC)/Graphics/ShaderProgram" -I "$(SRC)/Tools" -I "$(SRC)/Core" -I "$(GLMROOT)" -I "$(ANTTWEAKBARROOT)/include"
+OPT := -std=c++11 -Wall -I "$(GLFWROOT)/include" -I "$(SRC)" -I "$(SRC)/Graphics" -I "$(SRC)/Graphics/ShaderProgram" -I "$(SRC)/Tools" -I "$(SRC)/Core" -I "$(GLMROOT)" -I "$(ANTTWEAKBARROOT)/include"
 
 all : rel
 

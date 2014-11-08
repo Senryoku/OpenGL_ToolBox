@@ -5,9 +5,9 @@
 #include <Shader.hpp>
 #include <ComputeShader.hpp>
 
-class Program
+class Program : public OpenGLObject
 {
-	public:
+public:
 	Program();
 	~Program();
 	
@@ -17,8 +17,6 @@ class Program
 	void link();
 	void use();
 	inline bool isValid() const { return _linked; }
-	
-	inline const GLint& getID() const { return _program; }
 	
 	GLint getUniformLocation(const std::string& name) const;
 	
@@ -30,8 +28,7 @@ class Program
 	
 	static void useNone();
 	
-	private:
-	GLint	_program;
+private:
 	bool	_linked = false;
 };
 

@@ -4,8 +4,8 @@
 
 #include <Frustum.hpp>
 #include <Texture.hpp>
-#include <Core/ResourcesManager.hpp>
-#include <ShaderProgram/AllShader.hpp>
+#include <ResourcesManager.hpp>
+#include <AllShader.hpp>
 
 class Light
 {

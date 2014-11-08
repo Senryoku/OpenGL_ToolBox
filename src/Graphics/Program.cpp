@@ -1,9 +1,9 @@
 #include "Program.hpp"
 
 Program::Program() :
-	_program(glCreateProgram())
+	OpenGLObject(glCreateProgram())
 {
-	if(_program == 0)
+	if(_handle == 0)
 	{
 		std::cerr << __FUNCTION__ << " : Error glCreateProgram()" << std::endl;
 	}
@@ -11,36 +11,36 @@ Program::Program() :
 
 Program::~Program()
 {
-	glDeleteProgram(_program);
+	glDeleteProgram(_handle);
 }
 
 void Program::attachShader(Shader& shader)
 {
-    glAttachShader(_program, shader.getName());
+    glAttachShader(_handle, shader.getName());
 }
 
 void Program::attachShader(ComputeShader& cshader)
 {
-    glAttachShader(_program, cshader.getName());
+    glAttachShader(_handle, cshader.getName());
 	cshader._program = this;
 }
 
 void Program::attachShader(GLint shader)
 {
-    glAttachShader(_program, shader);
+    glAttachShader(_handle, shader);
 }
 
 void Program::link()
 {
 	int rvalue;
-    glLinkProgram(_program);
-    glGetProgramiv(_program, GL_LINK_STATUS, &rvalue);
+    glLinkProgram(_handle);
+    glGetProgramiv(_handle, GL_LINK_STATUS, &rvalue);
     if (!rvalue)
 	{
         std::cerr << __FUNCTION__ << " : Error in linking shader program" << std::endl;
         GLchar log[10240];
         GLsizei length;
-        glGetProgramInfoLog(_program, 10239, &length, log);
+        glGetProgramInfoLog(_handle, 10239, &length, log);
         std::cerr << "Linker log: " << log << std::endl;
 		
 		_linked = false;
@@ -51,12 +51,12 @@ void Program::link()
 
 void Program::use()
 {
-    glUseProgram(_program);
+    glUseProgram(_handle);
 }
 
 GLint Program::getUniformLocation(const std::string& name) const
 {
-	return glGetUniformLocation(getID(), name.c_str());
+	return glGetUniformLocation(getName(), name.c_str());
 }
 
 void Program::useNone()

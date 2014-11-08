@@ -5,7 +5,7 @@
 #include <Tools/Singleton.hpp>
 #include <Graphics/Texture.hpp>
 #include <Graphics/CubeMap.hpp>
-#include <Graphics/ShaderProgram/AllShader.hpp>
+#include <Graphics/AllShader.hpp>
 
 class ResourcesManager : public Singleton<ResourcesManager>
 {

@@ -13,19 +13,13 @@
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 #include <AntTweakBar.h>
 
-#include <AllShader.hpp>
-#include <CubeMap.hpp>
-#include <ResourcesManager.hpp>
-#include <Timer.hpp>
-#include <TimeManager.hpp>
-#include <Framebuffer.hpp>
-#include <Material.hpp>
-
+#include <Core/TimeManager.hpp>
+#include <Core/ResourcesManager.hpp>
 #include <Tools/StringConversion.hpp>
+#include <Graphics/Material.hpp>
+#include <Graphics/Texture2D.hpp>
 #include <stb_image_write.hpp>
 
-#include <CubicSpline.hpp>
-	
 int		_width = 1366;
 int		_height = 720;
 
@@ -35,8 +29,6 @@ glm::vec4 _mouse(0.0);
 float _time = 0.f;
 float	_frameTime;
 float	_frameRate;
-
-Framebuffer<Texture2D>	_firstPass;
 	
 void error_callback(int error, const char* description)
 {
@@ -52,9 +44,6 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	_resolution = glm::vec3(_width, _height, 0.0);
 	
 	glOrtho(-1.0f, -1.0f, 1.0f, 1.0f, 0.1f, 10000.0f);
-	
-	_firstPass = Framebuffer<Texture2D>(_width, _height, true);
-	_firstPass.init();
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -169,33 +158,13 @@ int main(int argc, char* argv[])
 	
 	TwInit(TW_OPENGL, nullptr);
 	TwWindowSize(_width, _height);
-	
-	Timer T(true);
-	CubicSpline<glm::dvec3, double> S({
-								glm::dvec3(0.0, 0.0, 0.0), 
-								glm::dvec3(1.0, 1.0, 0.0),
-								glm::dvec3(1.0, 0.0, 0.0),
-								glm::dvec3(1.0, -1.0, 0.0),
-								glm::dvec3(-0.3, 0.8, 0.0),
-								glm::dvec3(-0.5, 0.2, 0.0),
-								glm::dvec3(-0.4, 0.0, 0.0),
-								glm::dvec3(-0.8, -0.2, 0.0),
-								glm::dvec3(-0.9, -0.2, 0.0)
-							});
-				
 			
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
 	RayTracerVS.compile();
-
-	FragmentShader& RayTracerFS = ResourcesManager::getInstance().getShader<FragmentShader>("RayTracerFS");
-	RayTracerFS.loadFromFile("src/GLSL/fs.glsl");
-	RayTracerFS.compile();
-	
-	Program& RayTracer = ResourcesManager::getInstance().getProgram("RayTracer");
-	RayTracer.attachShader(RayTracerVS);
-	RayTracer.attachShader(RayTracerFS);
-	RayTracer.link();
 
 	FragmentShader& EyeFS = ResourcesManager::getInstance().getShader<FragmentShader>("EyeFS");
 	EyeFS.loadFromFile("src/GLSL/EyeFS.glsl");
@@ -206,78 +175,16 @@ int main(int argc, char* argv[])
 	Eye.attachShader(EyeFS);
 	Eye.link();
 	
-	CubeMap& CM = ResourcesManager::getInstance().getTexture<CubeMap>("Sky");
-	/*
-	CM.load({"in/skybox/xpos.png",
-				"in/skybox/xneg.png",
-				"in/skybox/ypos.png",
-				"in/skybox/yneg.png",
-				"in/skybox/zpos.png",
-				"in/skybox/zneg.png"
-	});
-	*/
-
-	#define CUBEMAP_FOLDER "Tantolunden6"
-
-	CM.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
-				"in/" CUBEMAP_FOLDER "/negx.jpg",
-				"in/" CUBEMAP_FOLDER "/posy.jpg",
-				"in/" CUBEMAP_FOLDER "/negy.jpg",
-				"in/" CUBEMAP_FOLDER "/posz.jpg",
-				"in/" CUBEMAP_FOLDER "/negz.jpg"
-	});
-			
-	Texture2D& Tex = ResourcesManager::getInstance().getTexture<Texture2D>("Tex");
-	Tex.load("in/Tex0.jpg");
-	
-	//Material& RayTraced = ResourcesManager::getInstance().getMaterial("RayTraced");
-	Material RayTraced;
-	RayTraced.setShadingProgram(RayTracer);
-	RayTraced.setAttributeRef("iChannel0", CM);
-	RayTraced.setAttributeRef("iChannel2", Tex);
-		
-	RayTraced.setAttributeRef("iGlobalTime", _time);
-	RayTraced.setAttributeRef("iResolution", _resolution);
-	RayTraced.setAttributeRef("iMouse", _mouse);
-	
-	RayTraced.setAttribute("ArmCount", 4.0f);
-	RayTraced.setAttribute("SphereCount", 4);
-	RayTraced.setAttribute("SizeMult", 0.9f);
-	RayTraced.setAttribute("SpeedMult", 1.15f);
-	
-	RayTraced.createAntTweakBar("RayTracing Param");
-		
-	/*
-	RayTraced.setAttribute("Steps", 100);
-	RayTraced.setAttribute("Epsilon", 0.0025);
-	RayTraced.setAttribute("TimeScale", 1.0);
-	
-	RayTraced.setAttribute("Energy", 1.0);
-	RayTraced.setAttribute("Radius", 1.1);
-	RayTraced.setAttribute("InitialPotential", -5.0);
-	RayTraced.setAttribute("Far", 7.0);
-	*/
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	_firstPass = Framebuffer<Texture2D>(_width, _height, true);
-	_firstPass.init();
-
 	Texture2D& Noise = ResourcesManager::getInstance().getTexture<Texture2D>("Noise");
 	Noise.load("in/noise_rgba.png");
 	
 	Material EyeMat;
 	EyeMat.setShadingProgram(Eye);
-	EyeMat.setAttributeRef("iGlobalTime", _time);
-	EyeMat.setAttribute("iResolution", glm::vec3(512.0, 512.0, 0.0));
-	EyeMat.setAttributeRef("iMouse", _mouse);
-	EyeMat.setAttributeRef("iChannel0", Noise);
-	
-	Framebuffer<Texture2D>	EyeTex(512, 512, false);
-	EyeTex.init();
-	
-	RayTraced.setAttributeRef("iChannel1", EyeTex.getColor());
+	EyeMat.setUniform("iGlobalTime", &_time);
+	EyeMat.setUniform("iResolution", &_resolution);
+	EyeMat.setUniform("iMouse", &_mouse);
+	EyeMat.setUniform("iChannel0", Noise);
+	EyeMat.createAntTweakBar("Eye Mat");
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -293,52 +200,11 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		EyeTex.bind();
+		
 		EyeMat.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		Program::useNone();
-		EyeTex.unbind();
 		
-		glViewport(0, 0, _width, _height);
-		
-		RayTraced.use();
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		Program::useNone();
-	
-		/*
-		// TEMP: Test Débile de la Spline ! :D
-		glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
-		glBegin(GL_LINE_STRIP);
-		for(double i = 0.0; i < S.getEndTime(); i += 0.01)
-		{
-			const glm::dvec3 p = S(i);
-			glVertex3f((float) p.x, (float) p.y, (float) p.z);
-		}
-		glEnd();
-		
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		glPointSize(4.f);
-		glBegin(GL_POINTS);
-		for(const auto& p : S)
-		{	
-			const auto& v = p.getPosition();
-			glVertex3f((float) v.x, (float) v.y, (float) v.z);
-		}
-		glEnd();
-		
-		glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-		glBegin(GL_LINES);
-		for(const auto& p : S)
-		{
-			const auto& v = p.getPosition();
-			glVertex3f((float) v.x, (float) v.y, (float) v.z);
-			auto t = v + 0.1 * p.getSpeed();
-			glVertex3f((float) t.x, (float) t.y, (float) t.z);
-		}
-		glEnd();
-		
-		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-		*/
 		
 		TwDraw();
 		
