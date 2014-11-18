@@ -8,7 +8,6 @@
 
 #include <Shader.hpp>
 
-
 class FragmentShader : public Shader
 {
 	public:

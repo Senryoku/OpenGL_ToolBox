@@ -3,13 +3,14 @@
 #include <cmath>
 #include <limits>
 
+/// Pi Constant
 constexpr double pi() { return std::atan(1)*4; }
 
 /**
  * @param val
  * @param min
  * @param max
- * @return 
+ * @return Clamped value between min and max
 **/
 template<typename ScalarType>
 ScalarType clamp(ScalarType val, ScalarType min, ScalarType max)
@@ -19,6 +20,9 @@ ScalarType clamp(ScalarType val, ScalarType min, ScalarType max)
 	return val;
 }
 
+/**
+ * Kind of a generic mod
+**/
 template<typename ScalarType>
 ScalarType wrap(ScalarType val, ScalarType min = ScalarType(), ScalarType max = static_cast<ScalarType>(1.f))
 {
@@ -26,6 +30,12 @@ ScalarType wrap(ScalarType val, ScalarType min = ScalarType(), ScalarType max = 
 	while(val > max) val -= max - min;
 }
 
+/**
+ * Generic mod for floating-point types.
+ * @param x
+ * @param y
+ * @return x % y
+**/
 template<typename T>
 T mod(T x, T y)
 {

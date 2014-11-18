@@ -163,6 +163,9 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	ComputeShader& CS = ResourcesManager::getInstance().getShader<ComputeShader>("Test");
+	CS.loadFromFile("GLSL/ComputeTest.glsl");
+	
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
