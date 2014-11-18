@@ -4,6 +4,7 @@
 
 #include <Shader.hpp>
 #include <ComputeShader.hpp>
+#include <UniformBinding.hpp>
 
 class Program : public OpenGLObject
 {
@@ -23,7 +24,7 @@ public:
 	template<typename T>
 	inline void setUniform(const std::string& name, const T& value)
 	{
-		
+		::setUniform(getName(), getUniformLocation(name), value);
 	}
 	
 	static void useNone();

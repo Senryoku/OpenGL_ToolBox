@@ -163,8 +163,38 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	ComputeShader& CS = ResourcesManager::getInstance().getShader<ComputeShader>("Test");
-	CS.loadFromFile("GLSL/ComputeTest.glsl");
+	Texture2D Tex;
+	Tex.load("in/512.bmp");
+	
+	ComputeShader& CS = ResourcesManager::getInstance().getShader<ComputeShader>("ComputeTest");
+	CS.loadFromFile("src/GLSL/ComputeTest.glsl");
+	CS.compile();
+	CS.use();
+	
+	Tex.bindImage(0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+	Tex.bind();
+	CS.getProgram().setUniform("Out", 0);
+	CS.dispatchCompute(512/32, 512/32);
+	CS.memoryBarrier();
+	
+	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
+	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
+	RayTracerVS.compile();
+
+	FragmentShader& FullscreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullscreenTextureFS");
+	FullscreenTextureFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
+	FullscreenTextureFS.compile();
+	
+	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
+	FullscreenTexture.attachShader(RayTracerVS);
+	FullscreenTexture.attachShader(FullscreenTextureFS);
+	FullscreenTexture.link();
+	
+	Material Mat(FullscreenTexture);
+	Mat.setUniform("iGlobalTime", &_time);
+	Mat.setUniform("iResolution", &_resolution);
+	Mat.setUniform("iMouse", &_mouse);
+	Mat.setUniform("iChannel0", Tex);
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -180,7 +210,9 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		
+		Mat.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		Program::useNone();
 		
 		TwDraw();
 		

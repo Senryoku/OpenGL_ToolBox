@@ -33,7 +33,7 @@ void ComputeShader::initProgram()
 	_program = new Program();
 }
 
-GLint ComputeShader::getProgramID() const
+GLuint ComputeShader::getProgramID() const
 {
 	return (_standalone) ? _program->getName() : 0;
 }

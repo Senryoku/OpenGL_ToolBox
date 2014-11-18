@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,15 +21,17 @@ class ComputeShader : public Shader
 	void use();
 	void compute(GLint x, GLint y = 1, GLint z = 1);
 	
-	GLint getProgramID() const;
+	inline Program& getProgram() { assert(_program != nullptr); return *_program; }
+	
+	GLuint getProgramID() const;
 	
 	// STATIC
 	inline static void memoryBarrier(GLbitfield BF = GL_ALL_BARRIER_BITS) { glMemoryBarrier(BF); } 
 	inline static void dispatchCompute(GLint x, GLint y = 1, GLint z = 1) { glDispatchCompute(x, y, z); }
 	
 	private:
-	bool 		_standalone;
-	Program*	_program;
+	bool 			_standalone = true;
+	Program*	_program = nullptr;
 	
 	void initOGL();
 	void initProgram();
