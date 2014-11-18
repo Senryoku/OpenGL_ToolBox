@@ -2,6 +2,10 @@
 
 #include <OpenGLObject.hpp>
 
+/**
+ * TODO
+ *
+**/
 class VertexArray : public OpenGLObject
 {
 	glGenVertexArrays(1, &vaoID[0]); // Créer le VAO

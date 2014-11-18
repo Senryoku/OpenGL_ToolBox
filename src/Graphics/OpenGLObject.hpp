@@ -13,6 +13,7 @@ public:
 	/**
 	 * Constructs a instance managing an existing OpenGL Object.
 	 * (Copy-constructor is generally a better option)
+	 * @param N Object to manage.
 	**/
 	OpenGLObject(GLuint handle);
 	OpenGLObject(const OpenGLObject&) =default;
@@ -29,6 +30,7 @@ public:
 	/** 
 	 * Sets the OpenGL name of the object managed by this instance
 	 * /!\ Use with caution ! (assignment operator is probably what you're looking for)
+	 * @param N New object to manage.
 	**/
 	void setName(GLuint N) { _handle = N; }
 	

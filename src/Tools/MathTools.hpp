@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 
 constexpr double pi() { return std::atan(1)*4; }
 

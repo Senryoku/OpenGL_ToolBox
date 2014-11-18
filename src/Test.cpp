@@ -18,6 +18,7 @@
 #include <Tools/StringConversion.hpp>
 #include <Graphics/Material.hpp>
 #include <Graphics/Texture2D.hpp>
+#include <Graphics/Buffer.hpp>
 #include <stb_image_write.hpp>
 
 int		_width = 1366;
@@ -162,30 +163,6 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
-	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
-	RayTracerVS.compile();
-
-	FragmentShader& EyeFS = ResourcesManager::getInstance().getShader<FragmentShader>("EyeFS");
-	EyeFS.loadFromFile("src/GLSL/EyeFS.glsl");
-	EyeFS.compile();
-	
-	Program& Eye = ResourcesManager::getInstance().getProgram("Eye");
-	Eye.attachShader(RayTracerVS);
-	Eye.attachShader(EyeFS);
-	Eye.link();
-	
-	Texture2D& Noise = ResourcesManager::getInstance().getTexture<Texture2D>("Noise");
-	Noise.load("in/noise_rgba.png");
-	
-	Material EyeMat;
-	EyeMat.setShadingProgram(Eye);
-	EyeMat.setUniform("iGlobalTime", &_time);
-	EyeMat.setUniform("iResolution", &_resolution);
-	EyeMat.setUniform("iMouse", &_mouse);
-	EyeMat.setUniform("iChannel0", Noise);
-	EyeMat.createAntTweakBar("Eye Mat");
-	
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
@@ -200,10 +177,6 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		
-		EyeMat.use();
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		Program::useNone();
 		
 		
 		TwDraw();
