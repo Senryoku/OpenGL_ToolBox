@@ -163,19 +163,43 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	constexpr size_t TexSize = 512;
+	constexpr size_t GroupSize = 32;
+	
 	Texture2D Tex;
 	Tex.load("in/512.bmp");
+	Texture2D Tmp;
+	Tmp.create(nullptr, TexSize, TexSize, 4);
+	Texture2D Out;
+	Out.create(nullptr, TexSize, TexSize, 4);
 	
-	ComputeShader& CS = ResourcesManager::getInstance().getShader<ComputeShader>("ComputeTest");
-	CS.loadFromFile("src/GLSL/ComputeTest.glsl");
-	CS.compile();
-	CS.use();
-	
-	Tex.bindImage(0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+	ComputeShader& Line = ResourcesManager::getInstance().getShader<ComputeShader>("BrutalFT_Line");
+	Line.loadFromFile("src/GLSL/BrutalFT_Line.glsl");
+	Line.compile();
+	Line.use();
+		
 	Tex.bind();
-	CS.getProgram().setUniform("Out", 0);
-	CS.dispatchCompute(512/32, 512/32);
-	CS.memoryBarrier();
+	Line.getProgram().setUniform("In", 0);
+	Tex.bindImage(0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+	Tmp.bind(1);
+	Line.getProgram().setUniform("Out", 1);
+	Tmp.bindImage(1, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+	Line.dispatchCompute(TexSize/GroupSize, TexSize/GroupSize);
+	Line.memoryBarrier();
+	
+	ComputeShader& Column = ResourcesManager::getInstance().getShader<ComputeShader>("BrutalFT_Column");
+	Column.loadFromFile("src/GLSL/BrutalFT_Column.glsl");
+	Column.compile();
+	Column.use();
+	
+	Tmp.bind();
+	Column.getProgram().setUniform("In", 0);
+	Tmp.bindImage(0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+	Out.bind(1);
+	Column.getProgram().setUniform("Out", 1);
+	Out.bindImage(1, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+	Column.dispatchCompute(TexSize/GroupSize, TexSize/GroupSize);
+	Column.memoryBarrier();
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
@@ -184,17 +208,21 @@ int main(int argc, char* argv[])
 	FragmentShader& FullscreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullscreenTextureFS");
 	FullscreenTextureFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
 	FullscreenTextureFS.compile();
+
+	FragmentShader& ComplexFS = ResourcesManager::getInstance().getShader<FragmentShader>("ComplexFS");
+	ComplexFS.loadFromFile("src/GLSL/Complex.glsl");
+	ComplexFS.compile();
 	
 	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
 	FullscreenTexture.attachShader(RayTracerVS);
-	FullscreenTexture.attachShader(FullscreenTextureFS);
+	FullscreenTexture.attachShader(ComplexFS);
 	FullscreenTexture.link();
 	
 	Material Mat(FullscreenTexture);
 	Mat.setUniform("iGlobalTime", &_time);
 	Mat.setUniform("iResolution", &_resolution);
 	Mat.setUniform("iMouse", &_mouse);
-	Mat.setUniform("iChannel0", Tex);
+	Mat.setUniform("iChannel0", Out);
 	
 	while(!glfwWindowShouldClose(window))
 	{	

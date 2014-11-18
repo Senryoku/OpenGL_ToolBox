@@ -44,12 +44,12 @@ void Texture2D::create(const void* data, size_t width, size_t height, int compCo
 	
 	glTexImage2D(GL_TEXTURE_2D, 
 				 0,
-				 compCount,
+				 format,
 	 			 static_cast<GLsizei>(width),
 				 static_cast<GLsizei>(height),
 				 0,
 				 format,
-				 GL_UNSIGNED_BYTE,
+				 _type,
 				 data); 	
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
