@@ -218,5 +218,4 @@ pip-log.txt
 
 doc/*
 bin/*
-bin/Main.exe
 *.o
