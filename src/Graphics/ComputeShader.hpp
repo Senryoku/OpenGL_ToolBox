@@ -11,6 +11,10 @@
 
 class Program;
 
+/**
+ * @see Shader
+ * @see Program
+**/
 class ComputeShader : public Shader
 {
 	public:
@@ -18,12 +22,12 @@ class ComputeShader : public Shader
 	~ComputeShader();
 	
 	void compile();
-	void use();
+	void use() const;
 	void compute(GLint x, GLint y = 1, GLint z = 1);
 	
 	inline Program& getProgram() { assert(_program != nullptr); return *_program; }
 	
-	GLuint getProgramID() const;
+	GLuint getProgramName() const;
 	
 	// STATIC
 	inline static void memoryBarrier(GLbitfield BF = GL_ALL_BARRIER_BITS) { glMemoryBarrier(BF); } 

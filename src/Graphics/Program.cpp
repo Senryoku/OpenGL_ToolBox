@@ -14,6 +14,11 @@ Program::~Program()
 	glDeleteProgram(_handle);
 }
 
+void Program::attachShader(GLuint shaderName)
+{
+    glAttachShader(_handle, shaderName);
+}
+
 void Program::attachShader(Shader& shader)
 {
     glAttachShader(_handle, shader.getName());
@@ -23,11 +28,6 @@ void Program::attachShader(ComputeShader& cshader)
 {
     glAttachShader(_handle, cshader.getName());
 	cshader._program = this;
-}
-
-void Program::attachShader(GLint shader)
-{
-    glAttachShader(_handle, shader);
 }
 
 void Program::link()
@@ -49,7 +49,7 @@ void Program::link()
 	}
 }
 
-void Program::use()
+void Program::use() const
 {
     glUseProgram(_handle);
 }

@@ -22,7 +22,7 @@ endif
 
 ifeq ($(OS), Linux)
 RM = rm
-LIBS := -L "/home/senryoku/Téléchargements/AntTweakBar/lib" -lAntTweakBar -L "$(SHADERROOT)/$(LIB)" -lShader -lGL
+LIBS := -L "$(ANTTWEAKBARROOT)/lib" -lAntTweakBar -lGL
 endif
 ifeq ($(OS), Darwin)
 RM = rm
