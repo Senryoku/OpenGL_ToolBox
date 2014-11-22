@@ -25,9 +25,9 @@ public:
 	void load(const std::string& Path);
 	void create(const void* data, size_t width, size_t height, int compCount);
 	
-	virtual void bind(int UnitTexture = 0) const;
+	virtual void bind(unsigned int unit = 0) const override;
 	
-	static void unbind();
+	virtual void unbind(unsigned int unit = 0) const override;
 private:
 	GLenum	_type = GL_UNSIGNED_BYTE;
 };

@@ -64,13 +64,14 @@ void Texture2D::create(const void* data, size_t width, size_t height, int compCo
 	unbind();
 }
 
-void Texture2D::bind(int UnitTexture) const
+void Texture2D::bind(unsigned int unit) const
 {
-	glActiveTexture(GL_TEXTURE0 + UnitTexture);
+	activeUnit(unit);
 	glBindTexture(GL_TEXTURE_2D, _handle);
 }
 
-void Texture2D::unbind()
+void Texture2D::unbind(unsigned int unit) const
 {
+	activeUnit(unit);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

@@ -97,7 +97,7 @@ public:
 		}
 	}
 
-	void use() const
+	inline void use() const
 	{
 		if(_shadingProgram != nullptr)
 			_shadingProgram->use();
@@ -105,7 +105,15 @@ public:
 		bind();
 	}
 	
+	inline void useNone() const
+	{
+		unbind();
+		Program::useNone();
+	}
+	
 	void bind() const;
+	
+	void unbind() const;
 		
 #ifndef NO_ANTTWEAKBAR
 	void createAntTweakBar(const std::string& Name);

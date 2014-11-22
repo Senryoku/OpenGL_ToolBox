@@ -163,8 +163,15 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	Texture2D Tex;
-	Tex.load("in/512.bmp");
+	CubeMap Tex;
+	#define CUBEMAP_FOLDER "brudslojan"
+	Tex.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
+		"in/" CUBEMAP_FOLDER "/negx.jpg",
+		"in/" CUBEMAP_FOLDER "/posy.jpg",
+		"in/" CUBEMAP_FOLDER "/negy.jpg",
+		"in/" CUBEMAP_FOLDER "/posz.jpg",
+		"in/" CUBEMAP_FOLDER "/negz.jpg"
+	});
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
@@ -173,10 +180,14 @@ int main(int argc, char* argv[])
 	FragmentShader& FullscreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullscreenTextureFS");
 	FullscreenTextureFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
 	FullscreenTextureFS.compile();
+
+	FragmentShader& ShaderToyFS = ResourcesManager::getInstance().getShader<FragmentShader>("ShaderToyFS");
+	ShaderToyFS.loadFromFile("src/GLSL/ShaderToy.glsl");
+	ShaderToyFS.compile();
 	
 	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
 	FullscreenTexture.attachShader(RayTracerVS);
-	FullscreenTexture.attachShader(FullscreenTextureFS);
+	FullscreenTexture.attachShader(ShaderToyFS);
 	FullscreenTexture.link();
 	
 	Material Mat(FullscreenTexture);
@@ -201,6 +212,7 @@ int main(int argc, char* argv[])
 		
 		Mat.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		Mat.useNone();
 		Program::useNone();
 		
 		TwDraw();

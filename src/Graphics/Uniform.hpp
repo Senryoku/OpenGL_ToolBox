@@ -23,6 +23,8 @@ public:
 	virtual void bind() =0;
 	virtual void bind(GLuint program) =0;
 	
+	virtual void unbind(GLuint program) {}
+	
 #ifndef NO_ANTTWEAKBAR
 	virtual inline void addTo(TwBar* bar) {}
 #endif
@@ -89,16 +91,21 @@ public:
 	inline void setValue(const Texture& val) { _value = &val; }
 	inline void setTextureUnit(GLuint U) { _textureUnit = U; }
 	
-	virtual inline void bind()
+	virtual inline void bind() override
 	{
 		_value->bind(_textureUnit);
 		setUniform(getLocation(),  (GLuint) _textureUnit);
 	}
 	
-	virtual inline void bind(GLuint program)
+	virtual inline void bind(GLuint program) override
 	{
 		_value->bind(_textureUnit);
 		setUniform(program, getLocation(), (GLuint) _textureUnit);
+	}
+	
+	virtual inline void unbind(GLuint program) override
+	{
+		_value->unbind(_textureUnit);
 	}
 	
 private:

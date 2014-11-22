@@ -3,22 +3,22 @@
 #include <iostream>
 #include "stb_image.hpp"
 
-void CubeMap::load(const std::array<std::string, 6>& Paths)
+void CubeMap::load(const std::array<std::string, 6>& paths)
 {
 	int x, y, n;
-	std::array<void*, 6> Data;
+	std::array<void*, 6> data;
 	for(size_t i = 0; i < 6; ++i)
 	{
-		Data[i] = stbi_load(Paths[i].c_str(), &x, &y, &n, 0);
-		if(Data[i] == nullptr)
-			std::cerr << "Error Loading Texture " << Paths[i] << std::endl;
+		data[i] = stbi_load(paths[i].c_str(), &x, &y, &n, 0);
+		if(data[i] == nullptr)
+			std::cerr << "Error Loading Texture " << paths[i] << std::endl;
 	}
-	create(Data, x, y, n);
+	create(data, x, y, n);
 	for(size_t i = 0; i < 6; ++i)
-		stbi_image_free(Data[i]);
+		stbi_image_free(data[i]);
 }
 
-void CubeMap::create(const std::array<void*, 6>& Data, size_t width, size_t height, int compCount)
+void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t height, int compCount)
 {
 	cleanup();
 	
@@ -57,7 +57,7 @@ void CubeMap::create(const std::array<void*, 6>& Data, size_t width, size_t heig
 					 0,
 					 format,
 					 GL_UNSIGNED_BYTE,
-					 Data[i]);
+					 data[i]);
 	
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -68,13 +68,14 @@ void CubeMap::create(const std::array<void*, 6>& Data, size_t width, size_t heig
 	unbind();
 }
 
-void CubeMap::bind(int UnitTexture) const
+void CubeMap::bind(unsigned int unit) const
 {
-	glActiveTexture(GL_TEXTURE0 + UnitTexture);
+	activeUnit(unit);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, _handle);
 }
 
-void CubeMap::unbind()
+void CubeMap::unbind(unsigned int unit) const
 {
+	activeUnit(unit);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }

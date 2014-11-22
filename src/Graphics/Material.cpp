@@ -6,6 +6,12 @@ void Material::bind() const
 		U.get()->bind(_shadingProgram->getName());
 }
 
+void Material::unbind() const
+{	
+	for(auto& U : _uniforms)
+		U.get()->unbind(_shadingProgram->getName());
+}
+
 void Material::updateLocations()
 {
 	for(auto& U : _uniforms)

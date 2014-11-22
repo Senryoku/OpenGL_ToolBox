@@ -11,15 +11,15 @@ public:
 	/**
 	 * Order : XPOS, XNEG, YPOS, YNEG, ZPOS, ZNEG
 	**/
-	void load(const std::array<std::string, 6>& Paths);
+	void load(const std::array<std::string, 6>& paths);
 
-	void create(const std::array<void*, 6>& Data,
+	void create(const std::array<void*, 6>& data,
 				size_t width, 
 				size_t height,
 				int compCount);
 	
-	void bind(int UnitTexture = 0) const;
+	virtual void bind(unsigned int unit = 0) const override;
 	
-	static void unbind();
+	virtual void unbind(unsigned int unit = 0) const override;
 private:
 };

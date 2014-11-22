@@ -24,12 +24,19 @@ public:
 		
 	virtual ~Texture();
 
-	virtual void bind(int UnitTexture = 0) const {};
+	virtual void bind(unsigned int unit = 0) const {}
+	
+	virtual void unbind(unsigned int unit = 0) const {}
 	
 	/**
 	 * TODO
 	**/
 	virtual void bindImage(GLuint unit, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format) const;
+	
+	inline static void activeUnit(unsigned int unit)
+	{
+		glActiveTexture(GL_TEXTURE0 + unit);
+	}
 protected:
 	void cleanup();
 };
