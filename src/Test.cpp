@@ -18,6 +18,7 @@
 #include <Tools/StringConversion.hpp>
 #include <Graphics/Material.hpp>
 #include <Graphics/Texture2D.hpp>
+#include <Graphics/Texture3D.hpp>
 #include <Graphics/Framebuffer.hpp>
 #include <Graphics/Buffer.hpp>
 #include <stb_image_write.hpp>
@@ -175,18 +176,8 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	CubeMap Tex;
-	#define CUBEMAP_FOLDER "Vasa"
-	Tex.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
-		"in/" CUBEMAP_FOLDER "/negx.jpg",
-		"in/" CUBEMAP_FOLDER "/posy.jpg",
-		"in/" CUBEMAP_FOLDER "/negy.jpg",
-		"in/" CUBEMAP_FOLDER "/posz.jpg",
-		"in/" CUBEMAP_FOLDER "/negz.jpg"
-	});
-	
-	Framebuffer<Texture2D> FB(1920 * 1.0, 1080 * 1.0, false);
-	FB.init();
+	Texture3D Tex;
+	Tex.create(nullptr, 128, 128, 128, 1);
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
@@ -197,30 +188,20 @@ int main(int argc, char* argv[])
 	FullscreenTextureFS.compile();
 
 	FragmentShader& ShaderToyFS = ResourcesManager::getInstance().getShader<FragmentShader>("ShaderToyFS");
-	ShaderToyFS.loadFromFile("src/GLSL/ShaderToy.glsl");
+	ShaderToyFS.loadFromFile("src/GLSL/Texture3DTest.glsl");
 	ShaderToyFS.compile();
 	
-	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
-	FullscreenTexture.attachShader(RayTracerVS);
-	FullscreenTexture.attachShader(FullscreenTextureFS);
-	FullscreenTexture.link();
-	
-	Program& ShaderToy = ResourcesManager::getInstance().getProgram("ShaderToy");
+	Program& ShaderToy = ResourcesManager::getInstance().getProgram("Texture3D Test");
 	ShaderToy.attachShader(RayTracerVS);
 	ShaderToy.attachShader(ShaderToyFS);
 	ShaderToy.link();
 	
-	Material ST(ShaderToy);
-	ST.setUniform("iGlobalTime", &_time);
-	ST.setUniform("iResolution", glm::vec3(FB.getWidth(), FB.getHeight(), 0.0));
-	ST.setUniform("iMouse", &_mouse);
-	ST.setUniform("iChannel0", Tex);
-	ST.createAntTweakBar("ST Material");
-	
-	Material Mat(FullscreenTexture);
-	Mat.setUniform("iResolution", &_resolution);
-	Mat.setUniform("iChannel0", FB.getColor());
-	Mat.createAntTweakBar("Screen Material");
+	Material Mat(ShaderToy);
+	Mat.setUniform("iGlobalTime", &_time);
+	Mat.setUniform("iResolution", glm::vec3(_width, _height, 0.0));
+	Mat.setUniform("iMouse", &_mouse);
+	Mat.setUniform("iChannel0", Tex);
+	Mat.createAntTweakBar("Material");
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -236,13 +217,6 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		FB.bind();
-		ST.use();
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		ST.useNone();
-		FB.unbind();
-		
-		glViewport(0, 0, _width, _height);
 		Mat.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		Mat.useNone();

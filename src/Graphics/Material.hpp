@@ -13,6 +13,7 @@
 #include <AllShader.hpp>
 #include <Uniform.hpp>
 #include <Texture2D.hpp>
+#include <Texture3D.hpp>
 
 /**
  * Material
@@ -41,6 +42,11 @@ public:
 	
 	////////////////////////////////////////////////////////////////
 	// Special cases for textures
+	
+	void setUniform(const std::string& name, const Texture3D& value)
+	{
+		setUniform(name, static_cast<const Texture&>(value));
+	}
 	
 	void setUniform(const std::string& name, const Texture2D& value)
 	{
