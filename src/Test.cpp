@@ -18,6 +18,7 @@
 #include <Tools/StringConversion.hpp>
 #include <Graphics/Material.hpp>
 #include <Graphics/Texture2D.hpp>
+#include <Graphics/Framebuffer.hpp>
 #include <Graphics/Buffer.hpp>
 #include <stb_image_write.hpp>
 
@@ -123,6 +124,17 @@ inline void TwEventKeyGLFW3(GLFWwindow* window, int key, int scancode, int actio
 
 inline void TwEventCharGLFW3(GLFWwindow* window, int codepoint) { TwEventCharGLFW(codepoint, GLFW_PRESS); }
 
+void screen(const std::string& path)
+{
+	GLubyte* pixels = new GLubyte[4 * _width * _height];
+
+	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	
+	stbi_write_png(path.c_str(), _width, _height, 4, pixels, 0);
+	
+	delete[] pixels;
+}
+
 int main(int argc, char* argv[])
 {
 	if (glfwInit() == false)
@@ -164,7 +176,7 @@ int main(int argc, char* argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	CubeMap Tex;
-	#define CUBEMAP_FOLDER "SwedishRoyalCastle"
+	#define CUBEMAP_FOLDER "Vasa"
 	Tex.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
 		"in/" CUBEMAP_FOLDER "/negx.jpg",
 		"in/" CUBEMAP_FOLDER "/posy.jpg",
@@ -172,6 +184,9 @@ int main(int argc, char* argv[])
 		"in/" CUBEMAP_FOLDER "/posz.jpg",
 		"in/" CUBEMAP_FOLDER "/negz.jpg"
 	});
+	
+	Framebuffer<Texture2D> FB(1920 * 1.0, 1080 * 1.0, false);
+	FB.init();
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
@@ -187,15 +202,25 @@ int main(int argc, char* argv[])
 	
 	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
 	FullscreenTexture.attachShader(RayTracerVS);
-	FullscreenTexture.attachShader(ShaderToyFS);
+	FullscreenTexture.attachShader(FullscreenTextureFS);
 	FullscreenTexture.link();
 	
+	Program& ShaderToy = ResourcesManager::getInstance().getProgram("ShaderToy");
+	ShaderToy.attachShader(RayTracerVS);
+	ShaderToy.attachShader(ShaderToyFS);
+	ShaderToy.link();
+	
+	Material ST(ShaderToy);
+	ST.setUniform("iGlobalTime", &_time);
+	ST.setUniform("iResolution", glm::vec3(FB.getWidth(), FB.getHeight(), 0.0));
+	ST.setUniform("iMouse", &_mouse);
+	ST.setUniform("iChannel0", Tex);
+	ST.createAntTweakBar("ST Material");
+	
 	Material Mat(FullscreenTexture);
-	Mat.setUniform("iGlobalTime", &_time);
 	Mat.setUniform("iResolution", &_resolution);
-	Mat.setUniform("iMouse", &_mouse);
-	Mat.setUniform("iChannel0", Tex);
-	Mat.createAntTweakBar("Material");
+	Mat.setUniform("iChannel0", FB.getColor());
+	Mat.createAntTweakBar("Screen Material");
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -211,10 +236,16 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+		FB.bind();
+		ST.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		ST.useNone();
+		FB.unbind();
+		
+		glViewport(0, 0, _width, _height);
 		Mat.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		Mat.useNone();
-		Program::useNone();
 		
 		TwDraw();
 		

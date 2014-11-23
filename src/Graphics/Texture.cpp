@@ -17,9 +17,8 @@ void Texture::bindImage(GLuint unit, GLint level, GLboolean layered, GLint layer
 
 void Texture::generateMipmaps() const
 {
-	bind();
+	Binder B(*this);
 	glGenerateMipmap(getType());
-	unbind();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

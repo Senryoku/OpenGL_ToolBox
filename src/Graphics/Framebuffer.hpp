@@ -17,6 +17,9 @@ public:
 	
 	inline TexType& getColor() { return _color; }
 	inline TexType& getDepth() { return _depth; }
+	
+	inline size_t getWidth() const { return _width; }
+	inline size_t getHeight() const { return _height; }
 
 	static inline void unbind(GLenum target = GL_FRAMEBUFFER) { glBindFramebuffer(target, 0); };
 private:
@@ -49,7 +52,7 @@ Framebuffer<TexType>::Framebuffer(size_t width, size_t height, bool useDepth) :
 template<typename TexType>
 Framebuffer<TexType>::~Framebuffer()
 {
-	//cleanup();
+	cleanup();
 }
 
 template<typename TexType>
@@ -62,9 +65,11 @@ template<typename TexType>
 void Framebuffer<TexType>::init()
 {
 	_color.create(nullptr, _width, _height, 4);
+	_color.set(Texture::Parameter::MinFilter, GL_LINEAR);
+	_color.set(Texture::Parameter::MagFilter, GL_LINEAR);
 
 	glGenFramebuffers(1, &_handle);
-	glBindFramebuffer(GL_FRAMEBUFFER, _handle);
+	bind();
 		
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, _color.getName(), 0);
  
@@ -83,7 +88,7 @@ void Framebuffer<TexType>::init()
 		cleanup();
 	}
 	
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	unbind();
 }
 
 template<typename TexType>
@@ -91,7 +96,7 @@ void Framebuffer<TexType>::bind(GLenum target) const
 {
 	glBindFramebuffer(target, _handle);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glViewport(0, 0, _width, _height);
 }

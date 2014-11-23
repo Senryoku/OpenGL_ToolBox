@@ -10,6 +10,7 @@
 /**
  * Texture 2D
  * @todo Add a LOT of options !
+ * @todo Change default parameters ?
 **/
 class Texture2D : public Texture
 {

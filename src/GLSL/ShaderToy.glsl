@@ -28,6 +28,7 @@ uniform float     		iSampleRate;
 #define SELF_REFLEXION
 #define SELF_SHADOWING
 #define SOFT_SHADOW
+#define ENABLE_POINT_LIGHT_FLARE
 
 const int Steps = 150; // Max. ray steps before bailing out
 const float Epsilon = 0.0025; // Marching epsilon
@@ -47,6 +48,40 @@ float Time = 0.0;
 vec3 rotateX(vec3 p, float a);
 vec3 rotateY(vec3 p, float a);
 vec3 rotateZ(vec3 p, float a);
+
+struct Sphere
+{
+    vec3 c;
+    float r;
+};
+
+struct Ray
+{
+    vec3 o;
+    vec3 d;
+};
+
+bool traceSphere(Sphere s, Ray r, out float o)
+{	
+    vec3 d = r.o - s.c;
+	
+	float a = dot(r.d, r.d);
+	float b = dot(r.d, d);
+	float c = dot(d, d) - s.r * s.r;
+	
+	float g = b*b - a*c;
+	
+	if(g > 0.0)
+    {
+		float dis = (-sqrt(g) - b) / a;
+		if(dis > 0.0)
+        {
+			o = dis;
+            return true;
+		}
+	}
+    return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Distance => Energy function
@@ -316,7 +351,7 @@ void main(void)
 	
 	Time = 0.2 * iGlobalTime;
 	
-	//LightPos = vec3(5.0 * sin(Time * 2.0), 2.0, 5.0 * cos(Time * 2.0));
+	LightPos = vec3(5.0 * sin(Time * 2.0), 2.0, 5.0 * cos(Time * 2.0));
 
 	// Compute ray origin and direction
 	float asp = iResolution.x / iResolution.y;
@@ -351,21 +386,34 @@ void main(void)
 
 		// Shade
 #ifdef SELF_REFLEXION
-		vec3 ref = SphereTrace(pos + 0.1 * n, n, hit);
-        if(hit)
+		bool hit2 = false;
+		vec3 ref = SphereTrace(pos + 0.1 * n, n, hit2);
+		vec3 p2 = pos;
+		vec3 rd2 = rd;
+        if(hit2)
         {
-            rd = normalize(ref - pos);
-            pos = ref;
+            rd2 = normalize(ref - pos);
+            p2 = ref;
 			n = SphereTracedObjectNormal(ref);
         }
-        rgb = shade_reflect(pos, rd, n);
+        rgb += shade_reflect(p2, rd2, n);
 #else
-		rgb = shade_reflect(pos, rd, n);
+		rgb += shade_reflect(pos, rd, n);
 #endif
 	} else {
-		rgb = background(rd);
+		rgb += background(rd);
 	}
-
+	
+    #ifdef ENABLE_POINT_LIGHT_FLARE
+	float dist;
+	const float rad = 0.2;
+	if(traceSphere(Sphere(LightPos, rad), Ray(ro, rd), dist) && (!hit || dist < length(ro - pos)))
+	{
+		float d = 1.0 - sin(acos((length(ro - LightPos) - dist)/rad)); 
+		rgb += LightColor * d * d;
+	}
+	#endif 
+	
 	gl_FragColor = vec4(rgb, 1.0);
 }
 

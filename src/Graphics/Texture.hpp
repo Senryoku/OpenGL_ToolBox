@@ -83,14 +83,14 @@ public:
 	template<typename T>
 	void set(Parameter opt, T value) const
 	{
-		Binder(*this);
+		Binder B(*this);
 		texParameter(getType(), static_cast<GLenum>(opt), value);
 	}
 	
 	template<typename T>
 	void setI(Parameter opt, T value) const
 	{
-		Binder(*this);
+		Binder B(*this);
 		texParameterI(getType(), static_cast<GLenum>(opt), value);
 	}
 	
