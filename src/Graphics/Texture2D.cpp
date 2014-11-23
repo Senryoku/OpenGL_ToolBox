@@ -50,16 +50,21 @@ void Texture2D::create(const void* data, size_t width, size_t height, int compCo
 				 0,
 				 format,
 				 _type,
-				 data); 	
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				 data
+				); 
+
+	// Default Parameters
+	set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	set(MagFilter, GL_LINEAR);
+	set(WrapS, GL_REPEAT);
+	set(WrapT, GL_REPEAT);
 	
+	// Mmh ?
 	GLfloat maxAniso = 0.0f;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
 	glSamplerParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+	
+	glGenerateMipmap(GL_TEXTURE_2D);
 	
 	unbind();
 }

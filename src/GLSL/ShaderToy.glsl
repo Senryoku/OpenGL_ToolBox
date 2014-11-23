@@ -1,3 +1,5 @@
+#version 440
+
 // ShaderToy inputs
 uniform vec3     		iResolution;           // viewport resolution (in pixels)
 uniform float     		iGlobalTime;           // shader playback time (in seconds)
@@ -30,8 +32,8 @@ uniform float     		iSampleRate;
 const int Steps = 150; // Max. ray steps before bailing out
 const float Epsilon = 0.0025; // Marching epsilon
 
-const float RayMaxLength = 7.0;
-const float Near = 16.0; // Screen rays starting point
+const float RayMaxLength = 6.5;
+const float Near = 16.5; // Screen rays starting point
 
 // Point Light
 vec3 LightPos = vec3(5.0 , 2.0, -5.0);
@@ -244,9 +246,14 @@ float softShadow(vec3 a, vec3 u, float k)
 // Shading
 
 // Background color
+vec3 background(vec3 rd, float bias)
+{
+	return texture(iChannel0, rd, bias).xyz;
+}
+
 vec3 background(vec3 rd)
 {
-	return textureCube(iChannel0, rd).xyz;
+	return texture(iChannel0, rd).xyz;
 }
 
 vec3 shade_reflect(vec3 p, vec3 rd, vec3 n)

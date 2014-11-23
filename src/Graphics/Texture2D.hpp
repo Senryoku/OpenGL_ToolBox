@@ -28,6 +28,16 @@ public:
 	virtual void bind(unsigned int unit = 0) const override;
 	
 	virtual void unbind(unsigned int unit = 0) const override;
+	
+	virtual GLuint getBound(unsigned int unit = 0) const override
+	{
+		activeUnit(unit);
+		GLint r;
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &r);
+		return static_cast<GLuint>(r);
+	}
 private:
 	GLenum	_type = GL_UNSIGNED_BYTE;
+	
+	virtual GLenum getType() const override { return GL_TEXTURE_2D; }
 };

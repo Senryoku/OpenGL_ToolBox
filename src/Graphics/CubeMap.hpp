@@ -21,5 +21,15 @@ public:
 	virtual void bind(unsigned int unit = 0) const override;
 	
 	virtual void unbind(unsigned int unit = 0) const override;
+	
+	virtual GLuint getBound(unsigned int unit = 0) const override
+	{
+		activeUnit(unit);
+		GLint r;
+		glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &r);
+		return static_cast<GLuint>(r);
+	}
 private:
+
+	virtual GLenum getType() const override { return GL_TEXTURE_CUBE_MAP; }
 };

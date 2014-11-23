@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 #include <Frustum.hpp>
-#include <Texture.hpp>
+#include <Texture2D.hpp>
 #include <ResourcesManager.hpp>
 #include <AllShader.hpp>
 
@@ -24,7 +24,7 @@ protected:
 	bool					_castShadows = true;
 	unsigned int		_shadowMapResolution = 4096;
 	GLuint 				_shadowMapFramebuffer = 0;
-	Texture				_shadowMapDepthTexture;
+	Texture2D			_shadowMapDepthTexture;
 	glm::mat4			_depthProjectionMatrix;
 	glm::mat4			_depthBiasMVP;
 	

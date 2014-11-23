@@ -28,7 +28,7 @@ void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t heig
 	glGenTextures(1, &_handle);
 	bind();
 	
-	GLenum format;
+	GLenum format = GL_RGBA;
 	switch(compCount)
 	{
 		case 1 :
@@ -58,12 +58,26 @@ void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t heig
 					 format,
 					 GL_UNSIGNED_BYTE,
 					 data[i]);
-	
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	/*
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	*/
+	
+	//set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	set(MagFilter, GL_LINEAR);
+	set(WrapS, GL_CLAMP_TO_EDGE);
+	set(WrapT, GL_CLAMP_TO_EDGE);
+	set(WrapR, GL_CLAMP_TO_EDGE);
+	
+	GLfloat maxAniso = 0.0f;
+	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+	glSamplerParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+	
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 	
 	unbind();
 }

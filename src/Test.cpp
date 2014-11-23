@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	CubeMap Tex;
-	#define CUBEMAP_FOLDER "brudslojan"
+	#define CUBEMAP_FOLDER "SwedishRoyalCastle"
 	Tex.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
 		"in/" CUBEMAP_FOLDER "/negx.jpg",
 		"in/" CUBEMAP_FOLDER "/posy.jpg",
@@ -195,6 +195,7 @@ int main(int argc, char* argv[])
 	Mat.setUniform("iResolution", &_resolution);
 	Mat.setUniform("iMouse", &_mouse);
 	Mat.setUniform("iChannel0", Tex);
+	Mat.createAntTweakBar("Material");
 	
 	while(!glfwWindowShouldClose(window))
 	{	

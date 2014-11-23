@@ -17,12 +17,13 @@ void Light::init()
 		_depthProgram.link();
 	}
 	
+	///@todo Use Texture Class... Framebuffer class...
+	
 	GLuint Tex;
 	glGenTextures(1, &Tex);
 	_shadowMapDepthTexture.setName(Tex);
 
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, Tex);
+	_shadowMapDepthTexture.bind(1);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
