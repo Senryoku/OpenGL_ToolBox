@@ -23,6 +23,8 @@
 #include <Graphics/Buffer.hpp>
 #include <stb_image_write.hpp>
 
+#include "../../../Spline/include/CubicSpline.hpp"
+
 int		_width = 1366;
 int		_height = 720;
 
@@ -176,8 +178,34 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	const size_t Tex3DRes = 256;
+	
+	CubicSpline<glm::vec3> Spline({glm::vec3(0.0, 0.0, 0.0),
+												  glm::vec3(0.25, 0.25, 0.1),
+												  glm::vec3(0.5, 0.5, 0.25),
+												  glm::vec3(0.75, 0.25, 0.5),
+												  glm::vec3(0.1, 0.0, 0.75)
+												 });
+	
 	Texture3D Tex;
-	Tex.create(nullptr, 128, 128, 128, 1);
+	GLubyte* data = new GLubyte[Tex3DRes*Tex3DRes*Tex3DRes];
+	for(size_t i = 0; i < Tex3DRes; ++i)
+		for(size_t j = 0; j < Tex3DRes; ++j)
+			for(size_t k = 0; k < Tex3DRes; ++k)
+				data[i * Tex3DRes * Tex3DRes + j * Tex3DRes + k] =  0;
+	
+	const int pointsize = 1;
+	for(int t = 0; t < 1000; ++t)
+	{
+		glm::vec3 p = Spline(Spline.getPointCount() * t / 1000.0);
+		for(int i = -pointsize; i <= pointsize; ++i)
+			for(int j = -pointsize; j <= pointsize; ++j)
+				for(int k = -pointsize; k <= pointsize; ++k)
+					data[((int) (Tex3DRes * p.x + i) % Tex3DRes) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y + j) % Tex3DRes) * Tex3DRes + ((int) (Tex3DRes * p.z + k) % Tex3DRes)] = 255;
+	}
+	
+	Tex.create(data, Tex3DRes, Tex3DRes, Tex3DRes, 1);
+	delete[] data;
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
@@ -198,7 +226,7 @@ int main(int argc, char* argv[])
 	
 	Material Mat(ShaderToy);
 	Mat.setUniform("iGlobalTime", &_time);
-	Mat.setUniform("iResolution", glm::vec3(_width, _height, 0.0));
+	Mat.setUniform("iResolution", &_resolution);
 	Mat.setUniform("iMouse", &_mouse);
 	Mat.setUniform("iChannel0", Tex);
 	Mat.createAntTweakBar("Material");

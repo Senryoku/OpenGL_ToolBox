@@ -46,8 +46,9 @@ void Texture3D::create(const void* data, size_t width, size_t height, size_t dep
 	// Default Parameters
 	set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
 	set(MagFilter, GL_LINEAR);
-	set(WrapS, GL_REPEAT);
-	set(WrapT, GL_REPEAT);
+	set(WrapS, GL_CLAMP_TO_BORDER);
+	set(WrapT, GL_CLAMP_TO_BORDER);
+	set(WrapR, GL_CLAMP_TO_BORDER);
 	
 	// Mmh ?
 	GLfloat maxAniso = 0.0f;
