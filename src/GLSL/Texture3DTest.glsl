@@ -13,21 +13,13 @@ uniform sampler2D	iChannel3;          // input channel. XX = 2D/Cube
 uniform vec4      		iDate;                 // (year, month, day, time in seconds)
 uniform float     	iSampleRate; 
 
-// First try at RayMarching / Use of implicit surfaces
-// Senryoku - 09/2014
-// Based on "Blobs" by Eric Galin
-
-// Updates:
-// 22/11/14 - Small cleanup and optimization
-// (...Many modifications...)
-
 // Configuration
 
-// Comment this to enable mouse control
-// #define AUTO_ROTATE 
+const float Tex3DRes = 512.0;
+const int Steps = 512; // Max. ray steps before bailing out
+const float Epsilon = 1.0 / Tex3DRes; // Marching epsilon
 
-const int Steps = 300; // Max. ray steps before bailing out
-const float Epsilon = 4.0 / Steps; // Marching epsilon
+const float maxLoD = log2(Tex3DRes) - 3;
 
 // Point Light
 vec3 LightPos = vec3(5.0 , 2.0, -5.0);
@@ -55,14 +47,14 @@ mat4 rotationMatrix(vec3 axis, float angle)
 ///////////////////////////////////////////////////////////////////////////
 // Object
 
-float SphereTracedObject(vec3 p)
+float object(vec3 p, float bias)
 {
-	p.z = -p.z;
-	float v = -0.5;
+	return textureLod(iChannel0, p + vec3(0.5, 0.5, 0.5), bias).x;
+}
 
-	v += texture(iChannel0, p + vec3(0.5, 0.5, 0.5)).x;
-
-	return v;
+float object(vec3 p)
+{
+	return texture(iChannel0, p + vec3(0.5, 0.5, 0.5)).x;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -71,21 +63,47 @@ float SphereTracedObject(vec3 p)
 //////////////////////////////////////////////////////////////////////////
 // Tracing
 
-// Trace ray using sphere tracing
-// a : ray origin
-// u : ray direction
-vec3 SphereTrace(vec3 a, vec3 u, out bool hit)
+vec3 lodTrace(vec3 a, vec3 u, out bool hit, out int s)
 {
 	hit = false;
 	vec3 p = a;
 	float step = 0.0;
+	float LoD = maxLoD;
+	float depth = 0.0;
 	for(int i = 0; i < Steps; i++)
 	{
-		float v = SphereTracedObject(p);
+		float v = object(p, LoD);
 		if (v > 0.0)
 		{
-			hit = true; 
-			return p;
+			if(LoD < 1.0)
+			{
+				hit = true; 
+				return p;
+			}
+			LoD = clamp(LoD - 1.0, 0.0, maxLoD);
+		} else {
+			depth += max(1.0, LoD) * Epsilon;
+			if(depth >= sqrt(2.0))
+				return p;
+			p += max(1.0, LoD) * Epsilon * u;
+			LoD = clamp(LoD + 1.0, 0.0, maxLoD);
+		}
+				s = i;
+	}
+	return p;
+}
+
+vec3 trace(vec3 a, vec3 u, out bool hit)
+{
+	hit = false;
+	vec3 p = a;
+	for(int i = 0; i < Steps; i++)
+	{
+		float v = object(p);
+		if (v > 0.0)
+		{
+				hit = true; 
+				return p;
 		}
 		
 		p += Epsilon * u;
@@ -95,6 +113,41 @@ vec3 SphereTrace(vec3 a, vec3 u, out bool hit)
 
 //////////////////////////////////////////////////////////////////////////
 
+bool traceBox(vec3 ro, vec3 rd, vec3 lb, vec3 rt, out float t)
+{
+	vec3 dirfrac;
+	dirfrac.x = 1.0f / rd.x;
+	dirfrac.y = 1.0f / rd.y;
+	dirfrac.z = 1.0f / rd.z;
+	// lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
+	// r.org is origin of ray
+	float t1 = (lb.x - ro.x) * dirfrac.x;
+	float t2 = (rt.x - ro.x) * dirfrac.x;
+	float t3 = (lb.y - ro.y) * dirfrac.y;
+	float t4 = (rt.y - ro.y) * dirfrac.y;
+	float t5 = (lb.z - ro.z) * dirfrac.z;
+	float t6 = (rt.z - ro.z) * dirfrac.z;
+
+	float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+	float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+
+	// if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
+	if (tmax < 0)
+	{
+		t = tmax;
+		return false;
+	}
+
+	// if tmin > tmax, ray doesn't intersect AABB
+	if (tmin > tmax)
+	{
+		t = tmax;
+		return false;
+	}
+
+	t = tmin;
+	return true;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Shading
@@ -112,36 +165,44 @@ void main(void)
 	// Compute ray origin and direction
 	float asp = iResolution.x / iResolution.y;
 	
-	vec3 rd = normalize(vec3(asp * pixel.x, pixel.y, 1.0));
-	vec3 position = vec3(0.0, 0.0, 2.0);
+	vec3 rd = normalize(vec3(asp * pixel.x, pixel.y, 2.0));
+	vec3 position = vec3(0.0, 0.5, 2.0);
 
-	const vec3 up = vec3(0.0, 1.0, 0.0);
+	const vec3 up = vec3(0.0, -1.0, 0.0);
 	
+	vec2 um = vec2(0.0);
 	if(iMouse.z > 0)
-	{
-		vec2 um = 5.0 * (iMouse.xy / iResolution.xy-.5);
-		position = vec3(rotationMatrix(up, um.x) * vec4(position, 1.0));
-		position = vec3(rotationMatrix(normalize(-position), um.y) * vec4(position, 1.0));
-	}
+		um = 5.0 * (iMouse.xy / iResolution.xy-.5);
+	position = vec3(rotationMatrix(up, um.x) * vec4(position, 1.0));
+	position = vec3(rotationMatrix(cross(up, normalize(-position)), um.y) * vec4(position, 1.0));
 	
 	const vec3 forward = normalize(-position);
-	mat4 viewMatrix = mat4(vec4(cross(forward, up), 0), vec4(up, 0), vec4(forward, 0), vec4(vec3(0.0), 1));
+	const vec3 right = cross(forward, up);
+	mat4 viewMatrix = mat4(vec4(right, 0), vec4(cross(forward, right), 0), vec4(forward, 0), vec4(vec3(0.0), 1));
 	
-	rd = vec3(inverse(viewMatrix) * vec4(rd, 1));
+	rd = vec3(viewMatrix * vec4(rd, 1));
 	
 	vec3 ro = position;
 	
-	// Trace ray
-	bool hit = false;
-	vec3 pos = vec3(0.0);
-	
-	vec3 rgb = vec3(0.0);
-	
-	pos = SphereTrace(ro + 1.0 * rd, rd, hit);
-
-	if (hit)
+	vec3 rgb = vec3(0.0); // Background
+	float t;
+	int s = 0;
+	if(traceBox(ro, rd, vec3(-0.5), vec3(0.5), t))
 	{
-		rgb = vec3(1.0);
+		// Trace ray
+		bool hit = false;
+		vec3 pos = vec3(0.0);
+		
+		pos = lodTrace(ro + t * rd, rd, hit, s);
+
+		if (hit)
+		{
+			rgb = vec3(1.0);
+		} else {
+			rgb = vec3(0.0,  s / float(Steps), s / float(Steps));
+		}
+	} else { // No intersection, early bail
+		rgb = vec3(0.0, max(0.1, pixel.y + 0.5), max(0.1, pixel.y + 0.5)); 
 	}
 	
 	gl_FragColor = vec4(rgb, 1.0);

@@ -178,13 +178,16 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	const size_t Tex3DRes = 256;
+	const size_t Tex3DRes = 512;
 	
-	CubicSpline<glm::vec3> Spline({glm::vec3(0.0, 0.0, 0.0),
+	CubicSpline<glm::vec3> Spline({glm::vec3(0.5, 0.5, 0.5),
 												  glm::vec3(0.25, 0.25, 0.1),
 												  glm::vec3(0.5, 0.5, 0.25),
 												  glm::vec3(0.75, 0.25, 0.5),
-												  glm::vec3(0.1, 0.0, 0.75)
+												  glm::vec3(0.1, 0.1, 0.75),
+												  glm::vec3(0.4, 0.30, 0.75),
+												  glm::vec3(0.3, 0.75, 0.75),
+												  glm::vec3(0.2, 0.6, 0.4)
 												 });
 	
 	Texture3D Tex;
@@ -195,13 +198,14 @@ int main(int argc, char* argv[])
 				data[i * Tex3DRes * Tex3DRes + j * Tex3DRes + k] =  0;
 	
 	const int pointsize = 1;
-	for(int t = 0; t < 1000; ++t)
+	for(int t = 0; t < 5000; ++t)
 	{
-		glm::vec3 p = Spline(Spline.getPointCount() * t / 1000.0);
+		glm::vec3 p = Spline(Spline.getPointCount() * t / 5000.0);
 		for(int i = -pointsize; i <= pointsize; ++i)
 			for(int j = -pointsize; j <= pointsize; ++j)
 				for(int k = -pointsize; k <= pointsize; ++k)
-					data[((int) (Tex3DRes * p.x + i) % Tex3DRes) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y + j) % Tex3DRes) * Tex3DRes + ((int) (Tex3DRes * p.z + k) % Tex3DRes)] = 255;
+					//if(std::abs(i) + std::abs(j) + std::abs(k) >= 2)
+						data[((int) (Tex3DRes * p.x + i) % Tex3DRes) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y + j) % Tex3DRes) * Tex3DRes + ((int) (Tex3DRes * p.z + k) % Tex3DRes)] = 255;
 	}
 	
 	Tex.create(data, Tex3DRes, Tex3DRes, Tex3DRes, 1);
