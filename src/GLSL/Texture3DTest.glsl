@@ -16,7 +16,7 @@ uniform float     	iSampleRate;
 // Configuration
 
 const float Tex3DRes = 512.0;
-const int Steps = 512; // Max. ray steps before bailing out
+const int Steps = int(sqrt(2.0) * Tex3DRes); // Max. ray steps before bailing out
 const float Epsilon = 1.0 / Tex3DRes; // Marching epsilon
 
 const float maxLoD = log2(Tex3DRes) - 3;
@@ -171,14 +171,22 @@ void main(void)
 	const vec3 up = vec3(0.0, -1.0, 0.0);
 	
 	vec2 um = vec2(0.0);
-	if(iMouse.z > 0)
-		um = 5.0 * (iMouse.xy / iResolution.xy-.5);
+	if(iMouse.w > 0)
+	{
+		position *= (0.5 + iMouse.y / iResolution.y);
+		if(iMouse.z > 0)
+		{
+			um.x = 5.0 * (iMouse.x / iResolution.x - 0.5);
+		}
+	} else if(iMouse.z > 0) {
+		um = 5.0 * (iMouse.xy / iResolution.xy - 0.5);
+	}
 	position = vec3(rotationMatrix(up, um.x) * vec4(position, 1.0));
 	position = vec3(rotationMatrix(cross(up, normalize(-position)), um.y) * vec4(position, 1.0));
 	
 	const vec3 forward = normalize(-position);
 	const vec3 right = cross(forward, up);
-	mat4 viewMatrix = mat4(vec4(right, 0), vec4(cross(forward, right), 0), vec4(forward, 0), vec4(vec3(0.0), 1));
+	const mat4 viewMatrix = mat4(vec4(right, 0), vec4(cross(forward, right), 0), vec4(forward, 0), vec4(vec3(0.0), 1));
 	
 	rd = vec3(viewMatrix * vec4(rd, 1));
 	
