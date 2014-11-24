@@ -19,15 +19,13 @@ const float Tex3DRes = 512.0;
 const int Steps = int(sqrt(2.0) * Tex3DRes); // Max. ray steps before bailing out
 const float Epsilon = 1.0 / Tex3DRes; // Marching epsilon
 
-const float maxLoD = log2(Tex3DRes) - 3;
+uniform float maxLoD = log2(Tex3DRes) - 1;
 
 // Point Light
 vec3 LightPos = vec3(5.0 , 2.0, -5.0);
 const vec3 LightColor = vec3(1.0, 1.0, 1.0);
 
 float Time = 0.0;
-
-// Pre-declarations
 
 mat4 rotationMatrix(vec3 axis, float angle)
 {
@@ -63,19 +61,19 @@ float object(vec3 p)
 //////////////////////////////////////////////////////////////////////////
 // Tracing
 
-vec3 lodTrace(vec3 a, vec3 u, out bool hit, out int s)
+vec3 lodTrace(vec3 a, vec3 u, out bool hit, out int i)
 {
 	hit = false;
 	vec3 p = a;
 	float step = 0.0;
 	float LoD = maxLoD;
 	float depth = 0.0;
-	for(int i = 0; i < Steps; i++)
+	for(i = 0; i < Steps; i++)
 	{
 		float v = object(p, LoD);
 		if (v > 0.0)
 		{
-			if(LoD < 1.0)
+			if(LoD < 0.5)
 			{
 				hit = true; 
 				return p;
@@ -85,10 +83,9 @@ vec3 lodTrace(vec3 a, vec3 u, out bool hit, out int s)
 			depth += max(1.0, LoD) * Epsilon;
 			if(depth >= sqrt(2.0))
 				return p;
-			p += max(1.0, LoD) * Epsilon * u;
+			p += (1.0 + LoD) * Epsilon * u;
 			LoD = clamp(LoD + 1.0, 0.0, maxLoD);
 		}
-				s = i;
 	}
 	return p;
 }
@@ -152,7 +149,28 @@ bool traceBox(vec3 ro, vec3 rd, vec3 lb, vec3 rt, out float t)
 //////////////////////////////////////////////////////////////////////////
 // Shading
 
-// ...
+// Phong
+vec3 phong(vec3 p, vec3 rd, vec3 n, vec3 diffuse, vec3 lightPos, vec3 lightColor)
+{
+	vec3 l = normalize(lightPos - p);
+
+	// Phong shading
+	vec3 color = 0.4 * diffuse; // "Ambiant" Term
+	
+	float lambertTerm = dot(n,l);
+	if(lambertTerm > 0.0)
+	{
+		// Diffuse Term
+		color += lambertTerm * lightColor * diffuse;	
+
+		// Specular Term
+		vec3 r = reflect(l, n);
+		float specular = pow( max(dot(r, rd), 0.0), 64.0);
+		color += specular * lightColor;	
+	}
+
+	return color;
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -193,7 +211,7 @@ void main(void)
 	vec3 ro = position;
 	
 	vec3 rgb = vec3(0.0); // Background
-	float t;
+	float t = 0.0;
 	int s = 0;
 	if(traceBox(ro, rd, vec3(-0.5), vec3(0.5), t))
 	{
@@ -202,10 +220,18 @@ void main(void)
 		vec3 pos = vec3(0.0);
 		
 		pos = lodTrace(ro + t * rd, rd, hit, s);
+		
+		// Compute normal
+		vec3 n = vec3(0.0);
+		// Using Fragment derivatives
+		//n = cross(dFdx(pos), dFdy(pos));
 
+		// Treating each voxel as a "sphere". (Really weird)
+		n = normalize(ro + (vec3(ivec3(pos * Tex3DRes) + 0.5) / Tex3DRes));
+		
 		if (hit)
 		{
-			rgb = vec3(1.0);
+			rgb = phong(pos, rd, n, vec3(1.0), vec3(1.0, 2.0, 1.0), LightColor);
 		} else {
 			rgb = vec3(0.0,  s / float(Steps), s / float(Steps));
 		}

@@ -197,18 +197,45 @@ int main(int argc, char* argv[])
 			for(size_t k = 0; k < Tex3DRes; ++k)
 				data[i * Tex3DRes * Tex3DRes + j * Tex3DRes + k] =  0;
 	
-	const int pointsize = 1;
+	const int pointsize = 0;
 	for(int t = 0; t < 5000; ++t)
 	{
 		glm::vec3 p = Spline(Spline.getPointCount() * t / 5000.0);
 		for(int i = -pointsize; i <= pointsize; ++i)
 			for(int j = -pointsize; j <= pointsize; ++j)
 				for(int k = -pointsize; k <= pointsize; ++k)
-					//if(std::abs(i) + std::abs(j) + std::abs(k) >= 2)
+					if(std::abs(i) + std::abs(j) + std::abs(k) >= 2 || std::abs(i) + std::abs(j) + std::abs(k) == 0)
 						data[((int) (Tex3DRes * p.x + i) % Tex3DRes) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y + j) % Tex3DRes) * Tex3DRes + ((int) (Tex3DRes * p.z + k) % Tex3DRes)] = 255;
 	}
-	
 	Tex.create(data, Tex3DRes, Tex3DRes, Tex3DRes, 1);
+	
+	// Manual Mipmap
+	Tex.bind();
+	size_t res = 512 / 2.0;
+	int level = 1;
+	while(res > 1)
+	{
+		for(int t = 0; t < 5000; ++t)
+		{
+			glm::vec3 p = Spline(Spline.getPointCount() * t / 5000.0);
+			data[((int) (res * p.x)) * res * res + ((int) (res * p.y)) * res + ((int) (res * p.z))] = 255;
+		}
+		glTexImage3D(GL_TEXTURE_3D, 
+			 level,
+			 GL_RED,
+			 static_cast<GLsizei>(res),
+			 static_cast<GLsizei>(res),
+			 static_cast<GLsizei>(res),
+			 0,
+			 GL_RED,
+			 GL_UNSIGNED_BYTE,
+			 data
+		); 
+		++level;
+		res = res / 2.0;
+	}
+	Tex.unbind();
+	
 	delete[] data;
 	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
@@ -233,6 +260,7 @@ int main(int argc, char* argv[])
 	Mat.setUniform("iResolution", &_resolution);
 	Mat.setUniform("iMouse", &_mouse);
 	Mat.setUniform("iChannel0", Tex);
+	Mat.setUniform("maxLoD", 8.0f);
 	Mat.createAntTweakBar("Material");
 	
 	while(!glfwWindowShouldClose(window))
