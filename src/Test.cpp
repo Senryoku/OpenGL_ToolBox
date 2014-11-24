@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	const size_t Tex3DRes = 512;
+	const size_t Tex3DRes = 256;
 	
 	CubicSpline<glm::vec3> Spline({glm::vec3(0.5, 0.5, 0.5),
 												  glm::vec3(0.25, 0.25, 0.1),
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 	
 	// Manual Mipmap
 	Tex.bind();
-	size_t res = 512 / 2.0;
+	size_t res = Tex3DRes / 2.0;
 	int level = 1;
 	while(res > 1)
 	{
@@ -238,6 +238,29 @@ int main(int argc, char* argv[])
 	
 	delete[] data;
 	
+	/*
+	Texture3D Tangent;
+	GLubyte* datat = new GLubyte[3*Tex3DRes*Tex3DRes*Tex3DRes];
+	for(size_t i = 0; i < Tex3DRes; ++i)
+		for(size_t j = 0; j < Tex3DRes; ++j)
+			for(size_t k = 0; k < Tex3DRes; ++k)
+				for(size_t l = 0; l < 3; ++l)
+					datat[3 * (i * Tex3DRes * Tex3DRes + j * Tex3DRes + k) + l] =  0;
+	
+	for(int t = 0; t < 1000; ++t)
+	{
+		glm::vec3 p = Spline(Spline.getPointCount() * t / 1000.0);
+		glm::vec3 ta = glm::normalize(Spline.getSpeed(Spline.getPointCount() * t / 1000.0));
+		datat[3 * (((int) (Tex3DRes * p.x)) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y)) * Tex3DRes + ((int) (Tex3DRes * p.z))) + 0] = ta.x * 255;
+		datat[3 * (((int) (Tex3DRes * p.x)) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y)) * Tex3DRes + ((int) (Tex3DRes * p.z))) + 1] = ta.y * 255;
+		datat[3 * (((int) (Tex3DRes * p.x)) * Tex3DRes * Tex3DRes + ((int) (Tex3DRes * p.y)) * Tex3DRes + ((int) (Tex3DRes * p.z))) + 2] = ta.z * 255;
+	}
+	
+	Tangent.create(datat, Tex3DRes, Tex3DRes, Tex3DRes, 3);
+	
+	delete[] datat;
+	*/
+	
 	VertexShader& RayTracerVS = ResourcesManager::getInstance().getShader<VertexShader>("RayTracerVS");
 	RayTracerVS.loadFromFile("src/GLSL/vs.glsl");
 	RayTracerVS.compile();
@@ -260,7 +283,9 @@ int main(int argc, char* argv[])
 	Mat.setUniform("iResolution", &_resolution);
 	Mat.setUniform("iMouse", &_mouse);
 	Mat.setUniform("iChannel0", Tex);
-	Mat.setUniform("maxLoD", 8.0f);
+	//Mat.setUniform("iChannel1", Tangent);
+	Mat.setUniform("maxLoD", (float) (std::log2(Tex3DRes) - 1.0));
+	Mat.setUniform("displayedLoD", 0.0f);
 	Mat.createAntTweakBar("Material");
 	
 	while(!glfwWindowShouldClose(window))

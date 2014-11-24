@@ -7,7 +7,7 @@ uniform float     	iChannelTime[4];       // channel playback time (in seconds)
 uniform vec3			iChannelResolution[4]; // channel resolution (in pixels)
 uniform vec4			iMouse;                // mouse pixel coords. xy: current (if MLB down), zw: click
 uniform sampler3D	iChannel0;          // input channel. XX = 2D/Cube
-uniform sampler2D	iChannel1;          // input channel. XX = 2D/Cube
+uniform sampler3D	iChannel1;          // input channel. XX = 2D/Cube
 uniform sampler2D	iChannel2;          // input channel. XX = 2D/Cube
 uniform sampler2D	iChannel3;          // input channel. XX = 2D/Cube
 uniform vec4      		iDate;                 // (year, month, day, time in seconds)
@@ -15,11 +15,12 @@ uniform float     	iSampleRate;
 
 // Configuration
 
-const float Tex3DRes = 512.0;
+const float Tex3DRes = 256.0;
 const int Steps = int(sqrt(2.0) * Tex3DRes); // Max. ray steps before bailing out
 const float Epsilon = 1.0 / Tex3DRes; // Marching epsilon
 
 uniform float maxLoD = log2(Tex3DRes) - 1;
+uniform float displayedLoD = 0.0;
 
 // Point Light
 vec3 LightPos = vec3(5.0 , 2.0, -5.0);
@@ -73,7 +74,7 @@ vec3 lodTrace(vec3 a, vec3 u, out bool hit, out int i)
 		float v = object(p, LoD);
 		if (v > 0.0)
 		{
-			if(LoD < 0.5)
+			if(LoD < displayedLoD + 0.5)
 			{
 				hit = true; 
 				return p;
@@ -166,7 +167,7 @@ vec3 phong(vec3 p, vec3 rd, vec3 n, vec3 diffuse, vec3 lightPos, vec3 lightColor
 		// Specular Term
 		vec3 r = reflect(l, n);
 		float specular = pow( max(dot(r, rd), 0.0), 64.0);
-		color += specular * lightColor;	
+		//color += specular * lightColor;	
 	}
 
 	return color;
@@ -198,6 +199,8 @@ void main(void)
 		}
 	} else if(iMouse.z > 0) {
 		um = 5.0 * (iMouse.xy / iResolution.xy - 0.5);
+	} else {
+		um.x = Time;
 	}
 	position = vec3(rotationMatrix(up, um.x) * vec4(position, 1.0));
 	position = vec3(rotationMatrix(cross(up, normalize(-position)), um.y) * vec4(position, 1.0));
@@ -221,17 +224,22 @@ void main(void)
 		
 		pos = lodTrace(ro + t * rd, rd, hit, s);
 		
-		// Compute normal
-		vec3 n = vec3(0.0);
-		// Using Fragment derivatives
-		//n = cross(dFdx(pos), dFdy(pos));
-
-		// Treating each voxel as a "sphere". (Really weird)
-		n = normalize(ro + (vec3(ivec3(pos * Tex3DRes) + 0.5) / Tex3DRes));
-		
 		if (hit)
 		{
-			rgb = phong(pos, rd, n, vec3(1.0), vec3(1.0, 2.0, 1.0), LightColor);
+			// Compute normal
+			vec3 n = vec3(0.0);
+			// Using Fragment derivatives
+			//n = cross(dFdx(pos), dFdy(pos));
+			
+			// Chelou, mais marrant
+			/*
+			vec3 ta = normalize(textureLod(iChannel1, pos + vec3(0.5, 0.5, 0.5), displayedLoD).xyz);
+			n = cross(cross(ta, rd), ta);
+			*/
+			
+			n = rd;
+			
+			rgb = phong(pos, rd, n, vec3(1.0), vec3(cos(iGlobalTime), -1.0, sin(iGlobalTime)), LightColor);
 		} else {
 			rgb = vec3(0.0,  s / float(Steps), s / float(Steps));
 		}
