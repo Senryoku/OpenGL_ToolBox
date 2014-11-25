@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <memory>
 
 #include <Tools/Singleton.hpp>
 #include <Graphics/Texture.hpp>
@@ -10,34 +11,31 @@
 class ResourcesManager : public Singleton<ResourcesManager>
 {
 public:
-	~ResourcesManager()
-	{
-		for(auto it : _shaders)
-			delete it.second;
-	}
+	ResourcesManager() =default;
+	~ResourcesManager() =default;
 	
 	inline Shader& getShader(const std::string& Name) throw(std::runtime_error)
 	{
 		auto it = _shaders.find(Name);
 		if(it != _shaders.end())
 		{
-			return *it->second;
+			return *it->second.get();
 		} else {
 			throw std::runtime_error(Name + " shader not found. Use a specialized version of getShader or make sure you referenced it to the ResourcesManager before calling getShader.");
 		}
 	}
 	
 	template<typename ShaderType>
-	inline ShaderType& getShader(const std::string& Name) throw(std::runtime_error)
+	inline ShaderType& getShader(const std::string& Name)
 	{
 		auto it = _shaders.find(Name);
 		if(it != _shaders.end())
 		{
-			return *static_cast<ShaderType*>(it->second);
+			return *static_cast<ShaderType*>(it->second.get());
 		} else {
 			auto newShader = new ShaderType();
-			_shaders[Name] = newShader;
-			return *static_cast<ShaderType*>(newShader);
+			_shaders[Name].reset(newShader);
+			return *newShader;
 		}
 	} 
 	
@@ -46,23 +44,23 @@ public:
 		auto it = _textures.find(Name);
 		if(it != _textures.end())
 		{
-			return *it->second;
+			return *it->second.get();
 		} else {
 			throw std::runtime_error(Name + " texture not found. Use a specialized version of getTexture or make sure you referenced it to the ResourcesManager before calling getTexture.");
 		}
 	}
 	
 	template<typename T>
-	inline T& getTexture(const std::string& Name) throw(std::runtime_error)
+	inline T& getTexture(const std::string& Name)
 	{
 		auto it = _textures.find(Name);
 		if(it != _textures.end())
 		{
-			return *static_cast<T*>(it->second);
+			return *static_cast<T*>(it->second.get());
 		} else {
 			auto newTexture = new T();
-			_textures[Name] = newTexture;
-			return *static_cast<T*>(newTexture);
+			_textures[Name].reset(newTexture);
+			return *newTexture;
 		}
 	} 
 	
@@ -82,8 +80,8 @@ public:
 	}
 
 private:
-	std::map<std::string, Texture*>	_textures;
-
-	std::map<std::string, Shader*>	_shaders;
-	std::map<std::string, Program>	_programs;
+	std::map<std::string, std::unique_ptr<Texture>>	_textures;
+	std::map<std::string, std::unique_ptr<Shader>>	_shaders;
+	
+	std::map<std::string, Program>							_programs;
 };
