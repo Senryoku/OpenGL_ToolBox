@@ -1,0 +1,82 @@
+cmake_minimum_required (VERSION 2.6)
+
+project (OpenGL_Toolbox)
+set (OpenGL_Toolbox_VERSION_MAJOR 0)
+set (OpenGL_Toolbox_VERSION_MINOR 1)
+
+cmake_policy(SET CMP0015 NEW)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Libraries ------------------------------------------------------------------------
+
+#OpenGL
+FIND_PACKAGE(OpenGL REQUIRED)
+#MESSAGE(STATUS "OpenGL Found ? ${OPENGL_FOUND}")
+INCLUDE_DIRECTORIES(${OpenGL_INCLUDE_DIR})
+LINK_DIRECTORIES(${OpenGL_LIBRARY_DIRS})
+ADD_DEFINITIONS(${OpenGL_DEFINITIONS})
+
+SET(GLFW3_INCLUDE_DIR "../glfw/include" CACHE FILEPATH "GLFW3_INCLUDE_DIR")
+SET(GLFW3_LIBRARY_DIRS "../glfw/lib" CACHE FILEPATH "GLFW3_LIBRARY_DIRS")
+INCLUDE_DIRECTORIES(${GLFW3_INCLUDE_DIR})
+LINK_DIRECTORIES(${GLFW3_LIBRARY_DIRS})
+ADD_DEFINITIONS(${GLFW3_DEFINITIONS})
+
+SET(GLM_INCLUDE_DIR "../glm" CACHE FILEPATH "GLM_INCLUDE_DIR")
+INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIR})
+
+SET(ANTTWEAKBAR_INCLUDE_DIR "../../Source/AntTweakBar/include" CACHE FILEPATH "ANTTWEAKBAR_INCLUDE_DIR")
+SET(ANTTWEAKBAR_LIBRARY_DIRS "../../Source/AntTweakBar/lib" CACHE FILEPATH "ANTTWEAKBAR_LIBRARY_DIRS")
+INCLUDE_DIRECTORIES(${ANTTWEAKBAR_INCLUDE_DIR})
+LINK_DIRECTORIES(${ANTTWEAKBAR_LIBRARY_DIRS})
+
+# -----------------------------------------------------------------------------------
+
+MACRO(SUBDIRLIST result curdir)
+  FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)
+  SET(dirlist "")
+  FOREACH(child ${children})
+    IF(IS_DIRECTORY ${curdir}/${child})
+        LIST(APPEND dirlist ${child})
+    ENDIF()
+  ENDFOREACH()
+  SET(${result} ${dirlist})
+ENDMACRO()
+
+MACRO(REC_SOURCE ParentDir)
+	#MESSAGE(STATUS "SubDir: ${ParentDir}")
+	INCLUDE_DIRECTORIES(${ParentDir})
+	AUX_SOURCE_DIRECTORY(${ParentDir} SOURCE_FILES)
+	
+	SUBDIRLIST(SUBDIRECTORIES ${ParentDir})
+
+	foreach(DIR ${SUBDIRECTORIES})
+		REC_SOURCE(${ParentDir}/${DIR})
+		
+	endforeach(DIR)
+ENDMACRO()
+
+REC_SOURCE(${CMAKE_SOURCE_DIR}/src)
+		INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src/Core)
+
+AUX_SOURCE_DIRECTORY(examples/ EXECUTABLES)
+
+list(APPEND CMAKE_CXX_FLAGS "-std=c++0x  -Wall ${CMAKE_CXX_FLAGS}")
+
+add_library(OpenGL_Toolbox STATIC ${SOURCE_FILES})
+
+foreach(Exe ${EXECUTABLES})
+	get_filename_component(Target ${Exe} NAME_WE [CACHE])
+	add_executable(${Target} ${Exe})
+	TARGET_LINK_LIBRARIES(${Target} OpenGL_Toolbox AntTweakBar glfw3 ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
+	MESSAGE(STATUS "Adding rule for ${Target}.")
+endforeach(Exe)
+
+add_custom_target(run
+    COMMAND Test
+    DEPENDS Test
+    WORKING_DIRECTORY ${CMAKE_PROJECT_DIR}
+)

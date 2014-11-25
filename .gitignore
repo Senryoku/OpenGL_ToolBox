@@ -49,6 +49,7 @@ x64/
 build/
 [Bb]in/
 [Oo]bj/
+[Ll]ib/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -220,3 +221,9 @@ doc/*
 bin/*
 *.o
 out/*
+
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt

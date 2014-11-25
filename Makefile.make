@@ -1,3 +1,5 @@
+# Old Makefile (Now use CMake ! :D)
+
 CXX = g++
 OBJ = obj
 SRC = src
