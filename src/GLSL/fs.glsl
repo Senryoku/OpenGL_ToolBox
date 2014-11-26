@@ -22,7 +22,7 @@ uniform float SpeedMult;
 #define SHOW_LIGHT
 #define SHADOW
 #define REFLEXION
-//#define COOKTORRANCE
+#define COOKTORRANCE
 #define NORMALMAPPING_TEST
 
 // Yeap, that s really dirty

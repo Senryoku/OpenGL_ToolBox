@@ -94,13 +94,13 @@ public:
 	virtual inline void bind() override
 	{
 		_value->bind(_textureUnit);
-		setUniform(getLocation(),  (GLuint) _textureUnit);
+		setUniform(getLocation(),  static_cast<GLint>(getTextureUnit()));
 	}
 	
 	virtual inline void bind(GLuint program) override
 	{
 		_value->bind(_textureUnit);
-		setUniform(program, getLocation(), (GLuint) _textureUnit);
+		setUniform(program, getLocation(),  static_cast<GLint>(getTextureUnit()));
 	}
 	
 	virtual inline void unbind(GLuint program) override

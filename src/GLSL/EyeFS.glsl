@@ -561,15 +561,14 @@ void main(void)
 	vec3 camPos = CamPos;
 	vec3 camLook = CamLook;
 
-	
+	/*
 	vec2 camRot = .5*tau*(iMouse.xy-iResolution.xy*.5)/iResolution.x;
 	
-	if ( iMouse.z < 1.0 )
+	if ( !ReadKey( Key_M, true ) )
 		camRot = vec2(0,0);
-		
-	camPos.yz = cos(-camRot.y)*camPos.yz + sin(-camRot.y)*camPos.zy*vec2(1,-1);
+	camPos.yz = cos(camRot.y)*camPos.yz + sin(camRot.y)*camPos.zy*vec2(1,-1);
 	camPos.xz = cos(camRot.x)*camPos.xz + sin(camRot.x)*camPos.zx*vec2(1,-1);
-	
+	*/
 	
 	vec4 eyeRotation = ComputeEyeRotation();
 	
