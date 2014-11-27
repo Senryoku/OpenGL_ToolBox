@@ -345,6 +345,8 @@ vec3 shade_reflect(vec3 p, vec3 rd, vec3 n)
 
 //////////////////////////////////////////////////////////////////////////
 
+out vec4 outColor;
+
 void main(void)
 {
 	vec2 pixel = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
@@ -414,7 +416,7 @@ void main(void)
 	}
 	#endif 
 	
-	gl_FragColor = vec4(rgb, 1.0);
+	outColor = vec4(rgb, 1.0);
 }
 
 //////////////////////////////////////////////////////////////////////////
