@@ -31,9 +31,9 @@ public:
 		
 		~Binder();
 	private:
-		GLuint			_unit = 0;
+		GLuint				_unit = 0;
 		const Texture&	_tex;
-		GLuint 			_prevBound = 0;
+		GLuint 				_prevBound = 0;
 	};
 
 	enum Parameter

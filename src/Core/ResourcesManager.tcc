@@ -1,29 +1,29 @@
 #pragma once
 
 template<typename ShaderType>
-inline ShaderType& ResourcesManager::getShader(const std::string& Name)
+inline ShaderType& ResourcesManager::getShader(const std::string& name)
 {
-	auto it = _shaders.find(Name);
+	auto it = _shaders.find(name);
 	if(it != _shaders.end())
 	{
 		return *static_cast<ShaderType*>(it->second.get());
 	} else {
 		auto newShader = new ShaderType();
-		_shaders[Name].reset(newShader);
+		_shaders[name].reset(newShader);
 		return *newShader;
 	}
 } 
 
 template<typename T>
-inline T& ResourcesManager::getTexture(const std::string& Name)
+inline T& ResourcesManager::getTexture(const std::string& name)
 {
-	auto it = _textures.find(Name);
+	auto it = _textures.find(name);
 	if(it != _textures.end())
 	{
 		return *static_cast<T*>(it->second.get());
 	} else {
 		auto newTexture = new T();
-		_textures[Name].reset(newTexture);
+		_textures[name].reset(newTexture);
 		return *newTexture;
 	}
 } 

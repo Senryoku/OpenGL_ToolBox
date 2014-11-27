@@ -1,8 +1,14 @@
 #include <Material.hpp>
 
+Material::Material(const Material& m)
+{
+	for(const auto& u : m._uniforms)
+		_uniforms.push_back(std::unique_ptr<GenericUniform>(u.get()->clone()));
+}
+
 void Material::bind() const
 {	
-	for(auto& U : _uniforms)
+	for(const auto& U : _uniforms)
 		U.get()->bind(_shadingProgram->getName());
 }
 

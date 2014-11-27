@@ -9,6 +9,16 @@
 class OpenGLObject
 {
 public:
+	class Binder
+	{
+	public:
+		Binder(const OpenGLObject& t);
+		
+		~Binder();
+	private:
+		const OpenGLObject&	_object;
+	};
+	
 	OpenGLObject();
 	/**
 	 * Constructs a instance managing an existing OpenGL Object.

@@ -217,7 +217,9 @@ pip-log.txt
 .mr.developer.cfg
 *.exe
 
+lib/*
 doc/*
+latex/*
 bin/*
 *.o
 out/*
@@ -227,3 +229,5 @@ CMakeFiles
 Makefile
 cmake_install.cmake
 install_manifest.txt
+
+extlib_build/*

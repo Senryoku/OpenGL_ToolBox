@@ -1,5 +1,10 @@
 #include <Buffer.hpp>
 
+Buffer::~Buffer()
+{
+	glDeleteBuffers(1, &_handle);
+}
+
 void Buffer::bind() const
 {
     glBindBuffer(static_cast<GLenum>(_type), _handle);

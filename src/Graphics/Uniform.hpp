@@ -25,6 +25,12 @@ public:
 	
 	virtual void unbind(GLuint program) {}
 	
+	/**
+	 * Construct a new Uniform with the same attributes as this one.
+	 * Used for Material copying.
+	**/
+	virtual GenericUniform* clone() const =0;
+	
 #ifndef NO_ANTTWEAKBAR
 	virtual inline void addTo(TwBar* bar) {}
 #endif
@@ -58,6 +64,11 @@ public:
 	virtual inline void bind(GLuint program)
 	{
 		setUniform(program,  getLocation(), getValue());
+	}
+	
+	virtual GenericUniform* clone() const
+	{
+		return new Uniform<T>(getName(), getLocation(), getValue());
 	}
 	
 #ifndef NO_ANTTWEAKBAR
@@ -106,6 +117,11 @@ public:
 	virtual inline void unbind(GLuint program) override
 	{
 		_value->unbind(_textureUnit);
+	}
+	
+	virtual GenericUniform* clone() const
+	{
+		return new Uniform<Texture>(getName(), getLocation(), getTextureUnit(), getValue());
 	}
 	
 private:

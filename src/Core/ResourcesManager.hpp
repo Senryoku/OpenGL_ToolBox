@@ -3,10 +3,12 @@
 #include <map>
 #include <memory>
 
-#include <Tools/Singleton.hpp>
-#include <Graphics/Texture.hpp>
-#include <Graphics/CubeMap.hpp>
-#include <Graphics/AllShader.hpp>
+#include <Singleton.hpp>
+
+#include <Texture.hpp>
+#include <Shader.hpp>
+
+#include <Mesh.hpp>
 
 class ResourcesManager : public Singleton<ResourcesManager>
 {
@@ -14,25 +16,31 @@ public:
 	ResourcesManager() =default;
 	~ResourcesManager() =default;
 	
-	Shader& getShader(const std::string& Name) throw(std::runtime_error);
+	Shader& getShader(const std::string& name) throw(std::runtime_error);
 	
 	template<typename ShaderType>
-	inline ShaderType& getShader(const std::string& Name);
+	inline ShaderType& getShader(const std::string& name);
 	
-	Texture& getTexture(const std::string& Name) throw(std::runtime_error);
+	Texture& getTexture(const std::string& name) throw(std::runtime_error);
 	
 	template<typename T>
-	inline T& getTexture(const std::string& Name);
+	inline T& getTexture(const std::string& name);
 	
-	Program& getProgram(const std::string& Name);
+	Program& getProgram(const std::string& name);
 	
 	void reloadShaders();
+	
+	bool isMesh(const std::string& name) const;
+	
+	Mesh& getMesh(const std::string& name);
 
 private:
 	std::map<std::string, std::unique_ptr<Texture>>	_textures;
 	std::map<std::string, std::unique_ptr<Shader>>	_shaders;
 	
 	std::map<std::string, Program>							_programs;
+	
+	std::map<std::string, std::unique_ptr<Mesh>>		_meshes;
 };
 
 #include <ResourcesManager.tcc>

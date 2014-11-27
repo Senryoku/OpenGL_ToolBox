@@ -65,7 +65,7 @@ public:
 		ClientStorageBit = GL_CLIENT_STORAGE_BIT /// A hint that the buffer object's data should be stored in client memory. Assuming that such a distinction exists in the driver.
 	};
 	
-	Buffer() =delete;
+	Buffer() =default;
 	
 	Buffer(Type type, GLuint handle = 0) : 
 		OpenGLObject(handle),

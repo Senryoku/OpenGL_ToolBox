@@ -21,6 +21,7 @@
 #include <Graphics/Texture3D.hpp>
 #include <Graphics/Framebuffer.hpp>
 #include <Graphics/Buffer.hpp>
+#include <Graphics/MeshInstance.hpp>
 #include <stb_image_write.hpp>
 
 int		_width = 1366;
@@ -209,6 +210,11 @@ int main(int argc, char* argv[])
 	Mat.setUniform("iMouse", &_mouse);
 	Mat.setUniform("iChannel0", Tex);
 	Mat.createAntTweakBar("Material");
+	
+	auto Glados = Mesh::load("in/Glados/Glados.obj");
+	std::vector<MeshInstance> _meshInstances;
+	for(Mesh* m : Glados)
+		_meshInstances.push_back(MeshInstance(*m));
 	
 	while(!glfwWindowShouldClose(window))
 	{	
