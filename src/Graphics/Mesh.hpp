@@ -39,10 +39,8 @@ public:
 		glm::vec2	texcoord;
 	};
 	
-	Mesh() =default;
+	Mesh();
 	~Mesh() =default;
-
-	static std::vector<Mesh*> load(const std::string& path);
 	
 	inline std::vector<Vertex>&	getVertices()		{ return _vertices; }
 	inline std::vector<Triangle>&	getTriangles()	{ return _triangles; }
@@ -51,6 +49,10 @@ public:
 	inline const std::vector<Vertex>&	getVertices()	const	{ return _vertices; }
 	inline const std::vector<Triangle>&	getTriangles() const { return _triangles; }
 	inline const Material& getMaterial() const { return _material; }
+	
+	void createVAO();
+
+	static std::vector<Mesh*> load(const std::string& path);
 	
 private:
 	std::vector<Vertex>			_vertices;

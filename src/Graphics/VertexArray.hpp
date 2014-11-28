@@ -18,16 +18,11 @@ public:
 
 	static void unbind();
 	
-	/* TODO ?
-	void link(const Buffer& buf)
-	{
-		add buf;
+	/**
+	 * glVertexAttribPointer
+	**/
+	void attribute(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer) const;
 	
-		buf.bind();
-		glEnableVertexAttribArray(x);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		buf.unbind();
-	}
-	*/
+	void cleanup();
 private:
 };

@@ -83,17 +83,22 @@ public:
 	/**
 	 * Generates a new buffer name to manage.
 	**/
-	void generate();
+	void init();
 	
 	/**
 	 * Destroy managed buffer.
 	**/
-	void clean();
+	void cleanup();
 	
 	/**
 	 * Binds the buffer to its assigned target (type)
 	**/
 	void bind() const;
+	
+	/**
+	 * Unbinds the buffer.
+	**/
+	void unbind() const;
 	
 	/**
 	 * glBufferData

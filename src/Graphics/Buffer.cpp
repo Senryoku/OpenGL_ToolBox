@@ -2,7 +2,13 @@
 
 Buffer::~Buffer()
 {
+	cleanup();
+}
+
+void Buffer::cleanup()
+{
 	glDeleteBuffers(1, &_handle);
+	_handle = 0;
 }
 
 void Buffer::bind() const
@@ -10,8 +16,15 @@ void Buffer::bind() const
     glBindBuffer(static_cast<GLenum>(_type), _handle);
 }
 
-void Buffer::generate()
+void Buffer::unbind() const
 {
+    glBindBuffer(static_cast<GLenum>(_type), 0);
+}
+
+void Buffer::init()
+{
+	if(_handle != 0)
+		cleanup();
 	glGenBuffers(1, &_handle);
 }
 

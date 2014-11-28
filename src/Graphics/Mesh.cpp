@@ -6,6 +6,7 @@
 #include <assimp/scene.h> 			// Output data structure
 #include <assimp/postprocess.h> // Post processing flags
 
+#include <StringConversion.hpp>
 #include <ResourcesManager.hpp>
 
 //////////////////////// Mesh::Triangle ////////////////////////////////////////
@@ -30,6 +31,36 @@ Mesh::Vertex::Vertex(glm::vec3 pos,
 
 /////////////////////// Mesh ///////////////////////////////////////////////////
 
+Mesh::Mesh() :
+	_vao(),
+	_vertex_buffer(Buffer::VertexAttributes),
+	_index_buffer(Buffer::VertexIndices)
+{
+}
+
+void Mesh::createVAO()
+{
+	_vao.init();
+	_vao.bind();
+	
+	_vertex_buffer.init();
+	_vertex_buffer.bind();
+	
+	_vertex_buffer.data(&_vertices[0], sizeof(Vertex)*_vertices.size(), Buffer::StaticDraw);
+
+    _vao.attribute(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid *) offsetof(struct Vertex, position));
+    _vao.attribute(1, 3, GL_FLOAT, GL_TRUE, sizeof(Vertex), (GLvoid *) offsetof(struct Vertex, normal));
+    _vao.attribute(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid *) offsetof(struct Vertex, texcoord));
+
+	_index_buffer.init();
+	_index_buffer.bind();
+	_index_buffer.data(&_triangles[0], sizeof(size_t)*_triangles.size()*3, Buffer::StaticDraw);
+	
+	_vao.unbind(); // Unbind first on purpose :)
+	_index_buffer.unbind();
+	_vertex_buffer.unbind();
+}
+	
 std::vector<Mesh*> Mesh::load(const std::string& path)
 {
 	std::cout << "Loading " << path << " using assimp..." << std::endl;
@@ -56,16 +87,20 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 		for(unsigned int meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx)
 		{
 			aiMesh* LoadedMesh = scene->mMeshes[meshIdx];
+			
 			std::string name(path);
-			name.append("::");
+			name.append("::" + StringConversion::to_string(meshIdx));
 			name.append(scene->mMeshes[meshIdx]->mName.C_Str());
 			while(ResourcesManager::getInstance().isMesh(name))
 			{
-				std::cout << "Warning: Two meshes from the same file share the same name ('" << name << "'). The second one will be refered as '";
+				std::cout << "Warning: Mesh '" << name << "' was already loaded. Re-loading it under the name '";
 				name.append("_");
 				std::cout << name << "'." << std::endl;
 			}
+			
+			std::cout << "Loading '" << name << "'." << std::endl;
 			M[meshIdx] = &ResourcesManager::getInstance().getMesh(name);
+			
 			//std::cout << "Material Index: " << LoadedMesh->mMaterialIndex << std::endl;
 			aiVector3D* n = LoadedMesh->mNormals;
 			aiVector3D** t = LoadedMesh->mTextureCoords;
