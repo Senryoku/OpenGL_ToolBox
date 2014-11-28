@@ -9,7 +9,7 @@
 #include <StringConversion.hpp>
 #include <ResourcesManager.hpp>
 
-//////////////////////// Mesh::Triangle ////////////////////////////////////////
+//////////////////////// Mesh::Triangle ///////////////////////////
 
 Mesh::Triangle::Triangle(size_t v1,
 						 size_t v2,
@@ -18,7 +18,7 @@ Mesh::Triangle::Triangle(size_t v1,
 {
 }
 
-/////////////////////// Mesh::Vertex ///////////////////////////////////////////
+/////////////////////// Mesh::Vertex //////////////////////////////
 
 Mesh::Vertex::Vertex(glm::vec3 pos,
 					 glm::vec3 nor,
@@ -29,7 +29,7 @@ Mesh::Vertex::Vertex(glm::vec3 pos,
 {
 }
 
-/////////////////////// Mesh ///////////////////////////////////////////////////
+/////////////////////// Mesh //////////////////////////////////////
 
 Mesh::Mesh() :
 	_vao(),
@@ -60,6 +60,20 @@ void Mesh::createVAO()
 	_index_buffer.unbind();
 	_vertex_buffer.unbind();
 }
+
+void Mesh::draw() const
+{
+	if(!_vao)
+	{
+		std::cerr << "Draw call on a uninitialized mesh !" << std::endl;
+		return;
+	}
+	_vao.bind();
+	glDrawElements(GL_TRIANGLES, _triangles.size()*3,  GL_UNSIGNED_INT, 0);
+	_vao.unbind();
+}
+
+////////////////////// Static /////////////////////////////////////
 	
 std::vector<Mesh*> Mesh::load(const std::string& path)
 {

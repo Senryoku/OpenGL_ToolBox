@@ -26,7 +26,7 @@ void Material::updateLocations()
 	}
 }
 	
-GLint Material::getLocation(const std::string& name)
+GLint Material::getLocation(const std::string& name) const
 {
 	return _shadingProgram->getUniformLocation(name);
 }

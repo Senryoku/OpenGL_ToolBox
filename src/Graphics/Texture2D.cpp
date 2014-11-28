@@ -15,13 +15,6 @@ void Texture2D::load(const std::string& Path)
 
 void Texture2D::create(const void* data, size_t width, size_t height, int compCount)
 {
-	cleanup();
-	
-	glEnable(GL_TEXTURE_2D);
-	
-	glGenTextures(1, &_handle);
-	bind();
-	
 	GLenum format;
 	switch(compCount)
 	{
@@ -42,19 +35,32 @@ void Texture2D::create(const void* data, size_t width, size_t height, int compCo
 			break;
 	}
 	
+	create(data, width, height, format, format);
+}
+
+void Texture2D::create(const void* data, size_t width, size_t height, GLint internalFormat, GLenum format, bool generateMipmaps)
+{
+	cleanup();
+	glGenTextures(1, &_handle);
+	
+	bind();
+	
 	glTexImage2D(GL_TEXTURE_2D, 
 				 0,
-				 format,
+				 internalFormat,
 	 			 static_cast<GLsizei>(width),
 				 static_cast<GLsizei>(height),
 				 0,
 				 format,
 				 _type,
 				 data
-				); 
+			); 
 
 	// Default Parameters
-	set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	if(generateMipmaps)
+		set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	else
+		set(MinFilter, GL_LINEAR);
 	set(MagFilter, GL_LINEAR);
 	set(WrapS, GL_REPEAT);
 	set(WrapT, GL_REPEAT);
@@ -64,7 +70,8 @@ void Texture2D::create(const void* data, size_t width, size_t height, int compCo
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
 	glSamplerParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 	
-	glGenerateMipmap(GL_TEXTURE_2D);
+	if(generateMipmaps)
+		glGenerateMipmap(GL_TEXTURE_2D);
 	
 	unbind();
 }

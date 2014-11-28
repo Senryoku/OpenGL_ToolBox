@@ -74,7 +74,7 @@ public:
 	 * @see setUniform(GLint program, GLuint location, const T& value);
 	**/
 	template<typename T>
-	inline void setUniform(const std::string& name, const T& value)
+	inline void setUniform(const std::string& name, const T& value) const
 	{
 		::setUniform(getName(), getUniformLocation(name), value);
 	}

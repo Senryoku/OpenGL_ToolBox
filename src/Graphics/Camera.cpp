@@ -1,8 +1,11 @@
 #include "Camera.hpp"
 
+#include <glm/gtc/matrix_transform.hpp> // glm::lookAt
+#include <glm/gtc/type_ptr.hpp> // glm::value_ptr
+
 #include <MathTools.hpp>
 
-const glm::vec3 Camera::BasePosition = {1.f, 150.f, 1.f};
+const glm::vec3 Camera::BasePosition = {-1.f, 1.f, -1.f};
 const glm::vec3 Camera::BaseDirection = {1.f, 0.f, 1.f};
 const glm::vec3 Camera::BaseUp = {0.f, 1.f, 0.f};
 const float Camera::BaseSpeed = 100.f;
@@ -74,10 +77,6 @@ void Camera::reset()
 	_direction = BaseDirection;
 	_up = BaseUp;
 }
-
-#define GLM_FORCE_RADIANS
-#include <glm/gtc/matrix_transform.hpp> // glm::lookAt
-#include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 
 void Camera::updateView()
 {

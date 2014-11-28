@@ -1,49 +1,62 @@
 #include <Light.hpp>
 
+#include <glm/gtc/matrix_transform.hpp> // glm::lookAt, glm::perspective
+#include <glm/gtx/transform.hpp> // glm::translate
+
+#include <MathTools.hpp>
+
+///////////////////////////////////////////////////////////////////
+// Static attributes
+
+const glm::mat4 Light::s_depthBiasMVP
+(
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 0.5, 0.0,
+	0.5, 0.5, 0.5, 1.0
+);
+
+Program* 				Light::s_depthProgram = nullptr;
+VertexShader*			Light::s_depthVS = nullptr;
+FragmentShader*		Light::s_depthFS = nullptr;
+
+///////////////////////////////////////////////////////////////////
+
+Light::Light() :
+	_shadowMapFramebuffer(_shadowMapResolution, true)
+{
+}
+		
 void Light::init()
 {
-	Program& 		_depthProgram = ResourcesManager::getInstance().getProgram("Depth");
-    VertexShader& 	_depthVS = ResourcesManager::getInstance().getShader<VertexShader>("DepthVS");
-    FragmentShader&	_depthFS = ResourcesManager::getInstance().getShader<FragmentShader>("DepthFS");
-	
-	if(!_depthProgram.isValid())
+	if(s_depthProgram == nullptr)
 	{
-		_depthVS.loadFromFile("src/GLSL/depth_vs.glsl");
-		_depthVS.compile();
-		_depthFS.loadFromFile("src/GLSL/depth_fs.glsl");
-		_depthFS.compile();
-		_depthProgram.attachShader(_depthVS);
-		_depthProgram.attachShader(_depthFS);
-		_depthProgram.link();
+		s_depthProgram = &ResourcesManager::getInstance().getProgram("Light_Depth");
+		s_depthVS = &ResourcesManager::getInstance().getShader<VertexShader>("Light_DepthVS");
+		s_depthFS = &ResourcesManager::getInstance().getShader<FragmentShader>("Light_DepthFS");
 	}
 	
-	///@todo Use Texture Class... Framebuffer class...
-	
-	GLuint Tex;
-	glGenTextures(1, &Tex);
-	_shadowMapDepthTexture.setName(Tex);
-
-	_shadowMapDepthTexture.bind(1);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _shadowMapResolution, _shadowMapResolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-
-	glGenFramebuffers(1, &_shadowMapFramebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, _shadowMapFramebuffer);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, Tex, 0);
-
-	 // CleanUp Context
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	if(s_depthProgram != nullptr && !s_depthProgram->isValid())
 	{
-		std::cerr << "Error initializing Shadow Mapping." << std::endl;
-		glDeleteFramebuffers(1, &_shadowMapFramebuffer);
-		return;
+		s_depthVS->loadFromFile("src/GLSL/depth_vs.glsl");
+		s_depthVS->compile();
+		s_depthFS->loadFromFile("src/GLSL/depth_fs.glsl");
+		s_depthFS->compile();
+		s_depthProgram->attachShader(*s_depthVS);
+		s_depthProgram->attachShader(*s_depthFS);
+		s_depthProgram->link();
 	}
+	
+	_shadowMapFramebuffer.init();
+}
+
+void Light::updateMatrices()
+{
+	glm::mat4 ProjectionMatrix = glm::perspective(static_cast<float>(pi())/4.f, 1.0f, 2.0f, _range);
+	_frustum.setPerspective(45.f, 1.0f, 0.5f, _range);
+	glm::mat4 ViewMatrix = glm::lookAt(_position, _position + _direction, glm::vec3(0,1,0));
+	_frustum.setLookAt(_position, _direction, glm::vec3(0,1,0));
+	_VPMatrix = ProjectionMatrix * ViewMatrix;
+
+	_biasedVPMatrix = s_depthBiasMVP * _VPMatrix;
 }

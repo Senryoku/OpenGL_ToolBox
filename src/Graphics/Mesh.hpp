@@ -51,6 +51,8 @@ public:
 	inline const Material& getMaterial() const { return _material; }
 	
 	void createVAO();
+	
+	void draw() const;
 
 	static std::vector<Mesh*> load(const std::string& path);
 	

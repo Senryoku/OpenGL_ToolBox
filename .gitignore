@@ -231,3 +231,4 @@ cmake_install.cmake
 install_manifest.txt
 
 extlib_build/*
+*.trace

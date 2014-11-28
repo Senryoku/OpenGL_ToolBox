@@ -25,6 +25,7 @@ public:
 
 	void load(const std::string& Path);
 	void create(const void* data, size_t width, size_t height, int compCount);
+	void create(const void* data, size_t width, size_t height, GLint internalFormat, GLenum format, bool generateMipmaps = true);
 	
 	virtual void bind(unsigned int unit = 0) const override;
 	

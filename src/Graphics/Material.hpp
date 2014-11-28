@@ -27,7 +27,7 @@ public:
 	//	Constructors
 	Material() =default;
 	
-	Material(Program& P) :
+	Material(const Program& P) :
 		_shadingProgram(&P)
 	{
 	}
@@ -43,7 +43,7 @@ public:
 	~Material() =default;
 
 	//	Getters/Setters
-	Program& getShadingProgram() { return *_shadingProgram; }
+	const Program& getShadingProgram() { return *_shadingProgram; }
 	void setShadingProgram(Program& P) { _shadingProgram = &P; updateLocations(); }
 	
 	////////////////////////////////////////////////////////////////
@@ -134,10 +134,10 @@ public:
 	void updateLocations();
 
 private:
-	Program*	_shadingProgram = nullptr;
+	const Program*	_shadingProgram = nullptr;
 	
 	std::vector<std::unique_ptr<GenericUniform>>		_uniforms;
 	GLuint 																_textureCount = 0;
 	
-	GLint getLocation(const std::string& name);
+	GLint getLocation(const std::string& name) const;
 };
