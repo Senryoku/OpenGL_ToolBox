@@ -61,3 +61,18 @@ void Light::updateMatrices()
 
 	_biasedVPMatrix = s_depthBiasMVP * _VPMatrix;
 }
+
+void Light::bind() const
+{
+	getShadowBuffer().bind();
+	getShadowMapProgram().use();
+	getShadowMapProgram().setUniform("DepthMVP", getMatrix());
+	glCullFace(GL_FRONT);
+}
+
+void Light::unbind() const
+{
+	glCullFace(GL_BACK);
+	Program::useNone();
+	getShadowBuffer().unbind();
+}

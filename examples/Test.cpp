@@ -252,9 +252,6 @@ int main(int argc, char* argv[])
 		++meshNum;
 	}
 	
-	Material Depth(MainLight.getShadowMapProgram());
-	Depth.setUniform("DepthMVP", &MainLight.getMatrix());
-	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
 	Texture2D GroundNormalMap;
@@ -311,16 +308,15 @@ int main(int argc, char* argv[])
 		MainLight.lookAt(glm::vec3(0.0, 250.0, 0.0));
 		
 		MainLight.updateMatrices();
-		MainLight.getShadowBuffer().bind();
-		Depth.use();
-		glCullFace(GL_FRONT);
+		MainLight.bind();
 		for(Mesh* m : Glados)
 		{
 			m->draw();
 		}
 		Plane.draw();
-		MainLight.getShadowBuffer().unbind();
+		MainLight.unbind();
 	
+		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
 		glCullFace(GL_BACK);
 		for(Mesh* m : Glados)

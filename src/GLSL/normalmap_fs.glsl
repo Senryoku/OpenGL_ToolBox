@@ -62,9 +62,6 @@ void main(void)
 	vec3 N = normalize(TangentToWorldSpace  * N2);
 	vec3 L = normalize(lightPosition - position);
 	
-	if(!gl_FrontFacing)
-		N = -N;
-	
 	float dNL = dot(N, L);
 	
 	float bbias = bias * tan(acos(dNL));

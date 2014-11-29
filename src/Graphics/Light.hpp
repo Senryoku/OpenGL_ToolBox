@@ -60,10 +60,12 @@ public:
 	 * @see getMatrix()
 	**/
 	inline const glm::mat4& getBiasedMatrix() const { return _biasedVPMatrix; }
+	
 	/**
 	 * @return Light's shadow map framme buffer.
 	**/
 	inline const Framebuffer<Texture2D, 0>& getShadowBuffer() const { return _shadowMapFramebuffer; }
+	
 	/**
 	 * @return Light's shadow map depth texture.
 	**/
@@ -74,6 +76,18 @@ public:
 	 * its current position/direction/range.
 	**/
 	void updateMatrices();
+	
+	/**
+	 * Setup the context to draw to this light' shadow map.
+	 * @todo Find a better name...
+	**/
+	void bind() const;
+	
+	/**
+	 * Restores the default framebuffer.
+	 * @todo Find a better name...
+	**/
+	void unbind() const;
 	
 	inline static const glm::mat4& getBiasMatrix() { return s_depthBiasMVP; }
 	inline static const Program& getShadowMapProgram() { return *s_depthProgram; }
