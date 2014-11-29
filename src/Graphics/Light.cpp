@@ -22,7 +22,8 @@ FragmentShader*		Light::s_depthFS = nullptr;
 
 ///////////////////////////////////////////////////////////////////
 
-Light::Light() :
+Light::Light(unsigned int shadowMapResolution) :
+	_shadowMapResolution(shadowMapResolution),
 	_shadowMapFramebuffer(_shadowMapResolution, true)
 {
 }

@@ -86,7 +86,8 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 																aiProcess_Triangulate |
 																aiProcess_JoinIdenticalVertices |
 																aiProcess_SortByPType |
-																aiProcess_GenNormals | aiProcess_FlipUVs	 );
+																aiProcess_GenSmoothNormals | 
+																aiProcess_FlipUVs);
 																
 	 // If the import failed, report it
 	if( !scene)

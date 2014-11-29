@@ -185,12 +185,12 @@ int main(int argc, char* argv[])
 	
 	CubeMap Tex;
 	#define CUBEMAP_FOLDER "Vasa"
-	Tex.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
-				"in/" CUBEMAP_FOLDER "/negx.jpg",
-				"in/" CUBEMAP_FOLDER "/posy.jpg",
-				"in/" CUBEMAP_FOLDER "/negy.jpg",
-				"in/" CUBEMAP_FOLDER "/posz.jpg",
-				"in/" CUBEMAP_FOLDER "/negz.jpg"
+	Tex.load({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
 
 	VertexShader& VS = ResourcesManager::getInstance().getShader<VertexShader>("NormalMap_VS");
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
 	
 	glm::mat3 _normalMatrix;
 	
-	auto Glados = Mesh::load("in/Glados/Glados.obj");
+	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
 	std::vector<MeshInstance> _meshInstances;
 	size_t meshNum = 0;
 	std::array<std::string, 4> GladosTex {"caf160b2", "fa08434c", "09f5cc6b", "72c40a8a"};
@@ -224,8 +224,9 @@ int main(int argc, char* argv[])
 	GladosNormalMaps.resize(4);
 	for(size_t i = 0; i < 4; ++i)
 	{
-		GladosTextures[i].load(std::string("in/Glados/").append(GladosTex[i]).append(".jpg"));
-		GladosNormalMaps[i].load(std::string("in/Glados/").append(GladosTex[i]).append("_n.jpg"));
+		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
+		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
+		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
 	}
 	
 	for(Mesh* m : Glados)
@@ -255,7 +256,9 @@ int main(int argc, char* argv[])
 	Depth.setUniform("DepthMVP", &MainLight.getMatrix());
 	
 	Texture2D GroundTexture;
-	GroundTexture.load("in/Tex0.jpg");
+	GroundTexture.load("in/Textures/stone/cracked_c.png");
+	Texture2D GroundNormalMap;
+	GroundNormalMap.load("in/Textures/stone/cracked_n.png");
 	
 	Mesh Plane;
 	float s = 1000.f;
@@ -274,11 +277,12 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("NormalMatrix", &_normalMatrix);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
+	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("Ns", 90.0f);
 	Plane.getMaterial().setUniform("Ka", glm::vec4(0.0f, 0.0f, 0.0f, 1.f));
 	Plane.getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
 	Plane.getMaterial().setUniform("minDiffuse", 0.05f);
-	Plane.getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
+	Plane.getMaterial().createAntTweakBar("Plane");
 	
 	float inRad = 60.0 * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
@@ -303,8 +307,8 @@ int main(int argc, char* argv[])
 	
 		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
 	
-		MainLight.setPosition(200.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
-		MainLight.lookAt(glm::vec3(0.0, 0.0, 0.0));
+		MainLight.setPosition(300.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLight.lookAt(glm::vec3(0.0, 250.0, 0.0));
 		
 		MainLight.updateMatrices();
 		MainLight.getShadowBuffer().bind();

@@ -41,6 +41,8 @@ public:
 	 * Default destructor
 	**/
 	~Material() =default;
+	
+	Material& operator=(const Material&);
 
 	//	Getters/Setters
 	const Program& getShadingProgram() { return *_shadingProgram; }

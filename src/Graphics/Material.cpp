@@ -2,8 +2,20 @@
 
 Material::Material(const Material& m)
 {
+	_shadingProgram = m._shadingProgram;
 	for(const auto& u : m._uniforms)
 		_uniforms.push_back(std::unique_ptr<GenericUniform>(u.get()->clone()));
+	_textureCount = m._textureCount;
+}
+
+Material& Material::operator=(const Material& m)
+{
+	_shadingProgram = m._shadingProgram;
+	for(const auto& u : m._uniforms)
+		_uniforms.push_back(std::unique_ptr<GenericUniform>(u.get()->clone()));
+	_textureCount = m._textureCount;
+	
+	return *this;
 }
 
 void Material::bind() const
