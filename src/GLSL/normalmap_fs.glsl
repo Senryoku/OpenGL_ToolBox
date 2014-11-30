@@ -1,6 +1,9 @@
 #version 430 core
 
-uniform float minDiffuse = 0.2f;
+layout(location = 0)
+uniform mat4 ModelViewMatrix;
+
+uniform float minDiffuse = 0.0f;
 uniform float Ns = 8.f;
 uniform vec3 lightPosition = vec3(25.f, 10.f, 25.f);
 uniform vec4 Ka = vec4(0.2f, 0.2f, 0.2f, 1.f);
@@ -61,7 +64,7 @@ void main(void)
 	
 	vec3 N2 = 2.0f * vec3(texture(NormalMap, texcoord)) - 1.0f;
 	vec3 N = normalize(TangentToWorldSpace  * N2);
-	vec3 L = normalize(lightPosition - position);
+	vec3 L = normalize((ModelViewMatrix * vec4(lightPosition, 1.0)).xyz - position);
 	
 	float dNL = dot(N, L);
 	
@@ -71,6 +74,7 @@ void main(void)
 		   specular_visibility = 1.f;
 		   
 	// If we are in the light's fustrum...
+	
 	if((shadowcoord.x/shadowcoord.w  >= 0 && shadowcoord.x/shadowcoord.w  <= 1.f) &&
     (shadowcoord.y/shadowcoord.w  >= 0 && shadowcoord.y/shadowcoord.w  <= 1.f))
 	{
@@ -81,16 +85,16 @@ void main(void)
 			sc.xy+= poissonDisk[i] * sc.w/poissonDiskRadius;
 			if(textureProj(ShadowMap, sc.xyw).z + bbias < sc.z/sc.w)
 			{
-				visibility -= 0.6f / poissonSamples;
+				visibility -= (1.0f - minDiffuse) / poissonSamples;
 				specular_visibility = 0.f;
 			}
 		}
 	} else {
-		visibility = 0.4f;
+		visibility = minDiffuse;
 		specular_visibility = 0.f;
 	}
 	
-	float diffuseFactor = max(dNL, minDiffuse);
+	float diffuseFactor = min(visibility, max(dNL, minDiffuse));
 	
 	vec3 V = normalize(-position);
 	vec3 R = normalize(-reflect(L, N));
@@ -100,6 +104,6 @@ void main(void)
 								0.f;
 		
 	vec4 diffuse = texture(Texture, texcoord);
-	colorOut = diffuse * Ka + visibility*diffuseFactor*diffuse + specular_visibility*specularFactor*Ks;
+	colorOut = diffuse * Ka + diffuseFactor*diffuse + specular_visibility*specularFactor*Ks;
 	colorOut.w = diffuse.w;
 }

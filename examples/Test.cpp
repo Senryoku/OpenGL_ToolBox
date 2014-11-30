@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	CubeMap Tex;
-	#define CUBEMAP_FOLDER "Vasa"
+	#define CUBEMAP_FOLDER "brudslojan"
 	Tex.load({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
 		m->getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
 		m->getMaterial().setUniform("Ns", 90.0f);
-		m->getMaterial().setUniform("Ka", glm::vec4(0.0f, 0.0f, 0.0f, 1.f));
+		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 		m->getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
 		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
 		
@@ -330,7 +330,7 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("Ns", 90.0f);
-	Plane.getMaterial().setUniform("Ka", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+	Plane.getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 	Plane.getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
 	Plane.getMaterial().createAntTweakBar("Plane");
 	
@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
 		m->getMaterial().setUniform("EnvMap", CubeFramebufferTest.getColor());
 		m->getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
 		m->getMaterial().setUniform("Ns", 90.0f);
-		m->getMaterial().setUniform("Ka", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 		m->getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
 		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
 		m->getMaterial().createAntTweakBar("Reflective " + StringConversion::to_string(meshNum));
@@ -388,6 +388,30 @@ int main(int argc, char* argv[])
 		_time += _frameTime;
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		
+		//MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
+		//MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
+		if(controlCamera)
+		{
+			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				MainCamera.moveForward(_frameTime);
+				
+			if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				MainCamera.strafeLeft(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				MainCamera.moveBackward(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				MainCamera.strafeRight(_frameTime);
+				
+			double mx = mouse_x, my = mouse_y;
+			glfwGetCursorPos(window, &mouse_x, &mouse_y);
+			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
+		}
+		MainCamera.updateView();
+	
+		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
+		
 		std::ostringstream oss;
 		oss << _frameRate;
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
@@ -411,8 +435,6 @@ int main(int argc, char* argv[])
 		}
 		MainLight.unbind();
 		glCullFace(GL_BACK);
-	
-		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
 		
 		// Render to CubeMap Test ! :)
 		
@@ -442,30 +464,6 @@ int main(int argc, char* argv[])
 			CubeFramebufferTest.getColor().dump("out/CubeFramebufferTest/cube_");
 			done = true;
 		}
-		
-		//MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
-		//MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
-		if(controlCamera)
-		{
-			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				MainCamera.moveForward(_frameTime);
-				
-			if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-				MainCamera.strafeLeft(_frameTime);
-					
-			if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				MainCamera.moveBackward(_frameTime);
-					
-			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				MainCamera.strafeRight(_frameTime);
-				
-			double mx = mouse_x, my = mouse_y;
-			glfwGetCursorPos(window, &mouse_x, &mouse_y);
-			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
-		}
-		MainCamera.updateView();
-	
-		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
 		
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);

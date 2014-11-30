@@ -52,7 +52,7 @@ out vec4 colorOut;
 void main(void)
 {
 	vec3 N = normalize(normal);
-	vec3 L = normalize(lightPosition - position);
+	vec3 L = normalize((ModelViewMatrix * vec4(lightPosition, 1.0)).xyz - position);
 	
 	float dNL = dot(N, L);
 	
