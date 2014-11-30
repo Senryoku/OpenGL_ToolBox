@@ -50,6 +50,8 @@ public:
 	inline const std::vector<Triangle>&	getTriangles() const { return _triangles; }
 	inline const Material& getMaterial() const { return _material; }
 	
+	void computeNormals();
+	
 	void createVAO();
 	
 	void draw() const;

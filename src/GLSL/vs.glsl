@@ -7,7 +7,7 @@ out vec2 texcoords;
 
 void main()
 {
-    gl_Position = vec4(quadVertices[gl_VertexID], 0.2, 1.0);
+    gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
 	
 	//gl_TexCoord[0] = vec4(texCoords[gl_VertexID], 0, 0);
 	texcoords = texCoords[gl_VertexID];

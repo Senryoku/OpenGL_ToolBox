@@ -24,6 +24,7 @@
 #include <MeshInstance.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
+#include <SkyBox.hpp>
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
@@ -33,6 +34,10 @@ int		_height = 720;
 glm::vec3 _resolution(_width, _height, 0.0);
 glm::mat4 _projection;
 glm::vec4 _mouse(0.0);
+
+		
+bool controlCamera = true;
+double mouse_x, mouse_y;
 
 float _time = 0.f;
 float	_frameTime;
@@ -87,6 +92,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if(key == GLFW_KEY_R && action == GLFW_PRESS)
 		{
 			ResourcesManager::getInstance().reloadShaders();
+		}
+		
+		if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+		{
+			if(!controlCamera)
+			{
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			} else {
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
+			controlCamera = !controlCamera;
 		}
 	}
 }
@@ -176,6 +192,8 @@ int main(int argc, char* argv[])
 	
 	glfwSetWindowSizeCallback(window, resize_callback);
 	
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	
 	TwInit(TW_OPENGL, nullptr);
 	TwWindowSize(_width, _height);
 			
@@ -200,11 +218,48 @@ int main(int argc, char* argv[])
 	FragmentShader& FS = ResourcesManager::getInstance().getShader<FragmentShader>("NormalMap_FS");
 	FS.loadFromFile("src/GLSL/normalmap_fs.glsl");
 	FS.compile();
+
+	GeometryShader& GS = ResourcesManager::getInstance().getShader<GeometryShader>("Cubemap_GS");
+	GS.loadFromFile("src/GLSL/cubemap_gs.glsl");
+	GS.compile();
 	
 	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
 	NormalMap.attachShader(VS);
 	NormalMap.attachShader(FS);
 	NormalMap.link();
+	
+	Program& CubeNormalMap = ResourcesManager::getInstance().getProgram("CubeNormalMap");
+	CubeNormalMap.attachShader(VS);
+	CubeNormalMap.attachShader(GS);
+	CubeNormalMap.attachShader(FS);
+	CubeNormalMap.link();
+
+	VertexShader& ReflectiveVS = ResourcesManager::getInstance().getShader<VertexShader>("Reflective_VS");
+	ReflectiveVS.loadFromFile("src/GLSL/Reflective/vs.glsl");
+	ReflectiveVS.compile();
+
+	FragmentShader& ReflectiveFS = ResourcesManager::getInstance().getShader<FragmentShader>("Reflective_FS");
+	ReflectiveFS.loadFromFile("src/GLSL/Reflective/fs.glsl");
+	ReflectiveFS.compile();
+	
+	
+	VertexShader& FullscreenTextureVS = ResourcesManager::getInstance().getShader<VertexShader>("FullscreenTexture_VS");
+	FullscreenTextureVS.loadFromFile("src/GLSL/vs.glsl");
+	FullscreenTextureVS.compile();
+	
+	FragmentShader& FullscreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullscreenTexture_FS");
+	FullscreenTextureFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
+	FullscreenTextureFS.compile();
+	
+	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
+	FullscreenTexture.attachShader(FullscreenTextureVS);
+	FullscreenTexture.attachShader(FullscreenTextureFS);
+	FullscreenTexture.link();
+	
+	Program& Reflective = ResourcesManager::getInstance().getProgram("Reflective");
+	Reflective.attachShader(ReflectiveVS);
+	Reflective.attachShader(ReflectiveFS);
+	Reflective.link();
 	
 	Camera MainCamera;
 	Light MainLight;
@@ -243,7 +298,6 @@ int main(int argc, char* argv[])
 		m->getMaterial().setUniform("Ns", 90.0f);
 		m->getMaterial().setUniform("Ka", glm::vec4(0.0f, 0.0f, 0.0f, 1.f));
 		m->getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
-		m->getMaterial().setUniform("minDiffuse", 0.05f);
 		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
 		
 		m->createVAO();
@@ -276,14 +330,57 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("Ns", 90.0f);
-	Plane.getMaterial().setUniform("Ka", glm::vec4(0.0f, 0.0f, 0.0f, 1.f));
+	Plane.getMaterial().setUniform("Ka", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
 	Plane.getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
-	Plane.getMaterial().setUniform("minDiffuse", 0.05f);
 	Plane.getMaterial().createAntTweakBar("Plane");
 	
 	float inRad = 60.0 * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
+	
+	Framebuffer<CubeMap, 1> CubeFramebufferTest;
+	CubeFramebufferTest.init();
+	
+	Camera SphereCamera;
+	SphereCamera.setPosition(glm::vec3(0.0, 75.0, 0.0));
+	SphereCamera.setDirection(glm::vec3(0.0, 0.0, 1.0));
+	SphereCamera.updateView();
+	auto Sphere = Mesh::load("in/3DModels/Robot/Robot.obj");
+	meshNum = 0;
+	for(Mesh* m : Sphere)
+	{
+		//for(auto& v : m->getVertices())
+		//	v.position = 50.0f * v.position + glm::vec3(0.0, 75.0, 0.0);
+			
+		m->getMaterial().setShadingProgram(Reflective);
+		m->getMaterial().setUniform("cameraPosition", &MainCamera.getPosition());
+		m->getMaterial().setUniform("lightPosition", &MainLight.getPosition());
+		m->getMaterial().setUniform("DepthMVP", &MainLight.getBiasedMatrix());
+		m->getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
+		m->getMaterial().setUniform("ProjectionMatrix", &_projection);
+		m->getMaterial().setUniform("NormalMatrix", &_normalMatrix);
+		m->getMaterial().setUniform("EnvMap", CubeFramebufferTest.getColor());
+		m->getMaterial().setUniform("ShadowMap", MainLight.getShadowMap());
+		m->getMaterial().setUniform("Ns", 90.0f);
+		m->getMaterial().setUniform("Ka", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+		m->getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
+		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+		m->getMaterial().createAntTweakBar("Reflective " + StringConversion::to_string(meshNum));
+		
+		//m->computeNormals();
+		m->createVAO();
+		
+		_meshInstances.push_back(MeshInstance(*m));
+		++meshNum;
+	}
 
+	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
+	});
+	
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
@@ -297,12 +394,6 @@ int main(int argc, char* argv[])
 		
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
-		MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
-		MainCamera.updateView();
-	
-		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
 	
 		MainLight.setPosition(300.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLight.lookAt(glm::vec3(0.0, 250.0, 0.0));
@@ -314,19 +405,99 @@ int main(int argc, char* argv[])
 			m->draw();
 		}
 		Plane.draw();
+		for(Mesh* m : Sphere)
+		{
+			m->draw();
+		}
 		MainLight.unbind();
+		glCullFace(GL_BACK);
 	
+		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
+		
+		// Render to CubeMap Test ! :)
+		
+		CubeFramebufferTest.bind(GL_DRAW_FRAMEBUFFER);
+		
+		Sky.cubedraw();
+		glm::mat4 Perspective = glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f);
+		for(Mesh* m : Glados)
+		{
+			m->getMaterial().setShadingProgram(CubeNormalMap);
+			m->getMaterial().setUniform("ProjectionMatrix", &Perspective);
+			m->getMaterial().setUniform("ModelViewMatrix", &SphereCamera.getMatrix());
+			m->getMaterial().use();
+			m->draw();
+		}
+		Plane.getMaterial().setShadingProgram(CubeNormalMap);
+		Plane.getMaterial().setUniform("ProjectionMatrix", &Perspective);
+		Plane.getMaterial().setUniform("ModelViewMatrix", &SphereCamera.getMatrix());
+		Plane.getMaterial().use();
+		Plane.draw();
+		CubeFramebufferTest.unbind();
+		
+		// Save to disk (Debug)
+		static bool done = false;
+		if(!done) 
+		{
+			CubeFramebufferTest.getColor().dump("out/CubeFramebufferTest/cube_");
+			done = true;
+		}
+		
+		//MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
+		//MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
+		if(controlCamera)
+		{
+			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				MainCamera.moveForward(_frameTime);
+				
+			if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				MainCamera.strafeLeft(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				MainCamera.moveBackward(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				MainCamera.strafeRight(_frameTime);
+				
+			double mx = mouse_x, my = mouse_y;
+			glfwGetCursorPos(window, &mouse_x, &mouse_y);
+			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
+		}
+		MainCamera.updateView();
+	
+		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
+		
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
-		glCullFace(GL_BACK);
+		Sky.draw(_projection, MainCamera.getMatrix());
+		
 		for(Mesh* m : Glados)
+		{
+			m->getMaterial().setShadingProgram(NormalMap);
+			m->getMaterial().setUniform("ProjectionMatrix", &_projection);
+			m->getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
+			m->getMaterial().use();
+			m->draw();
+		}
+		Plane.getMaterial().setShadingProgram(NormalMap);
+		Plane.getMaterial().setUniform("ProjectionMatrix", &_projection);
+		Plane.getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
+		Plane.getMaterial().use();
+		Plane.draw();
+		
+		for(Mesh* m : Sphere)
 		{
 			m->getMaterial().use();
 			m->draw();
 		}
-		Plane.getMaterial().use();
-		Plane.draw();
 		
+		// Quick Cleanup for AntTweakBar...
+		for(int i = 0; i < 8; ++i)
+		{
+			Texture::activeUnit(i);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		}
 		TwDraw();
 		
 		glfwSwapBuffers(window);

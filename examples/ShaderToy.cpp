@@ -188,16 +188,16 @@ int main(int argc, char* argv[])
 
 	#define CUBEMAP_FOLDER "Vasa"
 
-	CM.load({"in/" CUBEMAP_FOLDER "/posx.jpg",
-				"in/" CUBEMAP_FOLDER "/negx.jpg",
-				"in/" CUBEMAP_FOLDER "/posy.jpg",
-				"in/" CUBEMAP_FOLDER "/negy.jpg",
-				"in/" CUBEMAP_FOLDER "/posz.jpg",
-				"in/" CUBEMAP_FOLDER "/negz.jpg"
+	CM.load({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
 			
 	Texture2D& Tex = ResourcesManager::getInstance().getTexture<Texture2D>("Tex");
-	Tex.load("in/Tex0.jpg");
+	Tex.load("in/Textures/Tex0.jpg");
 	
 	Framebuffer<Texture2D>	EyeTex(512, 512, false);
 	EyeTex.init();
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	Texture2D& Noise = ResourcesManager::getInstance().getTexture<Texture2D>("Noise");
-	Noise.load("in/noise_rgba.png");
+	Noise.load("in/Textures/noise_rgba.png");
 	
 	Material EyeMat;
 	EyeMat.setShadingProgram(Eye);

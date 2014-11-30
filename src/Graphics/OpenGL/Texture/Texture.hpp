@@ -102,6 +102,8 @@ public:
 	}
 	
 	virtual GLuint getBound(unsigned int unit = 0) const =0;
+	
+	virtual void dump(const std::string& path) const;
 protected:
 	GLenum	_pixelType = GL_UNSIGNED_BYTE;
 	
@@ -112,4 +114,5 @@ protected:
 	inline static bool isTexture(GLuint name) { return glIsTexture(name) == GL_TRUE; }
 	
 	static GLenum getFormat(GLuint compCount);
+	static GLuint getCompCount(GLenum format);
 };

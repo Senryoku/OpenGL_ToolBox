@@ -73,6 +73,32 @@ void Mesh::draw() const
 	_vao.unbind();
 }
 
+void Mesh::computeNormals()
+{
+	// Here, normals are the average of adjacent triangles' normals
+	// (so we have exactly one normal per vertex)
+	for(auto& v : _vertices)
+		v.normal = glm::vec3();
+
+	for(Triangle& t : _triangles)
+	{
+		std::array<size_t, 3>& v = t.vertices;
+		// Normal of this triangle
+		glm::vec3 norm = glm::normalize(
+							glm::cross(_vertices[v[1]].position - _vertices[v[0]].position,
+									   _vertices[v[2]].position - _vertices[v[0]].position)
+						 );
+
+		for(size_t i = 0; i < 3; ++i)
+		{
+			_vertices[v[i]].normal += norm;
+		}
+	}
+
+	for(auto& v : _vertices)
+		v.normal = glm::normalize(v.normal);
+}
+
 ////////////////////// Static /////////////////////////////////////
 	
 std::vector<Mesh*> Mesh::load(const std::string& path)

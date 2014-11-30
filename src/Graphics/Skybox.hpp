@@ -1,15 +1,21 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include <CubeMap.hpp>
+#include <Buffer.hpp>
+#include <VertexArray.hpp>
 
 class Skybox
 {
 public:
 	Skybox();
 	Skybox(const std::array<std::string, 6>& Paths);
+	Skybox(const CubeMap& cubemap);
 	~Skybox() =default;
 	
-	void draw();
+	void draw(const glm::mat4& p, const glm::mat4& mv);
+	void cubedraw();
 	void loadCubeMap(const std::array<std::string, 6>& Paths);
 	
 	CubeMap& getCubemap() { return _cubeMap; }
@@ -17,9 +23,9 @@ public:
 private:
 	CubeMap	_cubeMap;
 	
-	static void		init();
+	static void init();
 	
-	static bool		s_init;
-	static GLuint	s_vertexBuffer;
-	static GLuint	s_indiceBuffer;
+	static VertexArray		s_vao;
+	static Buffer				s_vertex_buffer;
+	static Buffer				s_index_buffer;
 };

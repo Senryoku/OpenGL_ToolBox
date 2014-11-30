@@ -1,5 +1,7 @@
 #include <Texture.hpp>
 
+#include <stb_image_write.hpp>
+
 Texture::Texture(GLenum pixelType) :
 	OpenGLObject(),
 	_pixelType(pixelType)
@@ -56,6 +58,47 @@ GLenum Texture::getFormat(GLuint compCount)
 			break;
 	}
 	return format;
+}
+
+GLuint Texture::getCompCount(GLenum format)
+{	
+	switch(format)
+	{
+		case GL_RED :
+			return 1;
+			break;
+		case  GL_RG :
+			return 2;
+			break;
+		case GL_RGB :
+			return 3;
+			break;
+		case GL_RGBA :
+			return 4;
+			break;
+		default:
+			return 0;
+			break;
+	}
+}
+
+void Texture::dump(const std::string& path) const
+{
+	GLint width, height, format;
+	glGetTexLevelParameteriv(getType(), 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(getType(), 0, GL_TEXTURE_HEIGHT, &height);
+	glGetTexLevelParameteriv(getType(), 0, GL_TEXTURE_INTERNAL_FORMAT, &format);
+	if(_pixelType == GL_UNSIGNED_BYTE) {
+		GLubyte* data = nullptr;
+		data = new GLubyte[getCompCount(format) * width * height];
+	
+		glGetTexImage(getType(), 0, format, _pixelType, data);
+		stbi_write_png(path.c_str(), width, height, getCompCount(format), data, 0);
+		
+		delete[] data;
+	} else {
+		return;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

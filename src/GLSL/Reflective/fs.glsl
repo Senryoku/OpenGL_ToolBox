@@ -1,10 +1,13 @@
 #version 430 core
 
-uniform float minDiffuse = 0.2f;
+layout(location = 0)
+uniform mat4 ModelViewMatrix;
+
 uniform float Ns = 8.f;
 uniform vec3 lightPosition = vec3(25.f, 10.f, 25.f);
 uniform vec4 Ka = vec4(0.2f, 0.2f, 0.2f, 1.f);
 uniform vec4 Ks = vec4(0.6f, 0.6f, 0.6f, 1.f);
+uniform vec4 diffuse = vec4(0.1, 0.1, 0.1, 1.0);
 
 uniform float bias = 0.000005f;
 
@@ -12,10 +15,10 @@ in layout(location = 0) vec3 position;
 in layout(location = 1) vec3 normal;
 in layout(location = 2) vec2 texcoord;
 in layout(location = 3) vec4 shadowcoord;
+in layout(location = 4) vec3 reflectDir;
 
-uniform layout(binding = 0) sampler2D Texture;
+uniform layout(binding = 0) samplerCube EnvMap;
 uniform layout(binding = 1) sampler2D ShadowMap;
-uniform layout(binding = 2) sampler2D NormalMap;
 
 uniform int poissonSamples = 4;
 uniform float poissonDiskRadius = 2500.f;
@@ -47,20 +50,8 @@ float random(vec4 seed4)
 
 out vec4 colorOut;
 void main(void)
-{	
-	vec3 tang;
-	vec3 tmp0 = cross(normal, vec3(0.f, 0.f, 1.f));
-	vec3 tmp1 = cross(normal, vec3(0.f, 1.f, 0.f));
-	if(length(tmp0) > length(tmp1))
-		tang = normalize(tmp0);	
-	else
-		tang = normalize(tmp1);	
-	vec3 bitang = normalize(cross(normal, tang));
-	
-	mat3 TangentToWorldSpace = inverse(transpose(mat3(tang, bitang, normal)));
-	
-	vec3 N2 = 2.0f * vec3(texture(NormalMap, texcoord)) - 1.0f;
-	vec3 N = normalize(TangentToWorldSpace  * N2);
+{
+	vec3 N = normalize(normal);
 	vec3 L = normalize(lightPosition - position);
 	
 	float dNL = dot(N, L);
@@ -90,7 +81,7 @@ void main(void)
 		specular_visibility = 0.f;
 	}
 	
-	float diffuseFactor = max(dNL, minDiffuse);
+	float diffuseFactor = max(dNL, 0.f);
 	
 	vec3 V = normalize(-position);
 	vec3 R = normalize(-reflect(L, N));
@@ -99,7 +90,7 @@ void main(void)
 								pow(max(dot(R, V), 0.f), Ns) :
 								0.f;
 		
-	vec4 diffuse = texture(Texture, texcoord);
-	colorOut = diffuse * Ka + visibility*diffuseFactor*diffuse + specular_visibility*specularFactor*Ks;
+	vec4 reflectColor = texture(EnvMap, reflectDir);
+	colorOut = Ka*reflectColor + visibility*diffuseFactor*diffuse*reflectColor + specular_visibility*specularFactor*Ks;
 	colorOut.w = diffuse.w;
 }

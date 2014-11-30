@@ -2,46 +2,110 @@
 
 #include <cmath>
 
-bool	Skybox::s_init 			= false;
-GLuint	Skybox::s_vertexBuffer	= 0;
-GLuint	Skybox::s_indiceBuffer	= 0;
+#include <ResourcesManager.hpp>
+
+VertexArray		Skybox::s_vao;
+Buffer			Skybox::s_vertex_buffer(Buffer::VertexAttributes);
+Buffer			Skybox::s_index_buffer(Buffer::VertexIndices);
 
 Skybox::Skybox()
 {
 }
 
-Skybox::Skybox(const std::array<std::string, 6>& Paths) :
-	Skybox()
+Skybox::Skybox(const std::array<std::string, 6>& Paths)
 {
 	loadCubeMap(Paths);
 }
 
+Skybox::Skybox(const CubeMap& cubemap) :
+	_cubeMap(cubemap)
+{
+	if(!s_vao)
+		init();
+}
+
 void Skybox::loadCubeMap(const std::array<std::string, 6>& Paths)
 {
-	if(!s_init)
+	if(!s_vao)
 		init();
 		
 	_cubeMap.load(Paths);
 }
 	
-void Skybox::draw()
+void Skybox::draw(const glm::mat4& p, const glm::mat4& mv)
 {
+	Program& P = ResourcesManager::getInstance().getProgram("SkyboxProgram");
+	if(!P)
+	{
+		VertexShader& VS = ResourcesManager::getInstance().getShader<VertexShader>("Skybox_VS");
+		VS.loadFromFile("src/GLSL/Skybox/skybox_vs.glsl");
+		VS.compile();
+
+		FragmentShader& FS = ResourcesManager::getInstance().getShader<FragmentShader>("Skybox_FS");
+		FS.loadFromFile("src/GLSL/Skybox/skybox_fs.glsl");
+		FS.compile();
+		
+		P.attachShader(VS);
+		P.attachShader(FS);
+		P.link();
+	}
+	
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_indiceBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, s_vertexBuffer);
+	
+	P.setUniform("ModelViewMatrix", mv);
+	P.setUniform("ProjectionMatrix", p);
+	P.setUniform("SkyBox", 0);
+	P.use();
 	_cubeMap.bind();
-	glVertexPointer(3, GL_FLOAT, 0, 0);
-	glDrawElements(GL_QUADS, 6 * 4, GL_UNSIGNED_BYTE, 0);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	s_vao.bind();
+	glDrawElements(GL_QUADS, 24, GL_UNSIGNED_BYTE, 0);
+	s_vao.unbind();
+	_cubeMap.unbind();
+	
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void Skybox::cubedraw()
+{
+	Program& P = ResourcesManager::getInstance().getProgram("CubeSkyboxProgram");
+	if(!P)
+	{
+		VertexShader& VS = ResourcesManager::getInstance().getShader<VertexShader>("CubeSkybox_VS");
+		VS.loadFromFile("src/GLSL/vs.glsl");
+		VS.compile();
+		
+		GeometryShader& GS = ResourcesManager::getInstance().getShader<GeometryShader>("CubeSkybox_GS");
+		GS.loadFromFile("src/GLSL/Skybox/skybox_cube_gs.glsl");
+		GS.compile();
+
+		FragmentShader& FS = ResourcesManager::getInstance().getShader<FragmentShader>("CubeSkybox_FS");
+		FS.loadFromFile("src/GLSL/Skybox/skybox_cube_fs.glsl");
+		FS.compile();
+		
+		P.attachShader(VS);
+		P.attachShader(GS);
+		P.attachShader(FS);
+		P.link();
+	}
+	
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	
+	P.setUniform("SkyBox", 0);
+	P.use();
+	_cubeMap.bind();
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	_cubeMap.unbind();
+	
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 }
 
 void Skybox::init()
 {
-	float boxsize =  std::sqrt(3)/3.f;
+	float boxsize = std::sqrt(3)/3.f;
 
 	float vertices[24] = {
 		-boxsize,	-boxsize,	-boxsize,
@@ -63,13 +127,21 @@ void Skybox::init()
 		3, 2, 6, 7
 	};
 	
-	glGenBuffers(1, &s_vertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, s_vertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	s_vao.init();
+	s_vao.bind();
 	
-	glGenBuffers(1, &s_indiceBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_indiceBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	s_vertex_buffer.init();
+	s_vertex_buffer.bind();
 	
-	s_init = true;
+	s_vertex_buffer.data(vertices, sizeof(float) * 24.0, Buffer::StaticDraw);
+
+	s_vao.attribute(0, 3, GL_FLOAT, GL_FALSE, 3.0 * sizeof(float), (GLvoid *) 0);
+
+	s_index_buffer.init();
+	s_index_buffer.bind();
+	s_index_buffer.data(indices, sizeof(GLubyte) * 24, Buffer::StaticDraw);
+	
+	s_vao.unbind(); // Unbind first on purpose :)
+	s_index_buffer.unbind();
+	s_vertex_buffer.unbind();
 }
