@@ -20,7 +20,7 @@
 #include <Framebuffer.hpp>
 #include <Material.hpp>
 
-#include <Tools/StringConversion.hpp>
+#include <StringConversion.hpp>
 #include <stb_image_write.hpp>
 
 int		_width = 1366;

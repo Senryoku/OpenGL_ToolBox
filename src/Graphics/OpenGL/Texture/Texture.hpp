@@ -58,14 +58,9 @@ public:
 		CompareFunc = GL_TEXTURE_COMPARE_FUNC
 	};
 	
-	Texture() =default;
+	Texture(GLenum pixelType = GL_UNSIGNED_BYTE);
 	
-	Texture(GLuint handle) : 
-		OpenGLObject(handle)
-	{
-		if(!isTexture(handle))
-			std::cerr << "Error constructing texture: Provided OpenGL name isn't a texture name." << std::endl;
-	}
+	Texture(GLenum pixelType, GLuint handle);
 	
 	Texture(const Texture&) =default;
 	Texture(Texture&&) =default;
@@ -108,9 +103,13 @@ public:
 	
 	virtual GLuint getBound(unsigned int unit = 0) const =0;
 protected:
+	GLenum	_pixelType = GL_UNSIGNED_BYTE;
+	
 	void cleanup();
 	
 	virtual GLenum getType() const =0;
 	
 	inline static bool isTexture(GLuint name) { return glIsTexture(name) == GL_TRUE; }
+	
+	static GLenum getFormat(GLuint compCount);
 };

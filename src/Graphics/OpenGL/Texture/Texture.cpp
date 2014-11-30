@@ -1,5 +1,18 @@
 #include <Texture.hpp>
 
+Texture::Texture(GLenum pixelType) :
+	OpenGLObject(),
+	_pixelType(pixelType)
+{
+}
+
+Texture::Texture(GLenum pixelType, GLuint handle) : 
+	OpenGLObject(handle)
+{
+	if(!isTexture(handle))
+		std::cerr << "Error constructing texture: Provided OpenGL name isn't a texture name." << std::endl;
+}
+
 Texture::~Texture()
 {
 	cleanup();
@@ -19,6 +32,30 @@ void Texture::generateMipmaps() const
 {
 	Binder B(*this);
 	glGenerateMipmap(getType());
+}
+
+GLenum Texture::getFormat(GLuint compCount)
+{	
+	GLenum format = GL_RGBA;
+	switch(compCount)
+	{
+		case 1 :
+			format = GL_RED;
+			break;
+		case 2 :
+			format = GL_RG;
+			break;
+		case 3 :
+			format = GL_RGB;
+			break;
+		case 4 :
+			format = GL_RGBA;
+			break;
+		default:
+			format = GL_RGBA;
+			break;
+	}
+	return format;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

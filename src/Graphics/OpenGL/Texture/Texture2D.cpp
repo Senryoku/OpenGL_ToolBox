@@ -14,27 +14,8 @@ void Texture2D::load(const std::string& Path)
 }
 
 void Texture2D::create(const void* data, size_t width, size_t height, int compCount)
-{
-	GLenum format;
-	switch(compCount)
-	{
-		case 1 :
-			format = GL_RED;
-			break;
-		case 2 :
-			format = GL_RG;
-			break;
-		case 3 :
-			format = GL_RGB;
-			break;
-		case 4 :
-			format = GL_RGBA;
-			break;
-		default:
-			format = GL_RGBA;
-			break;
-	}
-	
+{	
+	GLenum format = getFormat(compCount);
 	create(data, width, height, format, format);
 }
 
@@ -52,7 +33,7 @@ void Texture2D::create(const void* data, size_t width, size_t height, GLint inte
 				 static_cast<GLsizei>(height),
 				 0,
 				 format,
-				 _type,
+				 _pixelType,
 				 data
 			); 
 

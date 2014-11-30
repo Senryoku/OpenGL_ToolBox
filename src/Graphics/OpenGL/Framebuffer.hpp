@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <Graphics/Texture2D.hpp>
+#include <Texture2D.hpp>
 
 template<typename TexType = Texture2D, unsigned int ColorCount = 1>
 class Framebuffer : public OpenGLObject

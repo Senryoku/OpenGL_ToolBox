@@ -17,9 +17,8 @@ class Texture2D : public Texture
 public:
 	Texture2D() =default;
 	
-	Texture2D(GLenum type) :
-		Texture(),
-		_type(type)
+	Texture2D(GLenum pixelType) :
+		Texture(pixelType)
 	{
 	}
 
@@ -39,7 +38,5 @@ public:
 		return static_cast<GLuint>(r);
 	}
 private:
-	GLenum	_type = GL_UNSIGNED_BYTE;
-	
 	virtual GLenum getType() const override { return GL_TEXTURE_2D; }
 };

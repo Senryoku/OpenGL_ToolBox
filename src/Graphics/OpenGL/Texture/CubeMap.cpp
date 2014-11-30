@@ -3,6 +3,11 @@
 #include <iostream>
 #include "stb_image.hpp"
 
+CubeMap::CubeMap(GLenum pixelType) :
+	Texture(pixelType)
+{
+}
+
 void CubeMap::load(const std::array<std::string, 6>& paths)
 {
 	int x, y, n;
@@ -20,6 +25,12 @@ void CubeMap::load(const std::array<std::string, 6>& paths)
 
 void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t height, int compCount)
 {
+	GLenum format = getFormat(compCount);
+	create(data, width, height, format, format);
+}
+
+void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t height, GLint internalFormat, GLenum format, bool generateMipmaps)
+{
 	cleanup();
 	
 	glEnable(GL_TEXTURE_CUBE_MAP);
@@ -28,38 +39,22 @@ void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t heig
 	glGenTextures(1, &_handle);
 	bind();
 	
-	GLenum format = GL_RGBA;
-	switch(compCount)
-	{
-		case 1 :
-			format = GL_RED;
-			break;
-		case 2 :
-			format = GL_RG;
-			break;
-		case 3 :
-			format = GL_RGB;
-			break;
-		case 4 :
-			format = GL_RGBA;
-			break;
-		default:
-			format = GL_RGBA;
-			break;
-	}
-	
 	for(size_t i = 0; i < 6; ++i)
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
 					 0,
-					 compCount,
+					 internalFormat,
 					 static_cast<GLsizei>(width),
 					 static_cast<GLsizei>(height),
 					 0,
 					 format,
-					 GL_UNSIGNED_BYTE,
+					 _pixelType,
 					 data[i]);
 	
-	set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	if(generateMipmaps)
+		set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	else
+		set(MinFilter, GL_LINEAR);
+	set(MagFilter, GL_LINEAR);
 	set(MagFilter, GL_LINEAR);
 	set(WrapS, GL_CLAMP_TO_EDGE);
 	set(WrapT, GL_CLAMP_TO_EDGE);
@@ -69,7 +64,8 @@ void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t heig
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
 	glSamplerParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 	
-	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+	if(generateMipmaps)
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 	
 	unbind();
 }

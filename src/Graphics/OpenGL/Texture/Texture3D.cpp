@@ -4,6 +4,12 @@
 
 void Texture3D::create(const void* data, size_t width, size_t height, size_t depth, int compCount)
 {
+	GLenum format = getFormat(compCount);
+	create(data, width, height, depth, format, format);
+}
+
+void Texture3D::create(const void* data, size_t width, size_t height, size_t depth, GLint internalFormat, GLenum format, bool generateMipmaps)
+{
 	cleanup();
 	
 	glEnable(GL_TEXTURE_3D);
@@ -11,40 +17,23 @@ void Texture3D::create(const void* data, size_t width, size_t height, size_t dep
 	glGenTextures(1, &_handle);
 	bind();
 	
-	GLenum format;
-	switch(compCount)
-	{
-		case 1 :
-			format = GL_RED;
-			break;
-		case 2 :
-			format = GL_RG;
-			break;
-		case 3 :
-			format = GL_RGB;
-			break;
-		case 4 :
-			format = GL_RGBA;
-			break;
-		default:
-			format = GL_RGBA;
-			break;
-	}
-	
 	glTexImage3D(GL_TEXTURE_3D, 
 				 0,
-				 format,
+				 internalFormat,
 	 			 static_cast<GLsizei>(width),
 				 static_cast<GLsizei>(height),
 				 static_cast<GLsizei>(depth),
 				 0,
 				 format,
-				 _type,
+				 _pixelType,
 				 data
 				); 
 
 	// Default Parameters
-	set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	if(generateMipmaps)
+		set(MinFilter, GL_LINEAR_MIPMAP_LINEAR);
+	else
+		set(MinFilter, GL_LINEAR);
 	set(MagFilter, GL_LINEAR);
 	set(WrapS, GL_CLAMP_TO_BORDER);
 	set(WrapT, GL_CLAMP_TO_BORDER);
@@ -55,7 +44,8 @@ void Texture3D::create(const void* data, size_t width, size_t height, size_t dep
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
 	glSamplerParameterf(GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 	
-	glGenerateMipmap(GL_TEXTURE_3D);
+	if(generateMipmaps)
+		glGenerateMipmap(GL_TEXTURE_3D);
 	
 	unbind();
 }

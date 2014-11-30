@@ -13,15 +13,15 @@
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 #include <AntTweakBar.h>
 
-#include <Core/TimeManager.hpp>
-#include <Core/ResourcesManager.hpp>
-#include <Tools/StringConversion.hpp>
-#include <Graphics/Material.hpp>
-#include <Graphics/Texture2D.hpp>
-#include <Graphics/Texture3D.hpp>
-#include <Graphics/Framebuffer.hpp>
-#include <Graphics/Buffer.hpp>
-#include <Graphics/MeshInstance.hpp>
+#include <TimeManager.hpp>
+#include <ResourcesManager.hpp>
+#include <StringConversion.hpp>
+#include <Material.hpp>
+#include <Texture2D.hpp>
+#include <Texture3D.hpp>
+#include <Framebuffer.hpp>
+#include <Buffer.hpp>
+#include <MeshInstance.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
 #include <Light.hpp>
