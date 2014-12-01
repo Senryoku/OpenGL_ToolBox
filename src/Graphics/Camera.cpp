@@ -66,7 +66,7 @@ void Camera::look(glm::vec2 v)
 	_direction.z += r_temp*std::sin(_moveMouvement.x*pi()/180);
 
 	_direction = glm::normalize(_direction);
-	_cross = glm::cross(_direction, _up);
+	_cross = glm::normalize(glm::cross(_direction, _up));
 }
 
 void Camera::reset()

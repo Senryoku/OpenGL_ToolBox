@@ -36,7 +36,7 @@ public:
 #endif
 	
 private:
-	std::string	_name;
+	std::string		_name;
 	GLuint			_location;
 };
 
@@ -126,5 +126,5 @@ public:
 	
 private:
 	const Texture*	_value;
-	GLuint 				_textureUnit = 0;
+	GLuint 			_textureUnit = 0;
 };

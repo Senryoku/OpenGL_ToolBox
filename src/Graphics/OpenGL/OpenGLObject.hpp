@@ -9,6 +9,10 @@
 class OpenGLObject
 {
 public:
+	/**
+	 * Generic Binder
+	 * Does nothing at this stage.
+	**/
 	class Binder
 	{
 	public:
@@ -35,14 +39,14 @@ public:
 	/** 
 	 * Returns OpenGL name of the object
 	**/
-	GLuint getName() const { return _handle; }
+	inline GLuint getName() const { return _handle; }
 	
 	/** 
 	 * Sets the OpenGL name of the object managed by this instance
 	 * /!\ Use with caution ! (assignment operator is probably what you're looking for)
 	 * @param N New object to manage.
 	**/
-	void setName(GLuint N) { _handle = N; }
+	inline void setName(GLuint N) { _handle = N; }
 	
 	/**
 	 * Returns true if the object seems valid.

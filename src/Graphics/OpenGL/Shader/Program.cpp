@@ -19,7 +19,7 @@ void Program::attachShader(GLuint shaderName)
     glAttachShader(_handle, shaderName);
 }
 
-void Program::attachShader(Shader& shader)
+void Program::attachShader(const Shader& shader)
 {
     glAttachShader(_handle, shader.getName());
 }
@@ -59,6 +59,22 @@ GLint Program::getUniformLocation(const std::string& name) const
 	return glGetUniformLocation(getName(), name.c_str());
 }
 
+GLuint Program::getResourceIndex(GLenum interface, const std::string& name) const
+{
+	return glGetProgramResourceIndex(getName(), interface, name.c_str());
+}
+
+GLuint Program::getUniformBlockIndex(const std::string& name) const
+{
+	return glGetUniformBlockIndex(getName(), name.c_str());
+}
+	
+void Program::bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBindingPoint) const
+{
+	assert(uniformBlockBindingPoint < GL_MAX_UNIFORM_BUFFER_BINDINGS);
+	glUniformBlockBinding(getName(), uniformBlockIndex, uniformBlockBindingPoint);
+}
+	
 void Program::useNone()
 {
     glUseProgram(0);

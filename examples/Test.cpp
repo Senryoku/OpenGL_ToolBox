@@ -35,6 +35,8 @@ glm::vec3 _resolution(_width, _height, 0.0);
 glm::mat4 _projection;
 glm::vec4 _mouse(0.0);
 
+bool _fullscreen = false;
+bool _msaa = false;
 		
 bool controlCamera = true;
 double mouse_x, mouse_y;
@@ -86,23 +88,70 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	if(!TwEventKeyGLFW(twkey, action))
 	{
-		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-			glfwSetWindowShouldClose(window, GL_TRUE);
-			
-		if(key == GLFW_KEY_R && action == GLFW_PRESS)
+		if(action == GLFW_PRESS)
 		{
-			ResourcesManager::getInstance().reloadShaders();
-		}
-		
-		if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-		{
-			if(!controlCamera)
+			switch(key)
 			{
-				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			} else {
-				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				case GLFW_KEY_ESCAPE:
+				{
+					glfwSetWindowShouldClose(window, GL_TRUE);
+					break;
+				}
+				case GLFW_KEY_R:
+				{
+					std::cout << "Reloading shaders..." << std::endl;
+					ResourcesManager::getInstance().reloadShaders();
+					std::cout << "Reloading shaders... Done !" << std::endl;
+					break;
+				}
+				case GLFW_KEY_SPACE:
+				{
+					if(!controlCamera)
+					{
+						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+					} else {
+						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					}
+					controlCamera = !controlCamera;
+					break;
+				}
+				case GLFW_KEY_X:
+				{
+					_msaa = ! _msaa;
+					if(_msaa)
+					{
+						glEnable(GL_MULTISAMPLE);
+						glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+						
+						GLint  iMultiSample = 0;
+						GLint  iNumSamples = 0;
+						glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+						glGetIntegerv(GL_SAMPLES, &iNumSamples);
+						
+						std::cout << "Enabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
+					} else {
+						glDisable(GL_MULTISAMPLE);
+						
+						GLint  iMultiSample = 0;
+						GLint  iNumSamples = 0;
+						glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+						glGetIntegerv(GL_SAMPLES, &iNumSamples);
+						std::cout << "Disabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
+					}
+					break;
+				}
+				case GLFW_KEY_V:
+				{
+					_fullscreen = !_fullscreen;
+					if(_fullscreen)
+					{
+						std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
+					} else {
+						std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
+					}
+					break;
+				}
 			}
-			controlCamera = !controlCamera;
 		}
 	}
 }
@@ -129,6 +178,7 @@ inline void TwEventMouseButtonGLFW3(GLFWwindow* window, int button, int action, 
 				w = 0.0;
 			}
 		}
+		
 		_mouse = glm::vec4(_mouse.x, _mouse.y, z, w);
 	}
 }
@@ -166,6 +216,7 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 	glfwSetErrorCallback(error_callback);
+	glfwWindowHint(GLFW_SAMPLES, 4);
     GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
 	
 	if (!window)
@@ -197,6 +248,14 @@ int main(int argc, char* argv[])
 	TwInit(TW_OPENGL, nullptr);
 	TwWindowSize(_width, _height);
 			
+	TwBar* bar = TwNewBar("Global Tweaks");
+	TwDefine("'Global Tweaks' color='0 0 0' ");
+	TwDefine("'Global Tweaks' iconified=true ");
+	TwAddVarRO(bar, "FrameTime", TW_TYPE_FLOAT, &_frameTime, "");
+	TwAddVarRO(bar, "FrameRate", TW_TYPE_FLOAT, &_frameRate, "");
+	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
+	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
+	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

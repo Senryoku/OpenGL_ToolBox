@@ -32,7 +32,7 @@ public:
 	 * @see attachShader(GLuint)
 	 * @see attachShader(ComputeShader&)
 	**/
-	void attachShader(Shader& shader);
+	void attachShader(const Shader& shader);
 	
 	/**
 	 * Attach a compute shader to this Program.
@@ -56,7 +56,7 @@ public:
 	/**
 	 * @return true if the program is set and linked, false otherwise.
 	**/
-	inline bool isValid() const { return _handle != 0 && _linked; }
+	inline bool isValid() const override { return _handle != 0 && _linked; }
 	
 	/**
 	 * Query for the location of the specified uniform.
@@ -79,6 +79,32 @@ public:
 		::setUniform(getName(), getUniformLocation(name), value);
 	}
 	
+	/**
+	 * glGetProgramResourceIndex
+	 * @param interface Type of searched resource (ex: GL_SHADER_STORAGE_BLOCK)
+	 * @param name Name of the resource
+	 * @return Index of name in the program, or GL_INVALID_INDEX if not found
+	**/
+	GLuint getResourceIndex(GLenum interface, const std::string& name) const;
+	
+	/**
+	 * glGetuniformBlockIndex
+	 * @param name Name of the searched Uniform Block
+	 * @return Index of name in the program, or GL_INVALID_INDEX if not found
+	 * @see bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBindingPoint)
+	**/
+	GLuint getUniformBlockIndex(const std::string& name) const;
+	
+	/**
+	 * Assign a binding point to an active uniform block.
+	 * @param uniformBlockIndex Index of a uniform block in one of the program's shaders
+	 * @param uniformBlockBindingPoint Binding point of an active Uniform Buffer Object (UBO) to assign to this uniform block
+	**/
+	void bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBindingPoint) const;
+	
+	/**
+	 * Unbind any currently bound shader program.
+	**/
 	static void useNone();
 	
 private:

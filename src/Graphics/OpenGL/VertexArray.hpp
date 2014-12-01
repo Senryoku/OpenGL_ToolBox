@@ -4,7 +4,7 @@
 #include <Buffer.hpp>
 
 /**
- * TODO
+ * Vertex Array Object (VAO)
  *
 **/
 class VertexArray : public OpenGLObject
