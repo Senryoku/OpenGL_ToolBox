@@ -16,8 +16,8 @@ const glm::mat4 Light::s_depthBiasMVP
 	0.5, 0.5, 0.5, 1.0
 );
 
-Program* 				Light::s_depthProgram = nullptr;
-VertexShader*			Light::s_depthVS = nullptr;
+Program* 			Light::s_depthProgram = nullptr;
+VertexShader*		Light::s_depthVS = nullptr;
 FragmentShader*		Light::s_depthFS = nullptr;
 
 ///////////////////////////////////////////////////////////////////
@@ -65,8 +65,8 @@ void Light::updateMatrices()
 void Light::bind() const
 {
 	getShadowBuffer().bind();
-	getShadowMapProgram().use();
 	getShadowMapProgram().setUniform("DepthMVP", getMatrix());
+	getShadowMapProgram().use();
 	glCullFace(GL_FRONT);
 }
 

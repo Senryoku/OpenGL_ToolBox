@@ -103,7 +103,7 @@ void Mesh::computeNormals()
 	
 std::vector<Mesh*> Mesh::load(const std::string& path)
 {
-	std::cout << "Loading " << path << " using assimp..." << std::endl;
+	//std::cout << "Loading " << path << " using assimp..." << std::endl;
 	
 	std::vector<Mesh*> M;
 	Assimp::Importer importer;
@@ -139,7 +139,7 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 				std::cout << name << "'." << std::endl;
 			}
 			
-			std::cout << "Loading '" << name << "'." << std::endl;
+			//std::cout << "Loading '" << name << "'." << std::endl;
 			M[meshIdx] = &ResourcesManager::getInstance().getMesh(name);
 			
 			//std::cout << "Material Index: " << LoadedMesh->mMaterialIndex << std::endl;
@@ -162,7 +162,7 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 		}
 	}
 	
-	std::cout << "Loading of " << path << " done." << std::endl;
+	//std::cout << "Loading of " << path << " done." << std::endl;
 	
 	return M;
 }

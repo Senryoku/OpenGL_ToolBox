@@ -3,22 +3,30 @@
 layout(location = 0)
 uniform mat4 ModelViewMatrix;
 
+uniform float minDiffuse = 0.0f;
+
 uniform float Ns = 8.f;
-uniform vec3 lightPosition = vec3(25.f, 10.f, 25.f);
 uniform vec4 Ka = vec4(0.2f, 0.2f, 0.2f, 1.f);
-uniform vec4 Ks = vec4(0.6f, 0.6f, 0.6f, 1.f);
-uniform vec4 diffuse = vec4(0.1, 0.1, 0.1, 1.0);
+uniform vec4 diffuse = vec4(1.0, 1.0, 1.0, 1.0);
 
 uniform float bias = 0.000005f;
+
+uniform unsigned int lightCount = 0;
+
+layout(std140) uniform LightBlock {
+	vec4		position;
+	vec4		color;
+	mat4 		depthMVP;
+} Lights[8];
 
 in layout(location = 0) vec3 position;
 in layout(location = 1) vec3 normal;
 in layout(location = 2) vec2 texcoord;
-in layout(location = 3) vec4 shadowcoord;
-in layout(location = 4) vec3 reflectDir;
+in layout(location = 3) vec3 reflectDir;
+in layout(location = 4) vec4 shadowcoord[8];
 
 uniform layout(binding = 0) samplerCube EnvMap;
-uniform layout(binding = 1) sampler2D ShadowMap;
+uniform layout(binding = 2) sampler2D ShadowMap[8];
 
 uniform int poissonSamples = 4;
 uniform float poissonDiskRadius = 2500.f;
@@ -42,55 +50,61 @@ uniform vec2 poissonDisk[16] = vec2[]
   vec2(0.4434516553,	-0.7824516751)
 );
 
-float random(vec4 seed4)
+vec4 phong(vec3 p, vec3 n, vec4 diffuse, vec3 lp, vec4 lc)
 {
-	float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
-    return fract(sin(dot_product) * 43758.5453)*2.f - 1.f;
+	vec3 L = normalize((ModelViewMatrix * vec4(lp, 1.0)).xyz - p);
+	float dNL = dot(n, L);
+	
+	float diffuseFactor = max(dNL, minDiffuse);
+	
+	vec3 V = normalize(-p);
+	vec3 R = normalize(-reflect(L, n));
+	
+	float specularFactor = Ns > 0.f ?
+								pow(max(dot(R, V), 0.f), Ns) :
+								0.f;
+								
+	return diffuseFactor * diffuse * lc + specularFactor * lc;
 }
 
 out vec4 colorOut;
 void main(void)
 {
 	vec3 N = normalize(normal);
-	vec3 L = normalize((ModelViewMatrix * vec4(lightPosition, 1.0)).xyz - position);
 	
-	float dNL = dot(N, L);
+	vec4 reflectColor = texture(EnvMap, reflectDir);
+	colorOut = Ka * reflectColor;
 	
-	float bbias = bias * tan(acos(dNL));
-	
-	float visibility = 1.0f,
-		   specular_visibility = 1.f;
-		   
-	// If we are in the light's fustrum...
-	if((shadowcoord.x/shadowcoord.w  >= 0 && shadowcoord.x/shadowcoord.w  <= 1.f) &&
-    (shadowcoord.y/shadowcoord.w  >= 0 && shadowcoord.y/shadowcoord.w  <= 1.f))
+	for(int l = 0; l < lightCount; ++l)
 	{
-		vec4 sc;
-		for (int i = 0; i < poissonSamples; ++i)
+		vec3 L = normalize((ModelViewMatrix * vec4(Lights[l].position.xyz, 1.0)).xyz - position);
+		
+		float dNL = dot(N, L);
+		
+		float bbias = bias * tan(acos(dNL));
+		
+		float visibility = 1.0f,
+			  specular_visibility = 1.f;
+		   
+		vec4 sc = shadowcoord[l];
+		if((sc.x/sc.w  >= 0 && sc.x/sc.w  <= 1.f) &&
+		   (sc.y/sc.w  >= 0 && sc.y/sc.w  <= 1.f))
 		{
-			sc = shadowcoord;
-			sc.xy+= poissonDisk[i] * sc.w/poissonDiskRadius;
-			if(textureProj(ShadowMap, sc.xyw).z + bbias < sc.z/sc.w)
+			for (int i = 0; i < poissonSamples; ++i)
 			{
-				visibility -= 0.6f / poissonSamples;
-				specular_visibility = 0.f;
+				sc.xy += poissonDisk[i] * sc.w/poissonDiskRadius;
+				if(textureProj(ShadowMap[l], sc.xyw).z + bbias < sc.z/sc.w)
+				{
+					visibility -= (1.0f - minDiffuse) / poissonSamples;
+					specular_visibility = 0.f;
+				}
 			}
+		} else {
+			visibility = minDiffuse;
+			specular_visibility = 0.f;
 		}
-	} else {
-		visibility = 0.4f;
-		specular_visibility = 0.f;
+		colorOut += visibility * phong(position, N, diffuse, Lights[l].position.xyz, Lights[l].color);
 	}
 	
-	float diffuseFactor = max(dNL, 0.f);
-	
-	vec3 V = normalize(-position);
-	vec3 R = normalize(-reflect(L, N));
-	
-	float specularFactor = Ns > 0.f ?
-								pow(max(dot(R, V), 0.f), Ns) :
-								0.f;
-		
-	vec4 reflectColor = texture(EnvMap, reflectDir);
-	colorOut = Ka*reflectColor + visibility*diffuseFactor*diffuse*reflectColor + specular_visibility*specularFactor*Ks;
 	colorOut.w = diffuse.w;
 }
