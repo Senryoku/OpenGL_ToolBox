@@ -25,7 +25,7 @@ void Buffer::bind() const
     glBindBuffer(static_cast<GLenum>(_type), getName());
 }
 
-void Buffer::bindBase(GLuint bindingPoint) const
+void Buffer::bindBase(GLuint bindingPoint)
 {
 	assert(_type == AtomicCounter || _type == TransformFeedback || _type == Uniform || _type == ShaderStorage);
 	glBindBufferBase(static_cast<GLenum>(_type), bindingPoint, getName());
@@ -71,4 +71,28 @@ void Buffer::subData(size_t offset, size_t size, const void* data) const
 {
 	bind();
 	glBufferSubData(_type, offset, size, data);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// IndexedBuffer
+
+IndexedBuffer::IndexedBuffer(Type type) : 
+	Buffer(type)
+{
+	assert(_type == AtomicCounter || _type == TransformFeedback || _type == Uniform || _type == ShaderStorage);
+}
+	
+void IndexedBuffer::bindBase(GLuint bindingPoint)
+{
+	Buffer::bindBase(bindingPoint);
+	_bindingPoint = bindingPoint;
+	_bound = true;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// UniformBuffer
+
+UniformBuffer::UniformBuffer() : 
+	IndexedBuffer(Buffer::Uniform)
+{
 }

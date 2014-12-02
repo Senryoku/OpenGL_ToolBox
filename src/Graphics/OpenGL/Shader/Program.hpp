@@ -5,6 +5,7 @@
 #include <Shader.hpp>
 #include <ComputeShader.hpp>
 #include <UniformBinding.hpp>
+#include <Buffer.hpp>
 
 /**
  * Program
@@ -101,6 +102,20 @@ public:
 	 * @param uniformBlockBindingPoint Binding point of an active Uniform Buffer Object (UBO) to assign to this uniform block
 	**/
 	void bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBindingPoint) const;
+	
+	/**
+	 * Assign a Uniform Buffer Object (UBO) to an active uniform block.
+	 * @param name Name of a uniform block in one of the program's shaders
+	 * @param uniformBlockBindingPoint Binding point of an active Uniform Buffer Object (UBO) to assign to this uniform block
+	**/
+	void bindUniformBlock(const std::string& name, GLuint uniformBlockBindingPoint) const;
+	
+	/**
+	 * Assign a Uniform Buffer Object (UBO) to an active uniform block.
+	 * @param name Name of a uniform block in one of the program's shaders
+	 * @param uniformBuffer Uniform Buffer Object (UBO) to assign to this uniform block
+	**/
+	void bindUniformBlock(const std::string& name, const UniformBuffer& uniformBuffer) const;
 	
 	/**
 	 * Unbind any currently bound shader program.

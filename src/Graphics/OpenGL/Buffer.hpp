@@ -137,7 +137,7 @@ public:
 	 * @param bindingPoint Binding Point
 	 * @see glBindBufferBase
 	**/
-	void bindBase(GLuint bindingPoint) const;
+	virtual void bindBase(GLuint bindingPoint);
 	
 	/**
 	 * Bind a slice of this buffer to the specified binding point in the OpenGL context.
@@ -181,7 +181,46 @@ public:
 	 * @see init()
 	**/
 	inline void setType(Type t) { _type = t; }
-private:
+	
+protected:
 	Type	_type = VertexAttributes;	///< Type of the Buffer
 };
 
+class IndexedBuffer : public Buffer
+{
+public:
+	IndexedBuffer(Type type);
+	
+	/**
+	 * Bind this buffer to the specified binding point in the OpenGL context.
+	 * Buffer type must be AtomicCounter, TransformFeedback, Uniform or ShaderStorage.
+	 * @param bindingPoint Binding Point
+	 * @see glBindBufferBase
+	 * @see getBindingPoint()
+	 * @see isBound()
+	**/
+	virtual void bindBase(GLuint bindingPoint) override;
+	
+	/**
+	 * @return True if this buffer is bound to a binding point (by a call to bindBase)
+	 * @see bindBase()
+	**/
+	inline bool isBound() const { return _bound; }
+	
+	/**
+	 * @return Binding point which the buffer is currently bound to (result is undefined if isBound()
+	 * 		   returns false).
+	 * @see isBound()
+	**/
+	inline GLuint getBindingPoint() const { return _bindingPoint; }
+	
+private:
+	bool	_bound			= false;		///< Tells if the buffer is bound to a binding point
+	GLuint	_bindingPoint	= 0;			///< Binding point of the buffer @see bindBase()
+};
+
+class UniformBuffer : public IndexedBuffer
+{
+public:
+	UniformBuffer();
+};

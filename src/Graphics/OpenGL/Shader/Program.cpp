@@ -75,6 +75,16 @@ void Program::bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBind
 	glUniformBlockBinding(getName(), uniformBlockIndex, uniformBlockBindingPoint);
 }
 	
+void Program::bindUniformBlock(const std::string& name, GLuint uniformBlockBindingPoint) const
+{
+	bindUniformBlock(getUniformBlockIndex(name), uniformBlockBindingPoint);
+}
+	
+void Program::bindUniformBlock(const std::string& name, const UniformBuffer& uniformBuffer) const
+{
+	bindUniformBlock(getUniformBlockIndex(name), uniformBuffer.getBindingPoint());
+}
+	
 void Program::useNone()
 {
     glUseProgram(0);
