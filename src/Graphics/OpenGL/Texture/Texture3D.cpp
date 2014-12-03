@@ -12,8 +12,6 @@ void Texture3D::create(const void* data, size_t width, size_t height, size_t dep
 {
 	cleanup();
 	
-	glEnable(GL_TEXTURE_3D);
-	
 	glGenTextures(1, &_handle);
 	bind();
 	

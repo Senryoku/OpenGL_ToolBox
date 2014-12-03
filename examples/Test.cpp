@@ -35,6 +35,9 @@ glm::vec3 _resolution(_width, _height, 0.0);
 glm::mat4 _projection;
 glm::vec4 _mouse(0.0);
 
+int 	_poissonSamples = 4;
+float 	_poissonDiskRadius = 2500.f;
+
 bool _fullscreen = false;
 bool _msaa = false;
 		
@@ -214,7 +217,13 @@ struct LightStruct
 	glm::vec4	position;
 	glm::vec4	color;
 	glm::mat4	depthMVP;
-	//GLuint		shadowmap;
+};
+
+struct CameraStruct
+{
+	glm::mat4	view;
+	glm::mat4	projection;
+	glm::mat3	normal;
 };
 
 int main(int argc, char* argv[])
@@ -313,28 +322,12 @@ int main(int argc, char* argv[])
 	FragmentShader& ReflectiveFS = ResourcesManager::getInstance().getShader<FragmentShader>("Reflective_FS");
 	ReflectiveFS.loadFromFile("src/GLSL/Reflective/fs.glsl");
 	ReflectiveFS.compile();
-	
-	VertexShader& FullscreenTextureVS = ResourcesManager::getInstance().getShader<VertexShader>("FullscreenTexture_VS");
-	FullscreenTextureVS.loadFromFile("src/GLSL/vs.glsl");
-	FullscreenTextureVS.compile();
-	
-	FragmentShader& FullscreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullscreenTexture_FS");
-	FullscreenTextureFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
-	FullscreenTextureFS.compile();
-	
-	Program& FullscreenTexture = ResourcesManager::getInstance().getProgram("FullscreenTexture");
-	FullscreenTexture.attachShader(FullscreenTextureVS);
-	FullscreenTexture.attachShader(FullscreenTextureFS);
-	FullscreenTexture.link();
-	
-	if(!FullscreenTexture) return 0;
-	
+		
 	Program& Reflective = ResourcesManager::getInstance().getProgram("Reflective");
 	Reflective.attachShader(ReflectiveVS);
 	Reflective.attachShader(ReflectiveFS);
 	Reflective.link();
 	
-	Camera MainCamera;
 	Light MainLights[3];
 	MainLights[0].setColor(glm::vec4(1.0));
 	MainLights[0].init();
@@ -351,22 +344,37 @@ int main(int argc, char* argv[])
 	MainLights[2].setPosition(glm::vec3(100.0, 300.0, 100.0));
 	MainLights[2].lookAt(glm::vec3(0.0));
 	
-	glm::mat3 _normalMatrix;
-	
 	// TODO: Try using only one UBO
-	
 	const size_t LightCount = 3;
 	UniformBuffer LightBuffers[3];
 	
 	for(size_t i = 0; i < 3; ++i)
 	{
 		LightBuffers[i].init();
-		LightBuffers[i].bindBase(i);
+		LightBuffers[i].bind(i);
 		MainLights[i].updateMatrices();
 		LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
 	}
-		
+	
+	Camera MainCamera;
+	UniformBuffer CameraBuffer;
+	CameraBuffer.init();
+	CameraBuffer.bind(LightCount);
+	NormalMap.bindUniformBlock("Camera", CameraBuffer);
+	Reflective.bindUniformBlock("Camera", CameraBuffer);
+	
+	Camera CubeCamera;
+	CubeCamera.setPosition(glm::vec3(0.0, 75.0, 0.0));
+	CubeCamera.setDirection(glm::vec3(0.0, 0.0, 1.0));
+	CubeCamera.updateView();
+	UniformBuffer CubeCameraBuffer;
+	CubeCameraBuffer.init();
+	CubeCameraBuffer.bind(LightCount + 1);
+	CameraStruct CamS = {CubeCamera.getMatrix(), glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f), glm::mat3(glm::transpose(glm::inverse(CubeCamera.getMatrix())))};
+	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::StaticDraw);
+	CubeNormalMap.bindUniformBlock("Camera", CubeCameraBuffer);
+	
 	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
 	std::vector<MeshInstance> _meshInstances;
 	size_t meshNum = 0;
@@ -387,9 +395,9 @@ int main(int argc, char* argv[])
 	Reflective.setUniform("lightCount", LightCount);
 	for(size_t i = 0; i < LightCount; ++i)
 	{
-		NormalMap.bindUniformBlock(std::string("Lights[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		CubeNormalMap.bindUniformBlock(std::string("Lights[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		Reflective.bindUniformBlock(std::string("Lights[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		CubeNormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		Reflective.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
 		
 		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
 		CubeNormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
@@ -399,17 +407,12 @@ int main(int argc, char* argv[])
 	for(Mesh* m : Glados)
 	{
 		m->getMaterial().setShadingProgram(NormalMap);
-		//m->getMaterial().setUniform("lightPosition", &MainLight.getPosition());
-		//for(int i = 0; i < 3; ++i)
-		//	m->getMaterial().setUniform(std::string("DepthMVP[").append(StringConversion::to_string(i)).append("]"), &MainLights[i].getBiasedMatrix());
-		m->getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
-		m->getMaterial().setUniform("ProjectionMatrix", &_projection);
-		m->getMaterial().setUniform("NormalMatrix", &_normalMatrix);
 		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
 		m->getMaterial().setUniform("Ns", 90.0f);
 		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
-		//m->getMaterial().setUniform("Ks", glm::vec4(1.0f, 1.0f, 1.0f, 1.f));
+		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
 		
 		m->createVAO();
@@ -433,15 +436,12 @@ int main(int argc, char* argv[])
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
 	Plane.createVAO();
 	Plane.getMaterial().setShadingProgram(NormalMap);
-	//for(int i = 0; i < 3; ++i)
-	//	Plane.getMaterial().setUniform(std::string("DepthMVP[").append(StringConversion::to_string(i)).append("]"), &MainLights[i].getBiasedMatrix());
-	Plane.getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
-	Plane.getMaterial().setUniform("ProjectionMatrix", &_projection);
-	Plane.getMaterial().setUniform("NormalMatrix", &_normalMatrix);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("Ns", 90.0f);
 	Plane.getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
+	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	Plane.getMaterial().createAntTweakBar("Plane");
 	
 	float inRad = 60.0 * pi()/180.f;
@@ -450,10 +450,6 @@ int main(int argc, char* argv[])
 	Framebuffer<CubeMap, 1> CubeFramebufferTest;
 	CubeFramebufferTest.init();
 	
-	Camera SphereCamera;
-	SphereCamera.setPosition(glm::vec3(0.0, 75.0, 0.0));
-	SphereCamera.setDirection(glm::vec3(0.0, 0.0, 1.0));
-	SphereCamera.updateView();
 	auto Sphere = Mesh::load("in/3DModels/Robot/Robot.obj");
 	meshNum = 0;
 	for(Mesh* m : Sphere)
@@ -463,15 +459,12 @@ int main(int argc, char* argv[])
 			
 		m->getMaterial().setShadingProgram(Reflective);
 		m->getMaterial().setUniform("cameraPosition", &MainCamera.getPosition());
-		//for(int i = 0; i < 3; ++i)
-		//	m->getMaterial().setUniform(std::string("DepthMVP[").append(StringConversion::to_string(i)).append("]"), &MainLights[i].getBiasedMatrix());
-		m->getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
-		m->getMaterial().setUniform("ProjectionMatrix", &_projection);
-		m->getMaterial().setUniform("NormalMatrix", &_normalMatrix);
 		m->getMaterial().setUniform("EnvMap", CubeFramebufferTest.getColor());
 		m->getMaterial().setUniform("Ns", 90.0f);
 		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 		m->getMaterial().createAntTweakBar("Reflective " + StringConversion::to_string(meshNum));
 		
 		//m->computeNormals();
@@ -517,8 +510,9 @@ int main(int argc, char* argv[])
 			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
 		}
 		MainCamera.updateView();
-	
-		_normalMatrix = glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())));
+		
+		CameraStruct CamS = {MainCamera.getMatrix(), _projection, glm::mat3(glm::transpose(glm::inverse(MainCamera.getMatrix())))};
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
 		
 		std::ostringstream oss;
 		oss << _frameRate;
@@ -567,18 +561,13 @@ int main(int argc, char* argv[])
 		CubeFramebufferTest.bind(GL_DRAW_FRAMEBUFFER);
 		
 		Sky.cubedraw();
-		glm::mat4 Perspective = glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f);
 		for(Mesh* m : Glados)
 		{
 			m->getMaterial().setShadingProgram(CubeNormalMap);
-			m->getMaterial().setUniform("ProjectionMatrix", &Perspective);
-			m->getMaterial().setUniform("ModelViewMatrix", &SphereCamera.getMatrix());
 			m->getMaterial().use();
 			m->draw();
 		}
 		Plane.getMaterial().setShadingProgram(CubeNormalMap);
-		Plane.getMaterial().setUniform("ProjectionMatrix", &Perspective);
-		Plane.getMaterial().setUniform("ModelViewMatrix", &SphereCamera.getMatrix());
 		Plane.getMaterial().use();
 		Plane.draw();
 		CubeFramebufferTest.unbind();
@@ -603,14 +592,10 @@ int main(int argc, char* argv[])
 		for(Mesh* m : Glados)
 		{
 			m->getMaterial().setShadingProgram(NormalMap);
-			m->getMaterial().setUniform("ProjectionMatrix", &_projection);
-			m->getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
 			m->getMaterial().use();
 			m->draw();
 		}
 		Plane.getMaterial().setShadingProgram(NormalMap);
-		Plane.getMaterial().setUniform("ProjectionMatrix", &_projection);
-		Plane.getMaterial().setUniform("ModelViewMatrix", &MainCamera.getMatrix());
 		Plane.getMaterial().use();
 		Plane.draw();
 		
@@ -628,7 +613,7 @@ int main(int argc, char* argv[])
 			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		}
 		
-		TwDraw();
+		//TwDraw();
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

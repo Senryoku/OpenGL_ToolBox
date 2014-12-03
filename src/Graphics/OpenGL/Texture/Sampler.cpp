@@ -7,7 +7,7 @@ Sampler::~Sampler()
 
 void Sampler::bind(unsigned int unit) const 
 {
-		glBindSampler(unit, _handle);
+	glBindSampler(unit, _handle);
 }
 
 void Sampler::cleanup()

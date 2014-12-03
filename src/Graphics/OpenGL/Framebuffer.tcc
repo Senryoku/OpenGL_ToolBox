@@ -32,7 +32,7 @@ template<typename TexType, unsigned int ColorCount>
 void Framebuffer<TexType, ColorCount>::init()
 {
 	glGenFramebuffers(1, &_handle);
-	bind();
+	glBindFramebuffer(GL_FRAMEBUFFER, _handle);
 		
 	GLenum DrawBuffers[ColorCount];
 	for(size_t i = 0; i < ColorCount; ++i)
@@ -58,7 +58,7 @@ void Framebuffer<TexType, ColorCount>::init()
 		cleanup();
 	}
 	
-	unbind();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 template<typename TexType, unsigned int ColorCount> 

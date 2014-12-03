@@ -137,7 +137,7 @@ public:
 	 * @param bindingPoint Binding Point
 	 * @see glBindBufferBase
 	**/
-	virtual void bindBase(GLuint bindingPoint);
+	virtual void bind(GLuint bindingPoint);
 	
 	/**
 	 * Bind a slice of this buffer to the specified binding point in the OpenGL context.
@@ -199,7 +199,7 @@ public:
 	 * @see getBindingPoint()
 	 * @see isBound()
 	**/
-	virtual void bindBase(GLuint bindingPoint) override;
+	virtual void bind(GLuint bindingPoint) override;
 	
 	/**
 	 * @return True if this buffer is bound to a binding point (by a call to bindBase)

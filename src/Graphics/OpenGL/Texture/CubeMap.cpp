@@ -47,7 +47,6 @@ void CubeMap::create(const std::array<void*, 6>& data, size_t width, size_t heig
 {
 	cleanup();
 	
-	glEnable(GL_TEXTURE_CUBE_MAP);
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	
 	glGenTextures(1, &_handle);

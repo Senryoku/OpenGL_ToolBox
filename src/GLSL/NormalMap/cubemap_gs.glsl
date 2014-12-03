@@ -3,10 +3,13 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
-layout(location = 0)
-uniform mat4 ModelViewMatrix;
-layout(location = 1)
-uniform mat4 ProjectionMatrix;
+layout(std140) uniform Camera {
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat3 NormalMatrix;
+};
+
+uniform unsigned int lightCount = 0;
 
 const mat4 CubeFaceMatrix[6] = mat4[6](
 	mat4(
@@ -64,7 +67,7 @@ void main(void)
 			gl_PrimitiveID = gl_PrimitiveIDIn;
 			normal = in_normal[i];
 			texcoord = in_texcoord[i];
-			for(int j = 0; j < 8; ++j)
+			for(int j = 0; j < lightCount; ++j)
 				shadowcoord[j] = in_shadowcoord[i][j];
 			EmitVertex();
 		}

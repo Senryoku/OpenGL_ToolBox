@@ -1,11 +1,10 @@
 #version 430 core
 
-layout(location = 0)
-uniform mat4 ModelViewMatrix;
-layout(location = 1)
-uniform mat4 ProjectionMatrix;
-layout(location = 2)
-uniform mat3 NormalMatrix;
+layout(std140) uniform Camera {
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat3 NormalMatrix;
+};
 
 uniform mat4 ModelMatrix = mat4(1.0);
 
@@ -34,11 +33,11 @@ out layout(location = 0) struct VertexData
 
 void main(void)
 {
-	vec4 P = ModelViewMatrix * vec4(in_position, 1.f);
+	vec4 P = ViewMatrix * ModelMatrix * vec4(in_position, 1.f);
     gl_Position = ProjectionMatrix * P;
 	
 	VertexOut.position = vec3(P);
-	VertexOut.normal = normalize(NormalMatrix*in_normal);
+	VertexOut.normal = normalize(NormalMatrix * in_normal);
 	VertexOut.texcoord = in_texcoord;
 	vec3 r = reflect(in_position - cameraPosition, in_normal);
 	VertexOut.reflectDir = vec3(-r.x, r.y, -r.z); // Why ? Oô

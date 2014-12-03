@@ -66,7 +66,9 @@ GLuint Program::getResourceIndex(GLenum interface, const std::string& name) cons
 
 GLuint Program::getUniformBlockIndex(const std::string& name) const
 {
-	return glGetUniformBlockIndex(getName(), name.c_str());
+	GLuint r = glGetUniformBlockIndex(getName(), name.c_str());
+	assert(r != GL_INVALID_INDEX);
+	return r;
 }
 	
 void Program::bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBindingPoint) const
@@ -82,6 +84,7 @@ void Program::bindUniformBlock(const std::string& name, GLuint uniformBlockBindi
 	
 void Program::bindUniformBlock(const std::string& name, const UniformBuffer& uniformBuffer) const
 {
+	assert(uniformBuffer.isBound());
 	bindUniformBlock(getUniformBlockIndex(name), uniformBuffer.getBindingPoint());
 }
 	

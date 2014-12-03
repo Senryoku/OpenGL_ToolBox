@@ -1,7 +1,12 @@
 #version 430 core
 
-layout(location = 0)
-uniform mat4 ModelViewMatrix;
+layout(std140) uniform Camera {
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat3 NormalMatrix;
+};
+
+uniform mat4 ModelMatrix = mat4(1.0);
 
 uniform float minDiffuse = 0.0f;
 
@@ -50,15 +55,14 @@ uniform vec2 poissonDisk[16] = vec2[]
   vec2(0.4434516553,	-0.7824516751)
 );
 
-vec4 phong(vec3 p, vec3 n, vec4 diffuse, vec3 lp, vec4 lc)
+vec4 phong(vec3 p, vec3 N, vec4 diffuse, vec3 L, vec4 lc)
 {
-	vec3 L = normalize((ModelViewMatrix * vec4(lp, 1.0)).xyz - p);
-	float dNL = dot(n, L);
+	float dNL = dot(N, L);
 	
 	float diffuseFactor = max(dNL, minDiffuse);
 	
 	vec3 V = normalize(-p);
-	vec3 R = normalize(-reflect(L, n));
+	vec3 R = normalize(-reflect(L, N));
 	
 	float specularFactor = Ns > 0.f ?
 								pow(max(dot(R, V), 0.f), Ns) :
@@ -77,7 +81,7 @@ void main(void)
 	
 	for(int l = 0; l < lightCount; ++l)
 	{
-		vec3 L = normalize((ModelViewMatrix * vec4(Lights[l].position.xyz, 1.0)).xyz - position);
+		vec3 L = normalize((ViewMatrix * vec4(Lights[l].position.xyz, 1.0)).xyz - position);
 		
 		float dNL = dot(N, L);
 		
@@ -103,7 +107,7 @@ void main(void)
 			visibility = minDiffuse;
 			specular_visibility = 0.f;
 		}
-		colorOut += visibility * phong(position, N, diffuse, Lights[l].position.xyz, Lights[l].color);
+		colorOut += visibility * phong(position, N, diffuse, L, Lights[l].color);
 	}
 	
 	colorOut.w = diffuse.w;

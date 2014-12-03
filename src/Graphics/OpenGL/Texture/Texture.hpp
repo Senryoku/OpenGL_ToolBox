@@ -32,7 +32,7 @@ public:
 		~Binder();
 	private:
 		GLuint				_unit = 0;
-		const Texture&	_tex;
+		const Texture&		_tex;
 		GLuint 				_prevBound = 0;
 	};
 
