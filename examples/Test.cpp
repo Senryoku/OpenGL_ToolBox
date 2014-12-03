@@ -229,11 +229,28 @@ struct CameraStruct
 // Check.
 bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
 {
-	glm::vec4 min = MVPMatrix * glm::vec4(bbox.min, 1.0);
-	glm::vec4 max = MVPMatrix * glm::vec4(bbox.max, 1.0);
+	const glm::vec3& a = bbox.min;
+	const glm::vec3& b = bbox.max;
 	
-	min /= min.w;
-	max /= max.w;
+	std::array<glm::vec4, 8> p = {MVPMatrix * glm::vec4{a.x, a.y, a.z, 1.0},
+								  MVPMatrix * glm::vec4{a.x, a.y, b.z, 1.0},
+								  MVPMatrix * glm::vec4{a.x, b.y, a.z, 1.0},
+								  MVPMatrix * glm::vec4{a.x, b.y, b.z, 1.0},
+								  MVPMatrix * glm::vec4{b.x, a.y, a.z, 1.0},
+								  MVPMatrix * glm::vec4{b.x, a.y, b.z, 1.0},
+								  MVPMatrix * glm::vec4{b.x, b.y, a.z, 1.0},
+								  MVPMatrix * glm::vec4{b.x, b.y, b.z, 1.0}};
+
+	glm::vec2 min = glm::vec2(0.0), max = glm::vec2(0.0);
+								  
+	for(auto& t : p)
+	{
+		t /= t.w;
+		min.x = std::min(min.x, t.x);
+		min.y = std::min(min.y, t.y);
+		max.x = std::max(max.x, t.x);
+		max.y = std::max(max.y, t.y);
+	}
 	
 	// TODO: Construct and test the 8 points !!!
 	
@@ -381,8 +398,15 @@ int main(int argc, char* argv[])
 		m->getMaterial().setShadingProgram(NormalMap);
 		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
-		m->getMaterial().setUniform("Ns", 90.0f);
-		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		
+		m->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		
+		m->getMaterial().setUniform("roughness", 0.05f);
+		m->getMaterial().setUniform("F0", 0.1f);
+		m->getMaterial().setUniform("k", 0.4f);
+		
+		//m->getMaterial().setUniform("Ns", 90.0f);
+		
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
@@ -392,6 +416,28 @@ int main(int argc, char* argv[])
 		_meshInstances.push_back(MeshInstance(*m));
 		++meshNum;
 	}
+	
+	auto BallV = Mesh::load("in/3DModels/poolball/Ball1.obj");
+	auto& Ball = BallV[0];
+	Texture2D BallTex;
+	BallTex.load(std::string("in/3DModels/poolball/PoolBalluv3.jpg"));
+	
+	Ball->getMaterial().setShadingProgram(NormalMap);
+	Ball->getMaterial().setUniform("Texture", BallTex);
+	//Ball->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
+	
+	Ball->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	
+	Ball->getMaterial().setUniform("roughness", 0.05f);
+	Ball->getMaterial().setUniform("F0", 0.1f);
+	Ball->getMaterial().setUniform("k", 0.4f);
+	
+	//m->getMaterial().setUniform("Ns", 90.0f);
+	
+	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
+	
+	Ball->createVAO();
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -410,8 +456,15 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setShadingProgram(NormalMap);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
-	Plane.getMaterial().setUniform("Ns", 90.0f);
-	Plane.getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	
+	Plane.getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	
+	Plane.getMaterial().setUniform("roughness", 0.2f);
+	Plane.getMaterial().setUniform("F0", 0.2f);
+	Plane.getMaterial().setUniform("k", 0.3f);
+		
+	//Plane.getMaterial().setUniform("Ns", 90.0f);
+	
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	Plane.getMaterial().createAntTweakBar("Plane");
@@ -469,8 +522,8 @@ int main(int argc, char* argv[])
 		MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.8), 0.0, std::cos(_time * 0.8)) + glm::vec3(0.0, 400.0 , 0.0));
 		MainLights[1].lookAt(glm::vec3(0.0, 150.0, 0.0));
 		
-		MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
-		MainLights[2].lookAt(glm::vec3(0.0, 0.0, 0.0));
+		MainLights[2].setPosition(200.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLights[2].lookAt(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 200.0 , 0.0));
 		
 		for(size_t i = 0; i < LightCount; ++i)
 		{
@@ -487,6 +540,9 @@ int main(int argc, char* argv[])
 			
 			if(isVisible(MainLights[i].getMatrix(), Plane.getBoundingBox()))
 				Plane.draw();
+				
+			if(isVisible(MainLights[i].getMatrix(), Ball->getBoundingBox()))
+				Ball->draw();
 			
 			MainLights[i].unbind();
 		}
@@ -508,6 +564,10 @@ int main(int argc, char* argv[])
 				m->getMaterial().useNone();
 			}
 		}
+		
+		if(isVisible(_projection * MainCamera.getMatrix(), Ball->getBoundingBox()))
+			Ball->draw();
+		
 		Plane.getMaterial().use();
 		Plane.draw();
 		
@@ -519,7 +579,7 @@ int main(int argc, char* argv[])
 			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		}
 		
-		//TwDraw();
+		TwDraw();
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

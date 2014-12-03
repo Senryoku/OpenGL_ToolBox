@@ -8,7 +8,15 @@ layout(std140) uniform Camera {
 uniform mat4 ModelMatrix = mat4(1.0);
 
 uniform float minDiffuse = 0.0f;
+uniform vec4 ambiant = vec4(0.2f, 0.2f, 0.2f, 1.f);
+
+#ifdef Phong
 uniform float Ns = 8.f;
+#endif
+
+uniform float roughness = 0.3; // 0 : smooth, 1: rough
+uniform float F0 = 0.4; // fresnel reflectance at normal incidence
+uniform float k = 0.1; // fraction of diffuse reflection (specular reflection = 1 - k)
 
 uniform unsigned int lightCount = 0;
 
@@ -17,8 +25,6 @@ layout(std140) uniform LightBlock {
 	vec4		color;
 	mat4 		depthMVP;
 } Lights[8];
-
-uniform vec4 Ka = vec4(0.2f, 0.2f, 0.2f, 1.f);
 
 uniform float bias = 0.000005f;
 
@@ -59,6 +65,7 @@ float random(vec4 seed4)
     return fract(sin(dot_product) * 43758.5453)*2.f - 1.f;
 }
 
+#ifdef Phong
 vec4 phong(vec3 p, vec3 N, vec4 diffuse, vec3 L, vec4 lc)
 {
 	float dNL = dot(N, L);
@@ -73,6 +80,48 @@ vec4 phong(vec3 p, vec3 N, vec4 diffuse, vec3 L, vec4 lc)
 								0.f;
 								
 	return diffuseFactor * diffuse * lc + specularFactor * lc;
+}
+#endif
+
+// FROM http://ruh.li/GraphicsCookTorrance.html
+vec3 cookTorrance(vec3 p, vec3 normal, vec3 lightDirection, vec3 lightColor)
+{    
+    float NdotL = max(dot(normal, lightDirection), 0.000001);
+    
+    float specular = 0.0;
+    if(NdotL > 0.0)
+    {
+        vec3 eyeDir = normalize(-p);
+
+        // calculate intermediary values
+        vec3 halfVector = normalize(lightDirection + eyeDir);
+        float NdotH = max(dot(normal, halfVector), 0.000001); 
+        float NdotV = max(dot(normal, eyeDir), 0.000001); // note: this could also be NdotL, which is the same value
+        float VdotH = max(dot(eyeDir, halfVector), 0.0);
+        float mSquared = roughness * roughness;
+        
+        // geometric attenuation
+        float NH2 = 2.0 * NdotH;
+        float g1 = (NH2 * NdotV) / VdotH;
+        float g2 = (NH2 * NdotL) / VdotH;
+        float geoAtt = min(1.0, min(g1, g2));
+     
+        // roughness (or: microfacet distribution function)
+        // beckmann distribution function
+        float r1 = 1.0 / ( 4.0 * mSquared * pow(NdotH, 4.0));
+        float r2 = (NdotH * NdotH - 1.0) / (mSquared * NdotH * NdotH);
+        float roughness = r1 * exp(r2);
+        
+        // fresnel
+        // Schlick approximation
+        float fresnel = pow(1.0 - VdotH, 5.0);
+        fresnel *= (1.0 - F0);
+        fresnel += F0;
+        
+        specular = (fresnel * geoAtt * roughness) / (NdotV * NdotL * 3.14);
+    }
+    
+    return lightColor * NdotL * (k + specular * (1.0 - k));
 }
 
 out vec4 colorOut;
@@ -93,7 +142,7 @@ void main(void)
 	vec3 N = normalize(TangentToWorldSpace  * N2);
 		
 	vec4 diffuse = texture(Texture, texcoord);
-	colorOut = diffuse * Ka;
+	colorOut = diffuse * ambiant;
 	
 	for(int l = 0; l < lightCount; ++l)
 	{
@@ -123,7 +172,7 @@ void main(void)
 			visibility = minDiffuse;
 			specular_visibility = 0.f;
 		}
-		colorOut += visibility * phong(position, N, diffuse, L, Lights[l].color);
+		colorOut += visibility * diffuse * vec4(cookTorrance(position, N, L, Lights[l].color.rgb), 1.0);//phong(position, N, diffuse, L, Lights[l].color);
 	}
 	colorOut.w = diffuse.w;
 }
