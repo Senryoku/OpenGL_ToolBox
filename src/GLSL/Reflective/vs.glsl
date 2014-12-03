@@ -3,7 +3,6 @@
 layout(std140) uniform Camera {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat3 NormalMatrix;
 };
 
 uniform mat4 ModelMatrix = mat4(1.0);
@@ -37,7 +36,8 @@ void main(void)
     gl_Position = ProjectionMatrix * P;
 	
 	VertexOut.position = vec3(P);
-	VertexOut.normal = normalize(NormalMatrix * in_normal);
+	// I guess I should precompute the Normal Matrix... Oh, well.
+	VertexOut.normal = normalize(mat3(transpose(inverse(ViewMatrix * ModelMatrix))) * in_normal);
 	VertexOut.texcoord = in_texcoord;
 	vec3 r = reflect(in_position - cameraPosition, in_normal);
 	VertexOut.reflectDir = vec3(-r.x, r.y, -r.z); // Why ? Oô

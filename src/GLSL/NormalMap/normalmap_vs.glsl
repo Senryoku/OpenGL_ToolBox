@@ -3,7 +3,6 @@
 layout(std140) uniform Camera {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat4 NormalMatrix;
 };
 
 uniform mat4 ModelMatrix = mat4(1.0);
@@ -31,7 +30,8 @@ void main(void)
     gl_Position = ProjectionMatrix * P;
 	
 	position = vec3(P);
-	normal = normalize(mat3(NormalMatrix) * in_normal);
+	// I guess I should precompute the Normal Matrix... Oh, well.
+	normal = normalize(mat3(transpose(inverse(ViewMatrix * ModelMatrix))) * in_normal);
 	texcoord = in_texcoord;
 	
 	for(int i = 0; i < lightCount; ++i)

@@ -223,7 +223,6 @@ struct CameraStruct
 {
 	glm::mat4	view;
 	glm::mat4	projection;
-	glm::mat4	normal;
 };
 
 int main(int argc, char* argv[])
@@ -371,7 +370,7 @@ int main(int argc, char* argv[])
 	UniformBuffer CubeCameraBuffer;
 	CubeCameraBuffer.init();
 	CubeCameraBuffer.bind(LightCount + 1);
-	CameraStruct CamS = {CubeCamera.getMatrix(), glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f), glm::transpose(glm::inverse(CubeCamera.getMatrix()))};
+	CameraStruct CamS = {CubeCamera.getMatrix(), glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f)};
 	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::StaticDraw);
 	CubeNormalMap.bindUniformBlock("Camera", CubeCameraBuffer);
 	
@@ -511,7 +510,7 @@ int main(int argc, char* argv[])
 		}
 		MainCamera.updateView();
 		
-		CameraStruct CamS = {MainCamera.getMatrix(), _projection, glm::transpose(glm::inverse(MainCamera.getMatrix()))};
+		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
 		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
 		
 		std::ostringstream oss;
