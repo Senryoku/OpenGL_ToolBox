@@ -398,6 +398,7 @@ int main(int argc, char* argv[])
 		m->getMaterial().setShadingProgram(NormalMap);
 		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
+		m->getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
 		
 		m->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 		
@@ -420,11 +421,13 @@ int main(int argc, char* argv[])
 	auto BallV = Mesh::load("in/3DModels/poolball/Ball1.obj");
 	auto& Ball = BallV[0];
 	Texture2D BallTex;
-	BallTex.load(std::string("in/3DModels/poolball/PoolBalluv3.jpg"));
+	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
 	
 	Ball->getMaterial().setShadingProgram(NormalMap);
+	Ball->getMaterial().setUniform("ModelMatrix", glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(10.0)), glm::vec3(0.0, 10.0, 0.0)));
+	
 	Ball->getMaterial().setUniform("Texture", BallTex);
-	//Ball->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
+	Ball->getMaterial().setUniform("NormalMap", GladosNormalMaps[0]);
 	
 	Ball->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 	
@@ -456,6 +459,7 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setShadingProgram(NormalMap);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
+	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
 	
 	Plane.getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
 	
@@ -561,12 +565,14 @@ int main(int argc, char* argv[])
 			{
 				m->getMaterial().use();
 				m->draw();
-				m->getMaterial().useNone();
 			}
 		}
 		
 		if(isVisible(_projection * MainCamera.getMatrix(), Ball->getBoundingBox()))
+		{
+			Ball->getMaterial().use();
 			Ball->draw();
+		}
 		
 		Plane.getMaterial().use();
 		Plane.draw();
