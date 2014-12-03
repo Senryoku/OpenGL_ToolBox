@@ -6,7 +6,7 @@ layout(triangle_strip, max_vertices = 18) out;
 layout(std140) uniform Camera {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat3 NormalMatrix;
+	mat4 NormalMatrix;
 };
 
 uniform unsigned int lightCount = 0;

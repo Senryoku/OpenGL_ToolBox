@@ -3,7 +3,7 @@
 layout(std140) uniform Camera {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat3 NormalMatrix;
+	mat4 NormalMatrix;
 };
 
 uniform mat4 ModelMatrix = mat4(1.0);
