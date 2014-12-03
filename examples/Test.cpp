@@ -435,12 +435,12 @@ int main(int argc, char* argv[])
 	Ball->getMaterial().setUniform("F0", 0.1f);
 	Ball->getMaterial().setUniform("k", 0.4f);
 	
-	//m->getMaterial().setUniform("Ns", 90.0f);
-	
 	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	
 	Ball->createVAO();
+	
+	_meshInstances.push_back(MeshInstance(*Ball));
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -472,6 +472,8 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	Plane.getMaterial().createAntTweakBar("Plane");
+	
+	_meshInstances.push_back(MeshInstance(Plane));
 
 	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
@@ -536,17 +538,14 @@ int main(int argc, char* argv[])
 			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
 			MainLights[i].bind();
 			
-			for(Mesh* m : Glados)
+			for(auto& b : _meshInstances)
 			{
-				if(isVisible(MainLights[i].getMatrix(), m->getBoundingBox()))
-					m->draw();
+				Light::getShadingProgram().setUniform("ModelMatrix", b.getModelMatrix()); // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				if(isVisible(MainLights[i].getMatrix(), b.getMesh().getBoundingBox()))
+				{
+					b.getMesh().draw();
+				}
 			}
-			
-			if(isVisible(MainLights[i].getMatrix(), Plane.getBoundingBox()))
-				Plane.draw();
-				
-			if(isVisible(MainLights[i].getMatrix(), Ball->getBoundingBox()))
-				Ball->draw();
 			
 			MainLights[i].unbind();
 		}
@@ -559,23 +558,13 @@ int main(int argc, char* argv[])
 		for(size_t i = 0; i < LightCount; ++i)
 			MainLights[i].getShadowMap().bind(i + 2);
 			
-		for(Mesh* m : Glados)
-		{			
-			if(isVisible(_projection * MainCamera.getMatrix(), m->getBoundingBox()))
+		for(auto& b : _meshInstances)
+		{
+			if(isVisible(_projection * MainCamera.getMatrix(), b.getMesh().getBoundingBox()))
 			{
-				m->getMaterial().use();
-				m->draw();
+				b.draw();
 			}
 		}
-		
-		if(isVisible(_projection * MainCamera.getMatrix(), Ball->getBoundingBox()))
-		{
-			Ball->getMaterial().use();
-			Ball->draw();
-		}
-		
-		Plane.getMaterial().use();
-		Plane.draw();
 		
 		// Quick Cleanup for AntTweakBar...
 		for(int i = 0; i < 8; ++i)
