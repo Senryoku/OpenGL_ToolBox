@@ -225,22 +225,6 @@ struct CameraStruct
 	glm::mat4	projection;
 };
 
-// Todo: Place in... MeshInstance ?
-// Check.
-bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
-{
-	glm::vec4 min = MVPMatrix * glm::vec4(bbox.min, 1.0);
-	glm::vec4 max = MVPMatrix * glm::vec4(bbox.max, 1.0);
-	
-	min /= min.w;
-	max /= max.w;
-	
-	// TODO: Construct and test the 8 points !!!
-	
-	return !(max.x < -1.0 || max.y < -1.0 ||
-			 min.x > 1.0  || min.y > 1.0);
-}
-
 int main(int argc, char* argv[])
 {
 	if (glfwInit() == false)
@@ -310,6 +294,10 @@ int main(int argc, char* argv[])
 	FragmentShader& FS = ResourcesManager::getInstance().getShader<FragmentShader>("NormalMap_FS");
 	FS.loadFromFile("src/GLSL/NormalMap/normalmap_fs.glsl");
 	FS.compile();
+
+	GeometryShader& GS = ResourcesManager::getInstance().getShader<GeometryShader>("Cubemap_GS");
+	GS.loadFromFile("src/GLSL/NormalMap/cubemap_gs.glsl");
+	GS.compile();
 	
 	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
 	NormalMap.attachShader(VS);
@@ -318,18 +306,41 @@ int main(int argc, char* argv[])
 	
 	if(!NormalMap) return 0;
 	
+	Program& CubeNormalMap = ResourcesManager::getInstance().getProgram("CubeNormalMap");
+	CubeNormalMap.attachShader(VS);
+	CubeNormalMap.attachShader(GS);
+	CubeNormalMap.attachShader(FS);
+	CubeNormalMap.link();
+	
+	if(!CubeNormalMap) return 0;
+
+	VertexShader& ReflectiveVS = ResourcesManager::getInstance().getShader<VertexShader>("Reflective_VS");
+	ReflectiveVS.loadFromFile("src/GLSL/Reflective/vs.glsl");
+	ReflectiveVS.compile();
+
+	FragmentShader& ReflectiveFS = ResourcesManager::getInstance().getShader<FragmentShader>("Reflective_FS");
+	ReflectiveFS.loadFromFile("src/GLSL/Reflective/fs.glsl");
+	ReflectiveFS.compile();
+		
+	Program& Reflective = ResourcesManager::getInstance().getProgram("Reflective");
+	Reflective.attachShader(ReflectiveVS);
+	Reflective.attachShader(ReflectiveFS);
+	Reflective.link();
+	
+	if(!Reflective) return 0;
+	
 	Light MainLights[3];
 	MainLights[0].setColor(glm::vec4(1.0));
 	MainLights[0].init();
 	MainLights[0].setPosition(glm::vec3(100.0, 300.0, 100.0));
 	MainLights[0].lookAt(glm::vec3(0.0));
 	
-	MainLights[1].setColor(glm::vec4(1.0, 0.9, 0.9, 1.0));
+	MainLights[1].setColor(glm::vec4(1.0, 0.0, 0.0, 1.0));
 	MainLights[1].init();
 	MainLights[1].setPosition(glm::vec3(100.0, 300.0, 100.0));
 	MainLights[1].lookAt(glm::vec3(0.0));
 	
-	MainLights[2].setColor(glm::vec4(0.9, 0.9, 1.0, 1.0));
+	MainLights[2].setColor(glm::vec4(0.0, 0.0, 1.0, 1.0));
 	MainLights[2].init();
 	MainLights[2].setPosition(glm::vec3(100.0, 300.0, 100.0));
 	MainLights[2].lookAt(glm::vec3(0.0));
@@ -352,6 +363,18 @@ int main(int argc, char* argv[])
 	CameraBuffer.init();
 	CameraBuffer.bind(LightCount);
 	NormalMap.bindUniformBlock("Camera", CameraBuffer);
+	Reflective.bindUniformBlock("Camera", CameraBuffer);
+	
+	Camera CubeCamera;
+	CubeCamera.setPosition(glm::vec3(0.0, 75.0, 0.0));
+	CubeCamera.setDirection(glm::vec3(0.0, 0.0, 1.0));
+	CubeCamera.updateView();
+	UniformBuffer CubeCameraBuffer;
+	CubeCameraBuffer.init();
+	CubeCameraBuffer.bind(LightCount + 1);
+	CameraStruct CamS = {CubeCamera.getMatrix(), glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f)};
+	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::StaticDraw);
+	CubeNormalMap.bindUniformBlock("Camera", CubeCameraBuffer);
 	
 	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
 	std::vector<MeshInstance> _meshInstances;
@@ -369,11 +392,17 @@ int main(int argc, char* argv[])
 	}
 	
 	NormalMap.setUniform("lightCount", LightCount);
+	CubeNormalMap.setUniform("lightCount", LightCount);
+	Reflective.setUniform("lightCount", LightCount);
 	for(size_t i = 0; i < LightCount; ++i)
 	{
 		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		CubeNormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		Reflective.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
 		
 		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+		CubeNormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+		Reflective.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
 	}
 	
 	for(Mesh* m : Glados)
@@ -415,6 +444,36 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	Plane.getMaterial().createAntTweakBar("Plane");
+	
+	float inRad = 60.0 * pi()/180.f;
+	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
+	
+	Framebuffer<CubeMap, 1> CubeFramebufferTest;
+	CubeFramebufferTest.init();
+	
+	auto Sphere = Mesh::load("in/3DModels/Robot/Robot.obj");
+	meshNum = 0;
+	for(Mesh* m : Sphere)
+	{
+		//for(auto& v : m->getVertices())
+		//	v.position = 50.0f * v.position + glm::vec3(0.0, 75.0, 0.0);
+			
+		m->getMaterial().setShadingProgram(Reflective);
+		m->getMaterial().setUniform("cameraPosition", &MainCamera.getPosition());
+		m->getMaterial().setUniform("EnvMap", CubeFramebufferTest.getColor());
+		m->getMaterial().setUniform("Ns", 90.0f);
+		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
+		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
+		m->getMaterial().createAntTweakBar("Reflective " + StringConversion::to_string(meshNum));
+		
+		//m->computeNormals();
+		m->createVAO();
+		
+		_meshInstances.push_back(MeshInstance(*m));
+		++meshNum;
+	}
 
 	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
@@ -424,8 +483,6 @@ int main(int argc, char* argv[])
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
 	
-	resize_callback(window, _width, _height);
-	
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
@@ -433,6 +490,8 @@ int main(int argc, char* argv[])
 		_time += _frameTime;
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		
+		//MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
+		//MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
 		if(controlCamera)
 		{
 			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -481,35 +540,71 @@ int main(int argc, char* argv[])
 			
 			for(Mesh* m : Glados)
 			{
-				if(isVisible(MainLights[i].getMatrix(), m->getBoundingBox()))
-					m->draw();
+				m->draw();
 			}
 			
-			if(isVisible(MainLights[i].getMatrix(), Plane.getBoundingBox()))
-				Plane.draw();
+			Plane.draw();
+			
+			for(Mesh* m : Sphere)
+			{
+				m->draw();
+			}
 			
 			MainLights[i].unbind();
 		}
 		
+		
+		for(size_t i = 0; i < LightCount; ++i)
+			MainLights[i].getShadowMap().bind(i + 2);
+		
+		// Render to CubeMap Test ! :)
+		
+		CubeFramebufferTest.bind(GL_DRAW_FRAMEBUFFER);
+		
+		Sky.cubedraw();
+		for(Mesh* m : Glados)
+		{
+			m->getMaterial().setShadingProgram(CubeNormalMap);
+			m->getMaterial().use();
+			m->draw();
+		}
+		Plane.getMaterial().setShadingProgram(CubeNormalMap);
+		Plane.getMaterial().use();
+		Plane.draw();
+		CubeFramebufferTest.unbind();
+		
+		// Save to disk (Debug)
+		/*
+		static bool done = false;
+		if(!done) 
+		{
+			CubeFramebufferTest.getColor().dump("out/CubeFramebufferTest/cube_");
+			done = true;
+		}
+		*/
+		
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
-		
 		Sky.draw(_projection, MainCamera.getMatrix());
-			
+		
 		for(size_t i = 0; i < LightCount; ++i)
 			MainLights[i].getShadowMap().bind(i + 2);
 			
 		for(Mesh* m : Glados)
-		{			
-			if(isVisible(_projection * MainCamera.getMatrix(), m->getBoundingBox()))
-			{
-				m->getMaterial().use();
-				m->draw();
-				m->getMaterial().useNone();
-			}
+		{
+			m->getMaterial().setShadingProgram(NormalMap);
+			m->getMaterial().use();
+			m->draw();
 		}
+		Plane.getMaterial().setShadingProgram(NormalMap);
 		Plane.getMaterial().use();
 		Plane.draw();
+		
+		for(Mesh* m : Sphere)
+		{
+			m->getMaterial().use();
+			m->draw();
+		}
 		
 		// Quick Cleanup for AntTweakBar...
 		for(int i = 0; i < 8; ++i)

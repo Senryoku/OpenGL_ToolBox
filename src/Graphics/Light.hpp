@@ -97,8 +97,6 @@ protected:
 	glm::vec3			_position = glm::vec3(0.f); ///< Light's position in World Space
 	glm::vec3			_direction = glm::vec3(0.f, 0.f, 1.f); ///< Light's direction in World Space
 	float				_range = 1000.0; ///< Light's range, mainly used for the Shadow Mapping settings
-	
-	Frustum				_frustum;
 
 	unsigned int				_shadowMapResolution = 4096;
 	Framebuffer<Texture2D, 0>	_shadowMapFramebuffer;

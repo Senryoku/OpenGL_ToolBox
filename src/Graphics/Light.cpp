@@ -54,11 +54,8 @@ void Light::init()
 void Light::updateMatrices()
 {
 	glm::mat4 ProjectionMatrix = glm::perspective(static_cast<float>(pi())/4.f, 1.0f, 2.0f, _range);
-	_frustum.setPerspective(45.f, 1.0f, 0.5f, _range);
 	glm::mat4 ViewMatrix = glm::lookAt(_position, _position + _direction, glm::vec3(0,1,0));
-	_frustum.setLookAt(_position, _direction, glm::vec3(0,1,0));
 	_VPMatrix = ProjectionMatrix * ViewMatrix;
-
 	_biasedVPMatrix = s_depthBiasMVP * _VPMatrix;
 }
 

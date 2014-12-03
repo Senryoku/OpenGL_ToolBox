@@ -145,12 +145,18 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 			//std::cout << "Material Index: " << LoadedMesh->mMaterialIndex << std::endl;
 			aiVector3D* n = LoadedMesh->mNormals;
 			aiVector3D** t = LoadedMesh->mTextureCoords;
+			aiVector3D& minmax = LoadedMesh->mVertices[0];
+			M[meshIdx]->_bbox.min = glm::vec3(minmax.x, minmax.y, minmax.z);
+			M[meshIdx]->_bbox.max = glm::vec3(minmax.x, minmax.y, minmax.z);
 			for(unsigned int i = 0; i < LoadedMesh->mNumVertices; ++i)
 			{
 				aiVector3D& v = LoadedMesh->mVertices[i];
 				M[meshIdx]->getVertices().push_back(Mesh::Vertex(glm::vec3(v.x, v.y, v.z),
 																				(n == nullptr) ? glm::vec3() : glm::vec3((*(n + i)).x, (*(n + i)).y, (*(n + i)).z),
 																				(t == nullptr) ? glm::vec2() : glm::vec2(t[0][i].x, t[0][i].y)));
+				
+				M[meshIdx]->_bbox.min = glm::vec3(std::min(M[meshIdx]->_bbox.min.x, v.x), std::min(M[meshIdx]->_bbox.min.y, v.y), std::min(M[meshIdx]->_bbox.min.z, v.z));
+				M[meshIdx]->_bbox.max = glm::vec3(std::max(M[meshIdx]->_bbox.max.x, v.x), std::max(M[meshIdx]->_bbox.max.y, v.y), std::max(M[meshIdx]->_bbox.max.z, v.z));
 			}
 			
 			for(unsigned int i = 0; i < LoadedMesh->mNumFaces; ++i)

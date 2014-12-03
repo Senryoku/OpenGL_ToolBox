@@ -53,20 +53,21 @@ public:
 	void computeNormals();
 	
 	void createVAO();
-	
 	void draw() const;
+	
+	const BoundingBox& getBoundingBox() const { return _bbox; }
 
 	static std::vector<Mesh*> load(const std::string& path);
 	
 private:
 	std::vector<Vertex>			_vertices;
-	std::vector<Triangle>			_triangles;
+	std::vector<Triangle>		_triangles;
 	
-	VertexArray		_vao;
+	VertexArray			_vao;
 	Buffer				_vertex_buffer;
 	Buffer				_index_buffer;
 	
 	Material 			_material; ///< Base (default) Material for this mesh
 	
-	BoundingBox		_bbox;
+	BoundingBox			_bbox;
 };
