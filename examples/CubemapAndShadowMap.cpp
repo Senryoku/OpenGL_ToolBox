@@ -24,7 +24,7 @@
 #include <MeshInstance.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
-#include <SkyBox.hpp>
+#include <Skybox.hpp>
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
