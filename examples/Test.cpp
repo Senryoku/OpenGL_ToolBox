@@ -424,7 +424,6 @@ int main(int argc, char* argv[])
 	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
 	
 	Ball->getMaterial().setShadingProgram(NormalMap);
-	Ball->getMaterial().setUniform("ModelMatrix", glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(10.0)), glm::vec3(0.0, 10.0, 0.0)));
 	
 	Ball->getMaterial().setUniform("Texture", BallTex);
 	Ball->getMaterial().setUniform("NormalMap", GladosNormalMaps[0]);
@@ -440,7 +439,15 @@ int main(int argc, char* argv[])
 	
 	Ball->createVAO();
 	
-	_meshInstances.push_back(MeshInstance(*Ball));
+	size_t row_ball_count = 10;
+	size_t col_ball_count = 10;
+	for(size_t i = 0; i < row_ball_count; ++i)
+		for(size_t j = 0; j < col_ball_count; ++j)
+		{
+			_meshInstances.push_back(MeshInstance(*Ball, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))));
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("roughness", 1.0f / i);
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("F0", 1.0f / j);
+		}
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -540,9 +547,9 @@ int main(int argc, char* argv[])
 			
 			for(auto& b : _meshInstances)
 			{
-				Light::getShadingProgram().setUniform("ModelMatrix", b.getModelMatrix()); // TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				if(isVisible(MainLights[i].getMatrix(), b.getMesh().getBoundingBox()))
+				if(isVisible(MainLights[i].getMatrix() * b.getModelMatrix(), b.getMesh().getBoundingBox()))
 				{
+					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
 					b.getMesh().draw();
 				}
 			}

@@ -239,42 +239,42 @@ void setUniform(GLuint location, const std::array<unsigned int, 4>& value)
 ///////////////////////////////////////////////////////////////////
 // Pointers 
 
-void setUniform(GLuint location, const float*value )
+void setUniform(GLuint location, const float* value)
 {
 	glUniform1f(location, *value);
 }
 
-void setUniform(GLuint location, const glm::vec2*value )
+void setUniform(GLuint location, const glm::vec2* value)
 {
 	glUniform2fv(location, 1, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const glm::vec3*value )
+void setUniform(GLuint location, const glm::vec3* value)
 {
 	glUniform3fv(location, 1, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const glm::vec4*value )
+void setUniform(GLuint location, const glm::vec4* value)
 {
 	glUniform4fv(location, 1, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const glm::mat2*value )
+void setUniform(GLuint location, const glm::mat2* value)
 {
 	glUniformMatrix2fv(location, 1, false, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const glm::mat3*value )
+void setUniform(GLuint location, const glm::mat3* value)
 {
 	glUniformMatrix3fv(location, 1, false, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const glm::mat4*value )
+void setUniform(GLuint location, const glm::mat4* value)
 {
 	glUniformMatrix4fv(location, 1, false, glm::value_ptr(*value));
 }
 
-void setUniform(GLuint location, const int*value )
+void setUniform(GLuint location, const int* value)
 {
 	glUniform1i(location, *value);
 }
@@ -299,17 +299,17 @@ void setUniform(GLuint location, const unsigned int*value )
 	glUniform1ui(location, *value);
 }
 
-void setUniform(GLuint location, const std::array<unsigned int, 2>*value )
+void setUniform(GLuint location, const std::array<unsigned int, 2>* value)
 {
 	glUniform2uiv(location, 1, (const GLuint*) (*value).data());
 }
 
-void setUniform(GLuint location, const std::array<unsigned int, 3>*value )
+void setUniform(GLuint location, const std::array<unsigned int, 3>* value)
 {
 	glUniform3uiv(location, 1, (const GLuint*) (*value).data());
 }
 
-void setUniform(GLuint location, const std::array<unsigned int, 4>*value )
+void setUniform(GLuint location, const std::array<unsigned int, 4>* value)
 {
 	glUniform4uiv(location, 1, (const GLuint*) (*value).data());
 }

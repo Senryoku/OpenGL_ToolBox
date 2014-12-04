@@ -62,7 +62,7 @@ void Light::updateMatrices()
 void Light::bind() const
 {
 	getShadowBuffer().bind();
-	getShadowMapProgram().setUniform("DepthMVP", getMatrix());
+	getShadowMapProgram().setUniform("DepthVP", getMatrix());
 	getShadowMapProgram().use();
 	glCullFace(GL_FRONT);
 }
