@@ -35,6 +35,10 @@ glm::vec3 _resolution(_width, _height, 0.0);
 glm::mat4 _projection;
 glm::vec4 _mouse(0.0);
 
+glm::vec4 _ambiant = glm::vec4(0.05f, 0.05f, 0.05f, 1.f);
+
+float _ballsDiffuseReflection = 0.4f;
+
 int 	_poissonSamples = 4;
 float 	_poissonDiskRadius = 2500.f;
 
@@ -44,9 +48,10 @@ bool _msaa = false;
 bool controlCamera = true;
 double mouse_x, mouse_y;
 
-float _time = 0.f;
+float 	_time = 0.f;
 float	_frameTime;
 float	_frameRate;
+bool	_paused = false;
 	
 void error_callback(int error, const char* description)
 {
@@ -152,6 +157,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 					} else {
 						std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
 					}
+					break;
+				}
+				case GLFW_KEY_P:
+				{
+					_paused = !_paused;
 					break;
 				}
 			}
@@ -305,6 +315,7 @@ int main(int argc, char* argv[])
 	TwAddVarRO(bar, "FrameRate", TW_TYPE_FLOAT, &_frameRate, "");
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
+	TwAddVarRW(bar, "Ball Diffuse Reflection", TW_TYPE_FLOAT, &_ballsDiffuseReflection, "min=0 max=1 step=0.05");
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -352,7 +363,8 @@ int main(int argc, char* argv[])
 	MainLights[2].lookAt(glm::vec3(0.0));
 	
 	// TODO: Try using only one UBO
-	const size_t LightCount = 3;
+	size_t LightCount = 3;
+	TwAddVarRW(bar, "LightCount", TW_TYPE_UINT8, &LightCount, "min=0 max=3");
 	UniformBuffer LightBuffers[3];
 	
 	for(size_t i = 0; i < 3; ++i)
@@ -370,8 +382,13 @@ int main(int argc, char* argv[])
 	CameraBuffer.bind(LightCount);
 	NormalMap.bindUniformBlock("Camera", CameraBuffer);
 	
+	std::vector<MeshInstance>	_meshInstances;
+	std::vector<std::pair<size_t, std::string>>			_tweakbars;
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// GladOS
+	
 	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
-	std::vector<MeshInstance> _meshInstances;
 	size_t meshNum = 0;
 	std::array<std::string, 4> GladosTex {"caf160b2", "fa08434c", "09f5cc6b", "72c40a8a"};
 	std::vector<Texture2D> GladosTextures;
@@ -400,54 +417,24 @@ int main(int argc, char* argv[])
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
 		m->getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
 		
-		m->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		m->getMaterial().setUniform("ambiant", &_ambiant);
 		
 		m->getMaterial().setUniform("roughness", 0.05f);
 		m->getMaterial().setUniform("F0", 0.1f);
-		m->getMaterial().setUniform("k", 0.4f);
-		
-		//m->getMaterial().setUniform("Ns", 90.0f);
-		
+		m->getMaterial().setUniform("diffuseReflection", 0.4f);
+				
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
-		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
 		
 		m->createVAO();
 		
 		_meshInstances.push_back(MeshInstance(*m));
+		_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "GladOSMaterial " + StringConversion::to_string(meshNum)));
 		++meshNum;
 	}
 	
-	auto BallV = Mesh::load("in/3DModels/poolball/Ball1.obj");
-	auto& Ball = BallV[0];
-	Texture2D BallTex;
-	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
-	
-	Ball->getMaterial().setShadingProgram(NormalMap);
-	
-	Ball->getMaterial().setUniform("Texture", BallTex);
-	Ball->getMaterial().setUniform("NormalMap", GladosNormalMaps[0]);
-	
-	Ball->getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
-	
-	Ball->getMaterial().setUniform("roughness", 0.05f);
-	Ball->getMaterial().setUniform("F0", 0.1f);
-	Ball->getMaterial().setUniform("k", 0.4f);
-	
-	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
-	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
-	
-	Ball->createVAO();
-	
-	size_t row_ball_count = 10;
-	size_t col_ball_count = 10;
-	for(size_t i = 0; i < row_ball_count; ++i)
-		for(size_t j = 0; j < col_ball_count; ++j)
-		{
-			_meshInstances.push_back(MeshInstance(*Ball, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))));
-			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("roughness", 1.0f / i);
-			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("F0", 1.0f / j);
-		}
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Ground
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -468,19 +455,52 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
 	
-	Plane.getMaterial().setUniform("ambiant", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	Plane.getMaterial().setUniform("ambiant", &_ambiant);
 	
 	Plane.getMaterial().setUniform("roughness", 0.2f);
 	Plane.getMaterial().setUniform("F0", 0.2f);
-	Plane.getMaterial().setUniform("k", 0.3f);
+	Plane.getMaterial().setUniform("diffuseReflection", 0.3f);
 		
 	//Plane.getMaterial().setUniform("Ns", 90.0f);
 	
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
-	Plane.getMaterial().createAntTweakBar("Plane");
 	
 	_meshInstances.push_back(MeshInstance(Plane));
+	_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "Plane"));
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Balls
+	
+	auto BallV = Mesh::load("in/3DModels/poolball/Ball1.obj");
+	auto& Ball = BallV[0];
+	Texture2D BallTex;
+	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
+	
+	Ball->getMaterial().setShadingProgram(NormalMap);
+	
+	Ball->getMaterial().setUniform("Texture", BallTex);
+	Ball->getMaterial().setUniform("NormalMap", GroundNormalMap);
+	
+	Ball->getMaterial().setUniform("ambiant", &_ambiant);
+	
+	Ball->getMaterial().setUniform("diffuseReflection", &_ballsDiffuseReflection);
+	
+	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
+	
+	Ball->createVAO();
+	
+	size_t row_ball_count = 10;
+	size_t col_ball_count = 10;
+	for(size_t i = 0; i < row_ball_count; ++i)
+		for(size_t j = 0; j < col_ball_count; ++j)
+		{
+			_meshInstances.push_back(MeshInstance(*Ball, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))));
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("roughness", 0.01f + i * 1.0f / row_ball_count);
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("F0", 0.01f + j * 1.0f / col_ball_count);
+		}
+	
 
 	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
@@ -490,14 +510,21 @@ int main(int argc, char* argv[])
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
 	
+	for(auto& p : _tweakbars)
+		_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
+	
 	resize_callback(window, _width, _height);
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Main Loop
 	
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
 		_frameTime = TimeManager::getInstance().getRealDeltaTime();
-		_time += _frameTime;
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
+		if(!_paused)
+			_time += _frameTime;
 		
 		if(controlCamera)
 		{
@@ -538,24 +565,25 @@ int main(int argc, char* argv[])
 		MainLights[2].setPosition(200.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLights[2].lookAt(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 200.0 , 0.0));
 		
-		for(size_t i = 0; i < LightCount; ++i)
-		{
-			MainLights[i].updateMatrices();
-			LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
-			MainLights[i].bind();
-			
-			for(auto& b : _meshInstances)
+		if(!_paused)
+			for(size_t i = 0; i < LightCount; ++i)
 			{
-				if(isVisible(MainLights[i].getMatrix() * b.getModelMatrix(), b.getMesh().getBoundingBox()))
+				MainLights[i].updateMatrices();
+				LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+				LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+				MainLights[i].bind();
+				
+				for(auto& b : _meshInstances)
 				{
-					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-					b.getMesh().draw();
+					if(isVisible(MainLights[i].getMatrix() * b.getModelMatrix(), b.getMesh().getBoundingBox()))
+					{
+						Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+						b.getMesh().draw();
+					}
 				}
+				
+				MainLights[i].unbind();
 			}
-			
-			MainLights[i].unbind();
-		}
 		
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);

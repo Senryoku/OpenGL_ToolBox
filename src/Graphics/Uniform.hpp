@@ -66,7 +66,7 @@ public:
 		setUniform(program,  getLocation(), getValue());
 	}
 	
-	virtual GenericUniform* clone() const
+	virtual Uniform<T>* clone() const override
 	{
 		return new Uniform<T>(getName(), getLocation(), getValue());
 	}
@@ -74,7 +74,7 @@ public:
 #ifndef NO_ANTTWEAKBAR
 	virtual inline void addTo(TwBar* bar)
 	{
-		createTweak(bar, getName(), const_cast<T*>(&getValue()));
+		createTweak(bar, getName(), &_value);
 	}
 #endif // NO_ANTTWEAKBAR
 	
@@ -119,7 +119,7 @@ public:
 		_value->unbind(_textureUnit);
 	}
 	
-	virtual GenericUniform* clone() const
+	virtual Uniform<Texture>* clone() const override
 	{
 		return new Uniform<Texture>(getName(), getLocation(), getTextureUnit(), getValue());
 	}

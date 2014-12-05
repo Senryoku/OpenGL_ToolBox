@@ -101,7 +101,10 @@ public:
 			{
 				if(U.get()->getName() == name)
 				{
-					static_cast<Uniform<T>*>(U.get())->setValue(value);
+					//static_cast<Uniform<T>*>(U.get())->setValue(value);
+					// In case the types differs... We better create a shinny new one.
+					U.reset(new Uniform<T>(name, Location, value));
+					
 					return;
 				}
 			}
@@ -139,7 +142,7 @@ private:
 	const Program*	_shadingProgram = nullptr;
 	
 	std::vector<std::unique_ptr<GenericUniform>>		_uniforms;
-	GLuint 																_textureCount = 0;
+	GLuint 												_textureCount = 0;
 	
 	GLint getLocation(const std::string& name) const;
 };
