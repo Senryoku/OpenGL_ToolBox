@@ -28,25 +28,31 @@
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
-int		_width = 1366;
-int		_height = 720;
+int			_width = 1366;
+int			_height = 720;
 
-glm::vec3 _resolution(_width, _height, 0.0);
-glm::mat4 _projection;
-glm::vec4 _mouse(0.0);
+glm::vec3 	_resolution(_width, _height, 0.0);
+glm::mat4 	_projection;
+glm::vec4 	_mouse(0.0);
 
-int 	_poissonSamples = 4;
-float 	_poissonDiskRadius = 2500.f;
+glm::vec4 	_ambiant = glm::vec4(0.05f, 0.05f, 0.05f, 1.f);
 
-bool _fullscreen = false;
-bool _msaa = false;
-		
-bool controlCamera = true;
-double mouse_x, mouse_y;
+float 		_ballsDiffuseReflection = 0.4f;
 
-float _time = 0.f;
-float	_frameTime;
-float	_frameRate;
+int 		_poissonSamples = 4;
+float 		_poissonDiskRadius = 2500.f;
+
+bool 		_fullscreen = false;
+bool 		_msaa = false;
+
+bool 		_controlCamera = true;
+double 		_mouse_x, 
+			_mouse_y;
+
+float 		_time = 0.f;
+float		_frameTime;
+float		_frameRate;
+bool		_paused = false;
 	
 void error_callback(int error, const char* description)
 {
@@ -109,13 +115,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_SPACE:
 				{
-					if(!controlCamera)
+					if(!_controlCamera)
 					{
 						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 					} else {
 						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 					}
-					controlCamera = !controlCamera;
+					_controlCamera = !_controlCamera;
 					break;
 				}
 				case GLFW_KEY_X:
@@ -376,21 +382,6 @@ int main(int argc, char* argv[])
 	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::StaticDraw);
 	CubeNormalMap.bindUniformBlock("Camera", CubeCameraBuffer);
 	
-	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
-	std::vector<MeshInstance> _meshInstances;
-	size_t meshNum = 0;
-	std::array<std::string, 4> GladosTex {"caf160b2", "fa08434c", "09f5cc6b", "72c40a8a"};
-	std::vector<Texture2D> GladosTextures;
-	GladosTextures.resize(4);
-	std::vector<Texture2D> GladosNormalMaps;
-	GladosNormalMaps.resize(4);
-	for(size_t i = 0; i < 4; ++i)
-	{
-		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
-		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
-		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
-	}
-	
 	NormalMap.setUniform("lightCount", LightCount);
 	CubeNormalMap.setUniform("lightCount", LightCount);
 	Reflective.setUniform("lightCount", LightCount);
@@ -405,22 +396,47 @@ int main(int argc, char* argv[])
 		Reflective.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
 	}
 	
+	std::vector<MeshInstance>							_meshInstances;
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// GladOS
+	
+	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
+	size_t meshNum = 0;
+	std::array<std::string, 4> GladosTex {"caf160b2", "fa08434c", "09f5cc6b", "72c40a8a"};
+	std::vector<Texture2D> GladosTextures;
+	GladosTextures.resize(4);
+	std::vector<Texture2D> GladosNormalMaps;
+	GladosNormalMaps.resize(4);
+	for(size_t i = 0; i < 4; ++i)
+	{
+		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
+		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
+		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
+	}
+	
 	for(Mesh* m : Glados)
 	{
 		m->getMaterial().setShadingProgram(NormalMap);
 		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
-		m->getMaterial().setUniform("Ns", 90.0f);
-		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		m->getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
+		m->getMaterial().setUniform("ambiant", &_ambiant);
+		m->getMaterial().setUniform("roughness", 0.05f);
+		m->getMaterial().setUniform("F0", 0.1f);
+		m->getMaterial().setUniform("diffuseReflection", 0.4f);
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
-		m->getMaterial().createAntTweakBar("Material " + StringConversion::to_string(meshNum));
 		
 		m->createVAO();
 		
+		m->getMaterial().createAntTweakBar("GladOS " + StringConversion::to_string(meshNum));
 		_meshInstances.push_back(MeshInstance(*m));
 		++meshNum;
 	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Ground
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -439,11 +455,17 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setShadingProgram(NormalMap);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
-	Plane.getMaterial().setUniform("Ns", 90.0f);
-	Plane.getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
+	Plane.getMaterial().setUniform("ambiant", &_ambiant);
+	Plane.getMaterial().setUniform("roughness", 0.2f);
+	Plane.getMaterial().setUniform("F0", 0.2f);
+	Plane.getMaterial().setUniform("diffuseReflection", 0.3f);
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
+	
 	Plane.getMaterial().createAntTweakBar("Plane");
+	_meshInstances.push_back(MeshInstance(Plane));
+	
 	
 	float inRad = 60.0 * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
@@ -461,8 +483,7 @@ int main(int argc, char* argv[])
 		m->getMaterial().setShadingProgram(Reflective);
 		m->getMaterial().setUniform("cameraPosition", &MainCamera.getPosition());
 		m->getMaterial().setUniform("EnvMap", CubeFramebufferTest.getColor());
-		m->getMaterial().setUniform("Ns", 90.0f);
-		m->getMaterial().setUniform("Ka", glm::vec4(0.3f, 0.3f, 0.3f, 1.f));
+		m->getMaterial().setUniform("ambiant", &_ambiant);
 		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
@@ -482,7 +503,7 @@ int main(int argc, char* argv[])
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
-	
+		
 	while(!glfwWindowShouldClose(window))
 	{	
 		TimeManager::getInstance().update();
@@ -490,9 +511,7 @@ int main(int argc, char* argv[])
 		_time += _frameTime;
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		
-		//MainCamera.setPosition(500.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 250.0 , 0.0));
-		//MainCamera.lookAt(glm::vec3(0.0, 250.0, 0.0));
-		if(controlCamera)
+		if(_controlCamera)
 		{
 			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 				MainCamera.moveForward(_frameTime);
@@ -506,9 +525,9 @@ int main(int argc, char* argv[])
 			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 				MainCamera.strafeRight(_frameTime);
 				
-			double mx = mouse_x, my = mouse_y;
-			glfwGetCursorPos(window, &mouse_x, &mouse_y);
-			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
+			double mx = _mouse_x, my = _mouse_y;
+			glfwGetCursorPos(window, &_mouse_x, &_mouse_y);
+			MainCamera.look(glm::vec2(_mouse_x - mx, my - _mouse_y));
 		}
 		MainCamera.updateView();
 		
@@ -614,7 +633,7 @@ int main(int argc, char* argv[])
 			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		}
 		
-		//TwDraw();
+		TwDraw();
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

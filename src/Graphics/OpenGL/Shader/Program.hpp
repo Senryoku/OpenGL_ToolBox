@@ -58,6 +58,21 @@ public:
 	 * @return true if the program is set and linked, false otherwise.
 	**/
 	inline bool isValid() const override { return _handle != 0 && _linked; }
+
+	/**
+	 * @param name Name of the vertex shader attribute
+	 * @return Location of the queried attribute
+	 * @see glGetAttribLocation
+	**/
+	inline GLint getAttribLocation(const std::string& name) const { return glGetAttribLocation(_handle, name.c_str()); }
+	
+	/**
+	 * Associate a vertex attribute index with named attribute variable
+	 * @param index Index of the vertex attribute to be bound
+	 * @param name Name of the attribute to which index is to be bound
+	 * @see glBindAttribLocation
+	**/
+	inline void bindAttribLocation(GLuint index, const std::string& name) const { return glBindAttribLocation(_handle, index, name.c_str()); }
 	
 	/**
 	 * Query for the location of the specified uniform.

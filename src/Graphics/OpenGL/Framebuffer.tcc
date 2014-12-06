@@ -34,16 +34,21 @@ void Framebuffer<TexType, ColorCount>::init()
 	glGenFramebuffers(1, &_handle);
 	glBindFramebuffer(GL_FRAMEBUFFER, _handle);
 		
-	GLenum DrawBuffers[ColorCount];
-	for(size_t i = 0; i < ColorCount; ++i)
+	if(ColorCount > 0)
 	{
-		DrawBuffers[i] = GL_COLOR_ATTACHMENT0 + i;
-		if(!_color[i])
-			_color[i].create(nullptr, _width, _height, GL_RGBA, GL_RGBA, false);
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, _color[i].getName(), 0);
+		GLenum DrawBuffers[ColorCount];
+		for(size_t i = 0; i < ColorCount; ++i)
+		{
+			DrawBuffers[i] = GL_COLOR_ATTACHMENT0 + i;
+			if(!_color[i])
+				_color[i].create(nullptr, _width, _height, GL_RGBA, GL_RGBA, false);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, _color[i].getName(), 0);
+		}
+		
+		glDrawBuffers(ColorCount, DrawBuffers);
+	} else {
+		glDrawBuffer(GL_NONE);
 	}
-	
-	glDrawBuffers(ColorCount, DrawBuffers);
 	
 	if(_useDepth)
 	{
@@ -68,7 +73,6 @@ void Framebuffer<TexType, ColorCount>::bind(GLenum target) const
 	if(target == GL_FRAMEBUFFER ||
 	   target == GL_DRAW_FRAMEBUFFER)
 	{
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		if(!_useDepth)
 			glClear(GL_COLOR_BUFFER_BIT);

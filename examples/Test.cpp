@@ -28,30 +28,31 @@
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
-int		_width = 1366;
-int		_height = 720;
+int			_width = 1366;
+int			_height = 720;
 
-glm::vec3 _resolution(_width, _height, 0.0);
-glm::mat4 _projection;
-glm::vec4 _mouse(0.0);
+glm::vec3 	_resolution(_width, _height, 0.0);
+glm::mat4 	_projection;
+glm::vec4 	_mouse(0.0);
 
-glm::vec4 _ambiant = glm::vec4(0.05f, 0.05f, 0.05f, 1.f);
+glm::vec4 	_ambiant = glm::vec4(0.05f, 0.05f, 0.05f, 1.f);
 
-float _ballsDiffuseReflection = 0.4f;
+float 		_ballsDiffuseReflection = 0.4f;
 
-int 	_poissonSamples = 4;
-float 	_poissonDiskRadius = 2500.f;
+int 		_poissonSamples = 4;
+float 		_poissonDiskRadius = 2500.f;
 
-bool _fullscreen = false;
-bool _msaa = false;
-		
-bool controlCamera = true;
-double mouse_x, mouse_y;
+bool 		_fullscreen = false;
+bool 		_msaa = false;
 
-float 	_time = 0.f;
-float	_frameTime;
-float	_frameRate;
-bool	_paused = false;
+bool 		_controlCamera = true;
+double 		_mouse_x, 
+			_mouse_y;
+
+float 		_time = 0.f;
+float		_frameTime;
+float		_frameRate;
+bool		_paused = false;
 	
 void error_callback(int error, const char* description)
 {
@@ -114,13 +115,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_SPACE:
 				{
-					if(!controlCamera)
+					if(!_controlCamera)
 					{
 						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 					} else {
 						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 					}
-					controlCamera = !controlCamera;
+					_controlCamera = !_controlCamera;
 					break;
 				}
 				case GLFW_KEY_X:
@@ -235,8 +236,8 @@ struct CameraStruct
 	glm::mat4	projection;
 };
 
+// Checks whether the provided bounding bound is visible after its transformation by MVPMatrix
 // Todo: Place in... MeshInstance ?
-// Check.
 bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
 {
 	const glm::vec3& a = bbox.min;
@@ -261,8 +262,6 @@ bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
 		max.x = std::max(max.x, t.x);
 		max.y = std::max(max.y, t.y);
 	}
-	
-	// TODO: Construct and test the 8 points !!!
 	
 	return !(max.x < -1.0 || max.y < -1.0 ||
 			 min.x > 1.0  || min.y > 1.0);
@@ -346,6 +345,9 @@ int main(int argc, char* argv[])
 	
 	if(!NormalMap) return 0;
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Light initialization
+	
 	Light MainLights[3];
 	MainLights[0].setColor(glm::vec4(1.0));
 	MainLights[0].init();
@@ -376,13 +378,26 @@ int main(int argc, char* argv[])
 		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
 	}
 	
+	NormalMap.setUniform("lightCount", LightCount);
+	for(size_t i = 0; i < LightCount; ++i)
+	{
+		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Camera Initialization
+	
 	Camera MainCamera;
 	UniformBuffer CameraBuffer;
 	CameraBuffer.init();
 	CameraBuffer.bind(LightCount);
-	NormalMap.bindUniformBlock("Camera", CameraBuffer);
+	NormalMap.bindUniformBlock("Camera", CameraBuffer); 
 	
-	std::vector<MeshInstance>	_meshInstances;
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Loading Meshes and declaring instances
+	
+	std::vector<MeshInstance>							_meshInstances;
 	std::vector<std::pair<size_t, std::string>>			_tweakbars;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -402,27 +417,16 @@ int main(int argc, char* argv[])
 		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
 	}
 	
-	NormalMap.setUniform("lightCount", LightCount);
-	for(size_t i = 0; i < LightCount; ++i)
-	{
-		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		
-		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
-	}
-	
 	for(Mesh* m : Glados)
 	{
 		m->getMaterial().setShadingProgram(NormalMap);
 		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
 		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
 		m->getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
-		
 		m->getMaterial().setUniform("ambiant", &_ambiant);
-		
 		m->getMaterial().setUniform("roughness", 0.05f);
 		m->getMaterial().setUniform("F0", 0.1f);
 		m->getMaterial().setUniform("diffuseReflection", 0.4f);
-				
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 		
@@ -454,15 +458,10 @@ int main(int argc, char* argv[])
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
 	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
-	
 	Plane.getMaterial().setUniform("ambiant", &_ambiant);
-	
 	Plane.getMaterial().setUniform("roughness", 0.2f);
 	Plane.getMaterial().setUniform("F0", 0.2f);
 	Plane.getMaterial().setUniform("diffuseReflection", 0.3f);
-		
-	//Plane.getMaterial().setUniform("Ns", 90.0f);
-	
 	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	
@@ -478,14 +477,10 @@ int main(int argc, char* argv[])
 	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
 	
 	Ball->getMaterial().setShadingProgram(NormalMap);
-	
 	Ball->getMaterial().setUniform("Texture", BallTex);
 	Ball->getMaterial().setUniform("NormalMap", GroundNormalMap);
-	
 	Ball->getMaterial().setUniform("ambiant", &_ambiant);
-	
 	Ball->getMaterial().setUniform("diffuseReflection", &_ballsDiffuseReflection);
-	
 	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	
@@ -510,6 +505,7 @@ int main(int argc, char* argv[])
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
 	});
 	
+	// Creating requested AntTweakBars
 	for(auto& p : _tweakbars)
 		_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
 	
@@ -520,13 +516,15 @@ int main(int argc, char* argv[])
 	
 	while(!glfwWindowShouldClose(window))
 	{	
+		// Time Management 
 		TimeManager::getInstance().update();
 		_frameTime = TimeManager::getInstance().getRealDeltaTime();
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		if(!_paused)
 			_time += _frameTime;
 		
-		if(controlCamera)
+		// Camera Management
+		if(_controlCamera)
 		{
 			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 				MainCamera.moveForward(_frameTime);
@@ -540,22 +538,24 @@ int main(int argc, char* argv[])
 			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 				MainCamera.strafeRight(_frameTime);
 				
-			double mx = mouse_x, my = mouse_y;
-			glfwGetCursorPos(window, &mouse_x, &mouse_y);
-			MainCamera.look(glm::vec2(mouse_x - mx, my - mouse_y));
+			double mx = _mouse_x, my = _mouse_y;
+			glfwGetCursorPos(window, &_mouse_x, &_mouse_y);
+			MainCamera.look(glm::vec2(_mouse_x - mx, my - _mouse_y));
 		}
 		MainCamera.updateView();
-		
+		// Uploading camera data to the corresponding camera buffer
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
 		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
 		
+		// (Updating window title)
 		std::ostringstream oss;
 		oss << _frameRate;
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
-		
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
+		////////////////////////////////////////////////////////////////////////////////////////////
+		// Light Management
+		
+		// Lights animation
 		MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLights[0].lookAt(glm::vec3(0.0, 250.0, 0.0));
 		
@@ -565,6 +565,8 @@ int main(int argc, char* argv[])
 		MainLights[2].setPosition(200.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLights[2].lookAt(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 200.0 , 0.0));
 		
+		NormalMap.setUniform("lightCount", LightCount);
+		// Update shadow maps if needed
 		if(!_paused)
 			for(size_t i = 0; i < LightCount; ++i)
 			{
@@ -584,9 +586,14 @@ int main(int argc, char* argv[])
 				
 				MainLights[i].unbind();
 			}
+		////////////////////////////////////////////////////////////////////////////////////////////
 		
+		////////////////////////////////////////////////////////////////////////////////////////////
+		// Actual drawing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		Sky.draw(_projection, MainCamera.getMatrix());
 			
@@ -600,6 +607,7 @@ int main(int argc, char* argv[])
 				b.draw();
 			}
 		}
+		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		// Quick Cleanup for AntTweakBar...
 		for(int i = 0; i < 8; ++i)

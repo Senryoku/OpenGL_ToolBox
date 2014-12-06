@@ -9,7 +9,7 @@ layout(std140) uniform Camera {
 
 uniform mat4 ModelMatrix = mat4(1.0);
 
-uniform float minDiffuse = 0.0f;
+uniform float minDiffuse = 0.05f;
 uniform vec4 ambiant = vec4(0.2f, 0.2f, 0.2f, 1.f);
 
 #ifdef Phong
@@ -86,8 +86,12 @@ vec4 phong(vec3 p, vec3 N, vec4 diffuse, vec3 L, vec4 lc)
 #endif
 
 // FROM http://ruh.li/GraphicsCookTorrance.html
-vec3 cookTorrance(vec3 p, vec3 normal, vec3 diffuseColor, vec3 specularColor, vec3 eyeDir, vec3 lightDirection)
+vec3 cookTorrance(vec3 p, vec3 normal, vec3 diffuseColor, vec3 specularColor, vec3 eyeDir, vec3 lightDirection, float visibility)
 {    
+	float _roughness = clamp(roughness, 0.0, 1.0);
+	float _F0 = clamp(F0, 0.0, 1.0);
+	float _diffuseReflection = clamp(diffuseReflection, 0.0, 1.0);
+	
     float NdotL = max(dot(normal, lightDirection), 0.000001);
     
     float specular = 0.0;
@@ -98,7 +102,7 @@ vec3 cookTorrance(vec3 p, vec3 normal, vec3 diffuseColor, vec3 specularColor, ve
         float NdotH = max(dot(normal, halfVector), 0.000001); 
         float NdotV = max(dot(normal, eyeDir), 0.000001);
         float VdotH = max(dot(eyeDir, halfVector), 0.0);
-        float mSquared = roughness * roughness;
+        float mSquared = _roughness * _roughness;
         
         // geometric attenuation
         float NH2 = 2.0 * NdotH;
@@ -115,13 +119,13 @@ vec3 cookTorrance(vec3 p, vec3 normal, vec3 diffuseColor, vec3 specularColor, ve
         // fresnel
         // Schlick approximation
         float fresnel = pow(1.0 - VdotH, 5.0);
-        fresnel *= (1.0 - F0);
-        fresnel += F0;
+        fresnel *= (1.0 - _F0);
+        fresnel += _F0;
         
         specular = (fresnel * geoAtt * r) / (NdotV * NdotL * 3.1415926);
     }
     
-    return NdotL * (diffuseColor + specularColor * (diffuseReflection + specular * (1.0 - diffuseReflection)));
+    return visibility * NdotL * (diffuseColor + ceil(visibility - minDiffuse - 0.01f) * specularColor * (_diffuseReflection + specular * (1.0 - _diffuseReflection)));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,62 +204,64 @@ void main(void)
 		if((sc.x/sc.w  >= 0 && sc.x/sc.w  <= 1.f) &&
 		   (sc.y/sc.w  >= 0 && sc.y/sc.w  <= 1.f))
 		{
+			#ifdef Classic
+			if(textureProj(ShadowMap[l], sc.xyw).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse);
+			#endif
+			
 			#ifdef PoissonSampling
 			for (int i = 0; i < poissonSamples; ++i)
 			{
 				sc.xy += poissonDisk[i] * sc.w/poissonDiskRadius;
-				if(textureProj(ShadowMap[l], sc.xyw).z + bbias < sc.z/sc.w)
+				if(textureProj(ShadowMap[l], sc) + bbias < sc.z/sc.w)
 				{
 					visibility -= (1.0f - minDiffuse) / poissonSamples;
-					specular_visibility = 0.f;
 				}
 			}
 			#endif
 			
 			#ifdef Samples5
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, 0)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(i, j)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 5.0;
 				
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, -1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
+				visibility -= (1.0f - minDiffuse) / 5.0;
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, 1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
+				visibility -= (1.0f - minDiffuse) / 5.0;
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, -1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
+				visibility -= (1.0f - minDiffuse) / 5.0;
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, 1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
+				visibility -= (1.0f - minDiffuse) / 5.0;
 			#endif
 			
 			#ifdef Samples9
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, 0)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-				
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, -1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, 1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, -1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, 1)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-				
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, 0)).z + bbias < sc.z/sc.w)
-				visibility -= (1.0f - minDiffuse) / 9.0;
-			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, 1)).z + bbias < sc.z/sc.w)
 				visibility -= (1.0f - minDiffuse) / 9.0;
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, 0)).z + bbias < sc.z/sc.w)
 				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(-1, 1)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
 			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, -1)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, 0)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(0, 1)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, -1)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, 0)).z + bbias < sc.z/sc.w)
+				visibility -= (1.0f - minDiffuse) / 9.0;
+			if(textureProjOffset(ShadowMap[l], sc.xyw, ivec2(1, 1)).z + bbias < sc.z/sc.w)
 				visibility -= (1.0f - minDiffuse) / 9.0;
 			#endif
 		} else {
 			visibility = minDiffuse;
-			specular_visibility = 0.f;
 		}
+		
 		#ifdef PHONG
 		colorOut += visibility * phong(position, N, diffuse, L, Lights[l].color);
 		#else
-		colorOut += visibility * vec4(cookTorrance(position, N, diffuse.rgb, Lights[l].color.rgb, eyeDir, L), 1.0);
+		colorOut += vec4(cookTorrance(position, N, diffuse.rgb, Lights[l].color.rgb, eyeDir, L, visibility), 1.0);
 		#endif
 	}
 	colorOut.w = diffuse.w;
