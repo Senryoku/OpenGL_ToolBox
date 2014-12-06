@@ -67,6 +67,7 @@ GLuint Program::getResourceIndex(GLenum interface, const std::string& name) cons
 GLuint Program::getUniformBlockIndex(const std::string& name) const
 {
 	GLuint r = glGetUniformBlockIndex(getName(), name.c_str());
+	if(r == GL_INVALID_INDEX) std::cerr << "Warning: Invalid Uniform Block name " << name << std::endl;
 	assert(r != GL_INVALID_INDEX);
 	return r;
 }

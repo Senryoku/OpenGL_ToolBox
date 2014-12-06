@@ -31,6 +31,7 @@
 int			_width = 1366;
 int			_height = 720;
 
+float		_fov = 60.0;
 glm::vec3 	_resolution(_width, _height, 0.0);
 glm::mat4 	_projection;
 glm::vec4 	_mouse(0.0);
@@ -49,10 +50,17 @@ bool 		_controlCamera = true;
 double 		_mouse_x, 
 			_mouse_y;
 
+float		_timescale = 1.0;
 float 		_time = 0.f;
 float		_frameTime;
 float		_frameRate;
 bool		_paused = false;
+
+int			_colorToRender = 0;
+
+Framebuffer<Texture2D>	_godrayRender;
+
+Framebuffer<Texture2D>	_offscreenRender;
 	
 void error_callback(int error, const char* description)
 {
@@ -67,8 +75,14 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, _width, _height);
 	_resolution = glm::vec3(_width, _height, 0.0);
 	
-	float inRad = 60.0 * pi()/180.f;
+	float inRad = _fov * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
+	
+	_offscreenRender = Framebuffer<Texture2D>(_width, _height, true);
+	_offscreenRender.init();
+	
+	_godrayRender = Framebuffer<Texture2D>(_width, _height, false);
+	_godrayRender.init();
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -163,6 +177,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				case GLFW_KEY_P:
 				{
 					_paused = !_paused;
+					break;
+				}
+				case GLFW_KEY_C:
+				{
+					_colorToRender = (_colorToRender + 1) % 2;
 					break;
 				}
 			}
@@ -312,6 +331,8 @@ int main(int argc, char* argv[])
 	TwDefine("'Global Tweaks' iconified=true ");
 	TwAddVarRO(bar, "FrameTime", TW_TYPE_FLOAT, &_frameTime, "");
 	TwAddVarRO(bar, "FrameRate", TW_TYPE_FLOAT, &_frameRate, "");
+	TwAddVarRW(bar, "TimeScale", TW_TYPE_FLOAT, &_timescale, "min=0.0 step=0.1");
+	TwAddVarRW(bar, "FOV", TW_TYPE_FLOAT, &_fov, "min=0.0 step=0.1");
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
 	TwAddVarRW(bar, "Ball Diffuse Reflection", TW_TYPE_FLOAT, &_ballsDiffuseReflection, "min=0 max=1 step=0.05");
@@ -320,16 +341,25 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	CubeMap Tex;
 	#define CUBEMAP_FOLDER "brudslojan"
-	Tex.load({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
-				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
-				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
-				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negy.jpg",
-				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
-				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
-	});
+	
+	size_t LightCount = 3;
+	
+	VertexShader& GodRaysVS = ResourcesManager::getInstance().getShader<VertexShader>("GodRays_VS");
+	GodRaysVS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays_Offscreen_vs.glsl");
+	GodRaysVS.compile();
 
+	FragmentShader& GodRaysFS = ResourcesManager::getInstance().getShader<FragmentShader>("GodRays_FS");
+	GodRaysFS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays_Offscreen_fs.glsl");
+	GodRaysFS.compile();
+	
+	Program& GodRaysProgram = ResourcesManager::getInstance().getProgram("GodRays");
+	GodRaysProgram.attachShader(GodRaysVS);
+	GodRaysProgram.attachShader(GodRaysFS);
+	GodRaysProgram.link();
+	
+	if(!GodRaysProgram) return 0;
+	
 	VertexShader& VS = ResourcesManager::getInstance().getShader<VertexShader>("NormalMap_VS");
 	VS.loadFromFile("src/GLSL/NormalMap/normalmap_vs.glsl");
 	VS.compile();
@@ -344,6 +374,57 @@ int main(int argc, char* argv[])
 	NormalMap.link();
 	
 	if(!NormalMap) return 0;
+	
+	VertexShader& LightRenderingVS = ResourcesManager::getInstance().getShader<VertexShader>("LightRendering_VS");
+	LightRenderingVS.loadFromFile("src/GLSL/vs.glsl");
+	LightRenderingVS.compile();
+
+	FragmentShader& LightRenderingFS = ResourcesManager::getInstance().getShader<FragmentShader>("LightRendering_FS");
+	LightRenderingFS.loadFromFile("src/GLSL/LightRendering/fs.glsl");
+	LightRenderingFS.compile();
+	
+	Program& LightRendering = ResourcesManager::getInstance().getProgram("LightRendering");
+	LightRendering.attachShader(LightRenderingVS);
+	LightRendering.attachShader(LightRenderingFS);
+	LightRendering.link();
+	
+	if(!LightRendering) return 0;
+	
+	Material LightRenderingMaterial(LightRendering);
+	LightRenderingMaterial.setUniform("iResolution", &_resolution);
+	LightRenderingMaterial.setUniform("lightCount", &LightCount);
+	LightRenderingMaterial.setUniform("Intensity", 1.0f);
+	LightRenderingMaterial.setUniform("Radius", 0.25f);
+	LightRenderingMaterial.createAntTweakBar("LightRenderingMaterial");
+	
+	VertexShader& PostProcessVS = ResourcesManager::getInstance().getShader<VertexShader>("PostProcess_VS");
+	PostProcessVS.loadFromFile("src/GLSL/vs.glsl");
+	PostProcessVS.compile();
+
+	FragmentShader& PostProcessFS = ResourcesManager::getInstance().getShader<FragmentShader>("PostProcess_FS");
+	PostProcessFS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays.glsl");
+	//PostProcessFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
+	PostProcessFS.compile();
+	
+	Program& PostProcess = ResourcesManager::getInstance().getProgram("PostProcess");
+	PostProcess.attachShader(PostProcessVS);
+	PostProcess.attachShader(PostProcessFS);
+	PostProcess.link();
+	
+	if(!PostProcess) return 0;
+	
+	Material PostProcessMaterial(PostProcess);
+	PostProcessMaterial.setUniform("iResolution", &_resolution);
+	PostProcessMaterial.setUniform("lightCount", &LightCount);
+	
+	// Basic_GodRays
+	PostProcessMaterial.setUniform("Samples", 128);
+	PostProcessMaterial.setUniform("Intensity", 0.125f);
+	PostProcessMaterial.setUniform("Density", 0.5f);
+	PostProcessMaterial.setUniform("Decay", 0.95f);
+	PostProcessMaterial.setUniform("Exposure", 1.0f);
+	PostProcessMaterial.createAntTweakBar("PostProcessMaterial");
+	
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
@@ -365,7 +446,6 @@ int main(int argc, char* argv[])
 	MainLights[2].lookAt(glm::vec3(0.0));
 	
 	// TODO: Try using only one UBO
-	size_t LightCount = 3;
 	TwAddVarRW(bar, "LightCount", TW_TYPE_UINT8, &LightCount, "min=0 max=3");
 	UniformBuffer LightBuffers[3];
 	
@@ -382,6 +462,9 @@ int main(int argc, char* argv[])
 	for(size_t i = 0; i < LightCount; ++i)
 	{
 		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		PostProcess.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		LightRendering.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		
 		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
 	}
 	
@@ -393,6 +476,9 @@ int main(int argc, char* argv[])
 	CameraBuffer.init();
 	CameraBuffer.bind(LightCount);
 	NormalMap.bindUniformBlock("Camera", CameraBuffer); 
+	GodRaysProgram.bindUniformBlock("Camera", CameraBuffer); 
+	PostProcess.bindUniformBlock("Camera", CameraBuffer); 
+	LightRendering.bindUniformBlock("Camera", CameraBuffer); 
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
@@ -521,7 +607,7 @@ int main(int argc, char* argv[])
 		_frameTime = TimeManager::getInstance().getRealDeltaTime();
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		if(!_paused)
-			_time += _frameTime;
+			_time += _timescale * _frameTime;
 		
 		// Camera Management
 		if(_controlCamera)
@@ -590,11 +676,28 @@ int main(int argc, char* argv[])
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
-		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
-		glViewport(0, 0, _width, _height);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
+		_godrayRender.bind();
+		
+		LightRenderingMaterial.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		LightRenderingMaterial.useNone();
+		
+		GodRaysProgram.use();
+		glm::mat4 ortho_camera = _projection * MainCamera.getMatrix();
+		for(auto& b : _meshInstances)
+		{
+			if(isVisible(ortho_camera * b.getModelMatrix(), b.getMesh().getBoundingBox()))
+			{
+				GodRaysProgram.setUniform("MVP", ortho_camera * b.getModelMatrix());
+				b.getMesh().draw();
+			}
+		}
+		GodRaysProgram.useNone();
+		_godrayRender.unbind();
+		
+		// Offscreen
+		_offscreenRender.bind();
 		Sky.draw(_projection, MainCamera.getMatrix());
 			
 		for(size_t i = 0; i < LightCount; ++i)
@@ -607,6 +710,23 @@ int main(int argc, char* argv[])
 				b.draw();
 			}
 		}
+		_offscreenRender.unbind();
+		
+		// Post processing
+		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
+		glViewport(0, 0, _width, _height);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		PostProcessMaterial.setUniform("Scene", _offscreenRender.getColor());
+		PostProcessMaterial.setUniform("GodRays", _godrayRender.getColor());
+		
+		//PostProcessMaterial.setUniform("iChannel0", _godrayRender.getColor());
+		
+		PostProcessMaterial.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		PostProcessMaterial.useNone();
+		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		// Quick Cleanup for AntTweakBar...
