@@ -49,6 +49,7 @@ public:
 	inline const std::vector<Vertex>&	getVertices()	const	{ return _vertices; }
 	inline const std::vector<Triangle>&	getTriangles() const { return _triangles; }
 	inline const Material& getMaterial() const { return _material; }
+	inline const VertexArray& getVAO() const { return _vao; }
 	
 	void computeNormals();
 	
