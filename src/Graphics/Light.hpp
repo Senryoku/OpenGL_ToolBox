@@ -45,9 +45,28 @@ public:
 	inline void setRange(float r) { _range = r; }
 	
 	/**
-	 * Returns the transformation matrix (Projection * View) for this Light. 
+	 * Returns the view matrix for this Light. 
 	 *
 	 * @return World to Light's view space matrix.
+	**/
+	inline const glm::mat4& getViewMatrix() const { return _view; }
+	
+	/**
+	 * Returns the projection matrix for this Light. 
+	 *
+	 * @return Light's projection matrix.
+	**/
+	inline const glm::mat4& getProjectionMatrix() const { return _projection; }
+		
+	/**
+	 * Sets the projection matrix for this Light. 
+	**/
+	inline void setProjectionMatrix(const glm::mat4& p) { _projection = p; }
+	
+	/**
+	 * Returns the transformation matrix (Projection * View) for this Light. 
+	 *
+	 * @return World to Light's screen space matrix.
 	 * @see getBiasedMatrix()
 	**/
 	inline const glm::mat4& getMatrix() const { return _VPMatrix; }
@@ -100,6 +119,8 @@ protected:
 
 	unsigned int				_shadowMapResolution = 4096;
 	Framebuffer<Texture2D, 0>	_shadowMapFramebuffer;
+	glm::mat4					_view;
+	glm::mat4					_projection;
 	glm::mat4					_VPMatrix;
 	glm::mat4					_biasedVPMatrix;
 	

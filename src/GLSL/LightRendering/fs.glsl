@@ -28,10 +28,11 @@ void main()
 	{
 		vec4 lp = Lights[i].position/Lights[i].position.w;
 		vec4 hLP = ProjectionMatrix * ViewMatrix * lp;
+		if(hLP.z < 0.0) continue;
 		vec2 lightPos = (hLP.xy/hLP.w + 1.0) * 0.5;
 		vec2 tmp = vec2(texcoords - lightPos);
 		tmp.y /= iResolution.x/iResolution.y;
 		float dist = length(tmp) / (hLP.z/hLP.w) ;
-		outColour.rgb += Intensity * (Radius - dist*dist) * Lights[i].color.rgb;
+		outColour.rgb += Intensity * (Radius - dist * dist) * Lights[i].color.rgb;
 	}
 }

@@ -31,7 +31,7 @@ private:
 	
 	std::array<TexType, ColorCount>	_color;
 	
-	bool 			_useDepth = true;
+	bool 		_useDepth = true;
 	TexType		_depth;
 	
 	void cleanup();

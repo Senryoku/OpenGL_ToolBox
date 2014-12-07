@@ -31,6 +31,9 @@
 int			_width = 1366;
 int			_height = 720;
 
+bool		_animateSun = true;
+glm::vec3	_sunPosition = glm::vec3(100.0, 800.0, 100.0);
+
 float		_fov = 60.0;
 glm::vec3 	_resolution(_width, _height, 0.0);
 glm::mat4 	_projection;
@@ -83,6 +86,8 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	
 	_godrayRender = Framebuffer<Texture2D>(_width, _height, false);
 	_godrayRender.init();
+	_godrayRender.getColor().set(Texture::WrapS, GL_CLAMP_TO_EDGE);
+	_godrayRender.getColor().set(Texture::WrapT, GL_CLAMP_TO_EDGE);
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -336,6 +341,10 @@ int main(int argc, char* argv[])
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
 	TwAddVarRW(bar, "Ball Diffuse Reflection", TW_TYPE_FLOAT, &_ballsDiffuseReflection, "min=0 max=1 step=0.05");
+	TwAddVarRW(bar, "AnimateSun", TW_TYPE_BOOLCPP, &_animateSun, "");
+	TwAddVarRW(bar, "SunX", TW_TYPE_FLOAT, &_sunPosition.x, "step=1.0");
+	TwAddVarRW(bar, "SunY", TW_TYPE_FLOAT, &_sunPosition.y, "step=1.0");
+	TwAddVarRW(bar, "SunZ", TW_TYPE_FLOAT, &_sunPosition.z, "step=1.0");
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -343,7 +352,7 @@ int main(int argc, char* argv[])
 	
 	#define CUBEMAP_FOLDER "brudslojan"
 	
-	size_t LightCount = 3;
+	size_t LightCount = 1;
 	
 	VertexShader& GodRaysVS = ResourcesManager::getInstance().getShader<VertexShader>("GodRays_VS");
 	GodRaysVS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays_Offscreen_vs.glsl");
@@ -415,9 +424,9 @@ int main(int argc, char* argv[])
 	
 	Material PostProcessMaterial(PostProcess);
 	PostProcessMaterial.setUniform("iResolution", &_resolution);
-	PostProcessMaterial.setUniform("lightCount", &LightCount);
 	
 	// Basic_GodRays
+	PostProcessMaterial.setUniform("lightCount", &LightCount);
 	PostProcessMaterial.setUniform("Samples", 128);
 	PostProcessMaterial.setUniform("Intensity", 0.125f);
 	PostProcessMaterial.setUniform("Density", 0.5f);
@@ -432,7 +441,7 @@ int main(int argc, char* argv[])
 	Light MainLights[3];
 	MainLights[0].setColor(glm::vec4(1.0));
 	MainLights[0].init();
-	MainLights[0].setPosition(glm::vec3(100.0, 300.0, 100.0));
+	MainLights[0].setPosition(glm::vec3(500.0, 500.0, 500.0));
 	MainLights[0].lookAt(glm::vec3(0.0));
 	
 	MainLights[1].setColor(glm::vec4(1.0, 0.9, 0.9, 1.0));
@@ -596,7 +605,7 @@ int main(int argc, char* argv[])
 		_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
 	
 	resize_callback(window, _width, _height);
-	
+		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Main Loop
 	
@@ -623,6 +632,12 @@ int main(int argc, char* argv[])
 					
 			if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 				MainCamera.strafeRight(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+				MainCamera.moveDown(_frameTime);
+					
+			if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+				MainCamera.moveUp(_frameTime);
 				
 			double mx = _mouse_x, my = _mouse_y;
 			glfwGetCursorPos(window, &_mouse_x, &_mouse_y);
@@ -642,6 +657,15 @@ int main(int argc, char* argv[])
 		// Light Management
 		
 		// Lights animation
+		if(_animateSun)
+		{
+			MainLights[0].setPosition(150.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
+			MainLights[0].lookAt(glm::vec3(0.0, 250.0, 0.0));
+		} else {
+			MainLights[0].setPosition(_sunPosition);
+			MainLights[0].lookAt(glm::vec3(0.0));
+		}
+		/*
 		MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLights[0].lookAt(glm::vec3(0.0, 250.0, 0.0));
 		
@@ -650,6 +674,7 @@ int main(int argc, char* argv[])
 		
 		MainLights[2].setPosition(200.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
 		MainLights[2].lookAt(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 200.0 , 0.0));
+		*/
 		
 		NormalMap.setUniform("lightCount", LightCount);
 		// Update shadow maps if needed
@@ -678,10 +703,14 @@ int main(int argc, char* argv[])
 		// Actual drawing
 		
 		_godrayRender.bind();
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		//Sky.draw(_projection, MainCamera.getMatrix());
 		
 		LightRenderingMaterial.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		LightRenderingMaterial.useNone();
+		
 		
 		GodRaysProgram.use();
 		glm::mat4 ortho_camera = _projection * MainCamera.getMatrix();
@@ -719,6 +748,7 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		PostProcessMaterial.setUniform("Scene", _offscreenRender.getColor());
+		//PostProcessMaterial.setUniform("ZBuffer", _offscreenRender.getDepth());
 		PostProcessMaterial.setUniform("GodRays", _godrayRender.getColor());
 		
 		//PostProcessMaterial.setUniform("iChannel0", _godrayRender.getColor());

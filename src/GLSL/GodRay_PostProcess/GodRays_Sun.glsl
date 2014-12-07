@@ -26,7 +26,7 @@ void main()
 	vec2 pixel = texcoords;
 	vec4 Colour = texture(GodRays, pixel);
 
-	vec4 hLP = ProjectionMatrix * ViewMatrix * SunPosition;
+	vec4 hLP = ProjectionMatrix * ViewMatrix * vec4(SunPosition, 1.0);
 	vec2 lightPos = (hLP.xy / hLP.w + 1.0) * 0.5;
 	vec2 deltaTextCoord = vec2(pixel - lightPos);
 
