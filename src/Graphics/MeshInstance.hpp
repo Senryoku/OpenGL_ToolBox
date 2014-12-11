@@ -15,8 +15,14 @@ public:
 	
 	Material& getMaterial() { return _material; }
 	
-	const Mesh& getMesh() const { return *_mesh; }
-	const glm::mat4& getModelMatrix() const { return _modelMatrix; }
+	inline const Mesh& getMesh() const { return *_mesh; }
+	inline const glm::mat4& getModelMatrix() const { return _modelMatrix; }
+	
+	inline void setModelMatrix(const glm::mat4& m)
+	{ 
+		_modelMatrix = m; 
+		_material.setUniform("ModelMatrix", _modelMatrix); // Shouldn't have to do that if mat4 pointer worked correctly as uniforms...
+	}
 
 private:
 	const Mesh*		_mesh = nullptr;	
