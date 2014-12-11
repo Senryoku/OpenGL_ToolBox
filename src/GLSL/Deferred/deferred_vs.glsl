@@ -20,10 +20,10 @@ out layout(location = 2) vec2 texcoord;
 
 void main(void)
 {
-	vec4 P = ViewMatrix * ModelMatrix * vec4(in_position, 1.f);
-    gl_Position = ProjectionMatrix * P;
+	vec4 P = ModelMatrix * vec4(in_position, 1.f);
+    gl_Position =  ProjectionMatrix * ViewMatrix * P;
 	
-	world_position = vec3(P);
-	world_normal = normalize(mat3(transpose(inverse(ViewMatrix * ModelMatrix))) * in_normal);
+	world_position = P.xyz;
+	world_normal = mat3(ModelMatrix) * in_normal;
 	texcoord = in_texcoord;
 }

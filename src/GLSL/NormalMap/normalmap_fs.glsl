@@ -183,7 +183,7 @@ vec3 normal_mapping()
 out vec4 colorOut;
 void main(void)
 {	
-	vec3 N = perturb_normal(normal, position, texcoord);
+	vec3 N = perturb_normal(normalize(normal), normalize(position), texcoord);
 	
 	vec4 diffuse = texture(Texture, texcoord);
 	colorOut = ambiant * diffuse;

@@ -80,6 +80,9 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
 	
 	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height, true);
+	// Special format for world positions and normals.
+	_offscreenRender.getColor(1).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
+	_offscreenRender.getColor(2).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.init();
 	
 	TwWindowSize(_width, _height);
@@ -179,7 +182,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_C:
 				{
-					_colorToRender = (_colorToRender + 1) % 4;
+					_colorToRender = (_colorToRender + 1) % 5;
 					break;
 				}
 			}
@@ -374,6 +377,9 @@ int main(int argc, char* argv[])
 	
 	Material PostProcessMaterial(PostProcess);
 	PostProcessMaterial.setUniform("iResolution", &_resolution);
+	PostProcessMaterial.setUniform("Color", _offscreenRender.getColor(0));
+	PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
+	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
 	
 	FragmentShader& FullScreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullScreenTextureFS");
 	FullScreenTextureFS.loadFromFile("src/GLSL/DisplayTexture.glsl");
@@ -384,7 +390,8 @@ int main(int argc, char* argv[])
 	FullScreenTexture.attachShader(FullScreenTextureFS);
 	FullScreenTexture.link();
 	
-	if(!PostProcess) return 0;
+	if(!FullScreenTexture) return 0;
+	FullScreenTexture.setUniform("Texture", 0);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
@@ -394,16 +401,18 @@ int main(int argc, char* argv[])
 	CameraBuffer.init();
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
-	PostProcess.bindUniformBlock("Camera", CameraBuffer);
+	//PostProcess.bindUniformBlock("Camera", CameraBuffer);
+	
+	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 10;
+	const size_t LightCount = 100;
 	Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	
-	IndexedBuffer LightBuffer(Buffer::ShaderStorage);
+	UniformBuffer LightBuffer; //(Buffer::ShaderStorage);
 	
 	LightBuffer.init();
 	LightBuffer.bind(1);
@@ -458,7 +467,10 @@ int main(int argc, char* argv[])
 	for(size_t i = 0; i < row_ball_count; ++i)
 		for(size_t j = 0; j < col_ball_count; ++j)
 		{
-			_meshInstances.push_back(MeshInstance(*Ball, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))));
+			_meshInstances.push_back(MeshInstance(*Ball, 
+				glm::scale(glm::translate(glm::mat4(1.0), 
+					glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), 
+					glm::vec3(10.0))));
 		}
 	
 	// Creating requested AntTweakBars
@@ -520,8 +532,9 @@ int main(int argc, char* argv[])
 		for(size_t i = 0; i < LightCount; ++i)
 		{
 			tmpLight[i] = {
-				glm::vec4(std::cos(i + _time), 5.0, std::sin(i + _time), 1.0), 	// Position
-				glm::vec4(1.0) 													// Color
+				((float) i) * 10.0f * glm::vec4(std::cos(i + _time), 0.0, std::sin(i + _time), 1.0)
+				 + glm::vec4(0.0, 20.0 * std::sin(i + _time) + 30.0, 0.0 , 1.0), 	// Position
+				glm::vec4(1.0) 														// Color
 			};
 		}
 		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
@@ -547,16 +560,14 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		PostProcessMaterial.setUniform("ColorDepth", _offscreenRender.getColor(0));
-		PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
-		PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
-		
-		if(_colorToRender > 2)
+		if(_colorToRender == 0)
 		{
 			PostProcessMaterial.use();
+		} else if(_colorToRender == 1) {
+			_offscreenRender.getDepth().bind(0);
+			FullScreenTexture.use();
 		} else { 
-			_offscreenRender.getColor(_colorToRender).bind(0);
-			FullScreenTexture.setUniform("Texture", 0);
+			_offscreenRender.getColor(_colorToRender - 2).bind(0);
 			FullScreenTexture.use();
 		}
 		

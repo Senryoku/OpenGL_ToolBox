@@ -26,11 +26,15 @@ template<typename TexType, unsigned int ColorCount>
 void Framebuffer<TexType, ColorCount>::cleanup()
 {
 	glDeleteFramebuffers(1, &_handle);
+	_handle = 0;
 }
 
 template<typename TexType, unsigned int ColorCount> 
 void Framebuffer<TexType, ColorCount>::init()
 {
+	if(_handle != 0)
+		cleanup();
+
 	glGenFramebuffers(1, &_handle);
 	glBindFramebuffer(GL_FRAMEBUFFER, _handle);
 		

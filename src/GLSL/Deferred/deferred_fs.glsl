@@ -15,9 +15,9 @@ in layout(location = 0) vec3 world_position;
 in layout(location = 1) vec3 world_normal;
 in layout(location = 2) vec2 texcoord;
 
-out vec4 colorDepthOut;
-out vec4 worldPositionOut;
-out vec4 worldNormalOut;
+out layout(location = 0) vec4 colorDepthOut;
+out layout(location = 1) vec4 worldPositionOut;
+out layout(location = 2) vec4 worldNormalOut;
 
 void main(void)
 {	

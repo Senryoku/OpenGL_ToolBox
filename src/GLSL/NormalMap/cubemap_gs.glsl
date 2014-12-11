@@ -67,11 +67,8 @@ void main(void)
 			gl_PrimitiveID = gl_PrimitiveIDIn;
 			normal = in_normal[i];
 			texcoord = in_texcoord[i];
-			//for(int j = 0; j < lightCount; ++j)
-			//	shadowcoord[j] = in_shadowcoord[i][j];
-			shadowcoord[0] = in_shadowcoord[i][0];
-			shadowcoord[1] = in_shadowcoord[i][1];
-			shadowcoord[2] = in_shadowcoord[i][2];
+			for(int j = 0; j < lightCount; ++j)
+				shadowcoord[j] = in_shadowcoord[i][j];
 			EmitVertex();
 		}
 		EndPrimitive();
