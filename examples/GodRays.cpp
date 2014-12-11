@@ -61,7 +61,9 @@ bool		_paused = false;
 
 int			_colorToRender = 0;
 
-Framebuffer<Texture2D, 3>	_offscreenRender;
+Framebuffer<Texture2D>	_godrayRender;
+
+Framebuffer<Texture2D>	_offscreenRender;
 	
 void error_callback(int error, const char* description)
 {
@@ -79,8 +81,13 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	float inRad = _fov * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
 	
-	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height, true);
+	_offscreenRender = Framebuffer<Texture2D>(_width, _height, true);
 	_offscreenRender.init();
+	
+	_godrayRender = Framebuffer<Texture2D>(_width, _height, false);
+	_godrayRender.init();
+	_godrayRender.getColor().set(Texture::WrapS, GL_CLAMP_TO_EDGE);
+	_godrayRender.getColor().set(Texture::WrapT, GL_CLAMP_TO_EDGE);
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -179,7 +186,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_C:
 				{
-					_colorToRender = (_colorToRender + 1) % 4;
+					_colorToRender = (_colorToRender + 1) % 2;
 					break;
 				}
 			}
@@ -244,6 +251,7 @@ struct LightStruct
 {
 	glm::vec4	position;
 	glm::vec4	color;
+	glm::mat4	depthMVP;
 };
 
 struct CameraStruct
@@ -342,27 +350,69 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	VertexShader& DeferredVS = ResourcesManager::getInstance().getShader<VertexShader>("Deferred_VS");
-	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
-	DeferredVS.compile();
+	#define CUBEMAP_FOLDER "brudslojan"
+	
+	size_t LightCount = 1;
+	
+	VertexShader& GodRaysVS = ResourcesManager::getInstance().getShader<VertexShader>("GodRays_VS");
+	GodRaysVS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays_Offscreen_vs.glsl");
+	GodRaysVS.compile();
 
-	FragmentShader& DeferredFS = ResourcesManager::getInstance().getShader<FragmentShader>("Deferred_FS");
-	DeferredFS.loadFromFile("src/GLSL/Deferred/deferred_fs.glsl");
-	DeferredFS.compile();
+	FragmentShader& GodRaysFS = ResourcesManager::getInstance().getShader<FragmentShader>("GodRays_FS");
+	GodRaysFS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays_Offscreen_fs.glsl");
+	GodRaysFS.compile();
 	
-	Program& Deferred = ResourcesManager::getInstance().getProgram("Deferred");
-	Deferred.attachShader(DeferredVS);
-	Deferred.attachShader(DeferredFS);
-	Deferred.link();
+	Program& GodRaysProgram = ResourcesManager::getInstance().getProgram("GodRays");
+	GodRaysProgram.attachShader(GodRaysVS);
+	GodRaysProgram.attachShader(GodRaysFS);
+	GodRaysProgram.link();
 	
-	if(!Deferred) return 0;
+	if(!GodRaysProgram) return 0;
+	
+	VertexShader& VS = ResourcesManager::getInstance().getShader<VertexShader>("NormalMap_VS");
+	VS.loadFromFile("src/GLSL/NormalMap/normalmap_vs.glsl");
+	VS.compile();
+
+	FragmentShader& FS = ResourcesManager::getInstance().getShader<FragmentShader>("NormalMap_FS");
+	FS.loadFromFile("src/GLSL/NormalMap/normalmap_fs.glsl");
+	FS.compile();
+	
+	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
+	NormalMap.attachShader(VS);
+	NormalMap.attachShader(FS);
+	NormalMap.link();
+	
+	if(!NormalMap) return 0;
+	
+	VertexShader& LightRenderingVS = ResourcesManager::getInstance().getShader<VertexShader>("LightRendering_VS");
+	LightRenderingVS.loadFromFile("src/GLSL/vs.glsl");
+	LightRenderingVS.compile();
+
+	FragmentShader& LightRenderingFS = ResourcesManager::getInstance().getShader<FragmentShader>("LightRendering_FS");
+	LightRenderingFS.loadFromFile("src/GLSL/LightRendering/fs.glsl");
+	LightRenderingFS.compile();
+	
+	Program& LightRendering = ResourcesManager::getInstance().getProgram("LightRendering");
+	LightRendering.attachShader(LightRenderingVS);
+	LightRendering.attachShader(LightRenderingFS);
+	LightRendering.link();
+	
+	if(!LightRendering) return 0;
+	
+	Material LightRenderingMaterial(LightRendering);
+	LightRenderingMaterial.setUniform("iResolution", &_resolution);
+	LightRenderingMaterial.setUniform("lightCount", &LightCount);
+	LightRenderingMaterial.setUniform("Intensity", 1.0f);
+	LightRenderingMaterial.setUniform("Radius", 0.25f);
+	LightRenderingMaterial.createAntTweakBar("LightRenderingMaterial");
 	
 	VertexShader& PostProcessVS = ResourcesManager::getInstance().getShader<VertexShader>("PostProcess_VS");
 	PostProcessVS.loadFromFile("src/GLSL/vs.glsl");
 	PostProcessVS.compile();
 
 	FragmentShader& PostProcessFS = ResourcesManager::getInstance().getShader<FragmentShader>("PostProcess_FS");
-	PostProcessFS.loadFromFile("src/GLSL/Deferred/phong_deferred_fs.glsl");
+	PostProcessFS.loadFromFile("src/GLSL/GodRay_PostProcess/GodRays.glsl");
+	//PostProcessFS.loadFromFile("src/GLSL/FullscreenTexture.glsl");
 	PostProcessFS.compile();
 	
 	Program& PostProcess = ResourcesManager::getInstance().getProgram("PostProcess");
@@ -375,16 +425,57 @@ int main(int argc, char* argv[])
 	Material PostProcessMaterial(PostProcess);
 	PostProcessMaterial.setUniform("iResolution", &_resolution);
 	
-	FragmentShader& FullScreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullScreenTextureFS");
-	FullScreenTextureFS.loadFromFile("src/GLSL/DisplayTexture.glsl");
-	FullScreenTextureFS.compile();
+	// Basic_GodRays
+	PostProcessMaterial.setUniform("lightCount", &LightCount);
+	PostProcessMaterial.setUniform("Samples", 128);
+	PostProcessMaterial.setUniform("Intensity", 0.125f);
+	PostProcessMaterial.setUniform("Density", 0.5f);
+	PostProcessMaterial.setUniform("Decay", 0.95f);
+	PostProcessMaterial.setUniform("Exposure", 1.0f);
+	PostProcessMaterial.createAntTweakBar("PostProcessMaterial");
 	
-	Program& FullScreenTexture = ResourcesManager::getInstance().getProgram("FullScreenTexture");
-	FullScreenTexture.attachShader(PostProcessVS);
-	FullScreenTexture.attachShader(FullScreenTextureFS);
-	FullScreenTexture.link();
 	
-	if(!PostProcess) return 0;
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Light initialization
+	
+	Light MainLights[3];
+	MainLights[0].setColor(glm::vec4(1.0));
+	MainLights[0].init();
+	MainLights[0].setPosition(glm::vec3(500.0, 500.0, 500.0));
+	MainLights[0].lookAt(glm::vec3(0.0));
+	
+	MainLights[1].setColor(glm::vec4(1.0, 0.9, 0.9, 1.0));
+	MainLights[1].init();
+	MainLights[1].setPosition(glm::vec3(100.0, 300.0, 100.0));
+	MainLights[1].lookAt(glm::vec3(0.0));
+	
+	MainLights[2].setColor(glm::vec4(0.9, 0.9, 1.0, 1.0));
+	MainLights[2].init();
+	MainLights[2].setPosition(glm::vec3(100.0, 300.0, 100.0));
+	MainLights[2].lookAt(glm::vec3(0.0));
+	
+	// TODO: Try using only one UBO
+	TwAddVarRW(bar, "LightCount", TW_TYPE_UINT8, &LightCount, "min=0 max=3");
+	UniformBuffer LightBuffers[3];
+	
+	for(size_t i = 0; i < 3; ++i)
+	{
+		LightBuffers[i].init();
+		LightBuffers[i].bind(i);
+		MainLights[i].updateMatrices();
+		LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+	}
+	
+	NormalMap.setUniform("lightCount", LightCount);
+	for(size_t i = 0; i < LightCount; ++i)
+	{
+		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		PostProcess.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		LightRendering.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		
+		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
@@ -392,25 +483,11 @@ int main(int argc, char* argv[])
 	Camera MainCamera;
 	UniformBuffer CameraBuffer;
 	CameraBuffer.init();
-	CameraBuffer.bind(0);
-	Deferred.bindUniformBlock("Camera", CameraBuffer); 
-	PostProcess.bindUniformBlock("Camera", CameraBuffer);
-	
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Light initialization
-	
-	const size_t LightCount = 10;
-	Deferred.setUniform("lightCount", LightCount);
-	PostProcessMaterial.setUniform("lightCount", LightCount);
-	
-	IndexedBuffer LightBuffer(Buffer::ShaderStorage);
-	
-	LightBuffer.init();
-	LightBuffer.bind(1);
-
-	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
-	
-	LightStruct tmpLight[LightCount];
+	CameraBuffer.bind(LightCount);
+	NormalMap.bindUniformBlock("Camera", CameraBuffer); 
+	//GodRaysProgram.bindUniformBlock("Camera", CameraBuffer); 
+	PostProcess.bindUniformBlock("Camera", CameraBuffer); 
+	LightRendering.bindUniformBlock("Camera", CameraBuffer); 
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
@@ -419,10 +496,49 @@ int main(int argc, char* argv[])
 	std::vector<std::pair<size_t, std::string>>			_tweakbars;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
+	// GladOS
+	
+	auto Glados = Mesh::load("in/3DModels/Glados/Glados.obj");
+	size_t meshNum = 0;
+	std::array<std::string, 4> GladosTex {"caf160b2", "fa08434c", "09f5cc6b", "72c40a8a"};
+	std::vector<Texture2D> GladosTextures;
+	GladosTextures.resize(4);
+	std::vector<Texture2D> GladosNormalMaps;
+	GladosNormalMaps.resize(4);
+	for(size_t i = 0; i < 4; ++i)
+	{
+		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
+		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
+		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
+	}
+	
+	for(Mesh* m : Glados)
+	{
+		m->getMaterial().setShadingProgram(NormalMap);
+		m->getMaterial().setUniform("Texture", GladosTextures[meshNum]);
+		m->getMaterial().setUniform("NormalMap", GladosNormalMaps[meshNum]);
+		m->getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
+		m->getMaterial().setUniform("ambiant", &_ambiant);
+		m->getMaterial().setUniform("roughness", 0.05f);
+		m->getMaterial().setUniform("F0", 0.1f);
+		m->getMaterial().setUniform("diffuseReflection", 0.4f);
+		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
+		
+		m->createVAO();
+		
+		_meshInstances.push_back(MeshInstance(*m));
+		_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "GladOSMaterial " + StringConversion::to_string(meshNum)));
+		++meshNum;
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Ground
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
+	Texture2D GroundNormalMap;
+	GroundNormalMap.load("in/Textures/stone/cracked_n.png");
 	
 	Mesh Plane;
 	float s = 1000.f;
@@ -433,9 +549,16 @@ int main(int argc, char* argv[])
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
 	Plane.createVAO();
-	Plane.getMaterial().setShadingProgram(Deferred);
+	Plane.getMaterial().setShadingProgram(NormalMap);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
+	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
+	Plane.getMaterial().setUniform("ambiant", &_ambiant);
+	Plane.getMaterial().setUniform("roughness", 0.2f);
+	Plane.getMaterial().setUniform("F0", 0.2f);
+	Plane.getMaterial().setUniform("diffuseReflection", 0.3f);
+	Plane.getMaterial().setUniform("poissonSamples", &_poissonSamples);
+	Plane.getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "Plane"));
@@ -448,8 +571,13 @@ int main(int argc, char* argv[])
 	Texture2D BallTex;
 	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
 	
-	Ball->getMaterial().setShadingProgram(Deferred);
+	Ball->getMaterial().setShadingProgram(NormalMap);
 	Ball->getMaterial().setUniform("Texture", BallTex);
+	Ball->getMaterial().setUniform("NormalMap", GroundNormalMap);
+	Ball->getMaterial().setUniform("ambiant", &_ambiant);
+	Ball->getMaterial().setUniform("diffuseReflection", &_ballsDiffuseReflection);
+	Ball->getMaterial().setUniform("poissonSamples", &_poissonSamples);
+	Ball->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
 	
 	Ball->createVAO();
 	
@@ -459,14 +587,25 @@ int main(int argc, char* argv[])
 		for(size_t j = 0; j < col_ball_count; ++j)
 		{
 			_meshInstances.push_back(MeshInstance(*Ball, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))));
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("roughness", 0.01f + i * 1.0f / row_ball_count);
+			_meshInstances[_meshInstances.size() - 1].getMaterial().setUniform("F0", 0.01f + j * 1.0f / col_ball_count);
 		}
 	
+
+	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negy.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posz.jpg",
+				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negz.jpg"
+	});
+	
 	// Creating requested AntTweakBars
-	//for(auto& p : _tweakbars)
-	//	_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
+	for(auto& p : _tweakbars)
+		_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
 	
 	resize_callback(window, _width, _height);
-	
+		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Main Loop
 	
@@ -517,21 +656,82 @@ int main(int argc, char* argv[])
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Light Management
 		
-		for(size_t i = 0; i < LightCount; ++i)
+		// Lights animation
+		if(_animateSun)
 		{
-			tmpLight[i] = {
-				glm::vec4(std::cos(i + _time), 5.0, std::sin(i + _time), 1.0), 	// Position
-				glm::vec4(1.0) 													// Color
-			};
+			MainLights[0].setPosition(150.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
+			MainLights[0].lookAt(glm::vec3(0.0, 250.0, 0.0));
+		} else {
+			MainLights[0].setPosition(_sunPosition);
+			MainLights[0].lookAt(glm::vec3(0.0));
 		}
-		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+		/*
+		MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.5), 0.0, std::cos(_time * 0.5)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLights[0].lookAt(glm::vec3(0.0, 250.0, 0.0));
+		
+		MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.8), 0.0, std::cos(_time * 0.8)) + glm::vec3(0.0, 400.0 , 0.0));
+		MainLights[1].lookAt(glm::vec3(0.0, 150.0, 0.0));
+		
+		MainLights[2].setPosition(200.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLights[2].lookAt(100.0f * glm::vec3(std::sin(_time * 0.2), 0.0, std::cos(_time * 0.2)) + glm::vec3(0.0, 200.0 , 0.0));
+		*/
+		
+		NormalMap.setUniform("lightCount", LightCount);
+		// Update shadow maps if needed
+		if(!_paused)
+			for(size_t i = 0; i < LightCount; ++i)
+			{
+				MainLights[i].updateMatrices();
+				LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+				LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+				MainLights[i].bind();
+				
+				for(auto& b : _meshInstances)
+				{
+					if(isVisible(MainLights[i].getMatrix() * b.getModelMatrix(), b.getMesh().getBoundingBox()))
+					{
+						Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+						b.getMesh().draw();
+					}
+				}
+				
+				MainLights[i].unbind();
+			}
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
 		
+		_godrayRender.bind();
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		//Sky.draw(_projection, MainCamera.getMatrix());
+		
+		LightRenderingMaterial.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		LightRenderingMaterial.useNone();
+		
+		
+		GodRaysProgram.use();
+		glm::mat4 ortho_camera = _projection * MainCamera.getMatrix();
+		for(auto& b : _meshInstances)
+		{
+			if(isVisible(ortho_camera * b.getModelMatrix(), b.getMesh().getBoundingBox()))
+			{
+				GodRaysProgram.setUniform("MVP", ortho_camera * b.getModelMatrix());
+				b.getMesh().draw();
+			}
+		}
+		GodRaysProgram.useNone();
+		_godrayRender.unbind();
+		
 		// Offscreen
 		_offscreenRender.bind();
+		Sky.draw(_projection, MainCamera.getMatrix());
+			
+		for(size_t i = 0; i < LightCount; ++i)
+			MainLights[i].getShadowMap().bind(i + 2);
+			
 		for(auto& b : _meshInstances)
 		{
 			if(isVisible(_projection * MainCamera.getMatrix(), b.getMesh().getBoundingBox()))
@@ -547,19 +747,13 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		PostProcessMaterial.setUniform("ColorDepth", _offscreenRender.getColor(0));
-		PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
-		PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
+		PostProcessMaterial.setUniform("Scene", _offscreenRender.getColor());
+		//PostProcessMaterial.setUniform("ZBuffer", _offscreenRender.getDepth());
+		PostProcessMaterial.setUniform("GodRays", _godrayRender.getColor());
 		
-		if(_colorToRender > 2)
-		{
-			PostProcessMaterial.use();
-		} else { 
-			_offscreenRender.getColor(_colorToRender).bind(0);
-			FullScreenTexture.setUniform("Texture", 0);
-			FullScreenTexture.use();
-		}
+		//PostProcessMaterial.setUniform("iChannel0", _godrayRender.getColor());
 		
+		PostProcessMaterial.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		PostProcessMaterial.useNone();
 		

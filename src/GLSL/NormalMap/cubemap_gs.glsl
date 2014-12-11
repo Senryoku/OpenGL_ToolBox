@@ -1,4 +1,5 @@
 #version 430
+#pragma optionNV unroll all
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
