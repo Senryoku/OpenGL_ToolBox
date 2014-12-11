@@ -24,8 +24,8 @@ void main(void)
 	worldNormalOut.rgb = normalize(world_normal);
 	worldNormalOut.a = 1.0;
 	
-	worldPositionOut.rgb = world_position;
-	worldPositionOut.a = 1.0;
+	worldPositionOut.xyz = world_position;
+	worldPositionOut.w = 1.0;
 	
 	colorDepthOut.rgb = texture(Texture, texcoord).rgb;
 	colorDepthOut.w = 1.0; //gl_FragDepth;
