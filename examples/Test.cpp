@@ -408,7 +408,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 100;
+	const size_t LightCount = 50;
 	Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	
@@ -533,8 +533,8 @@ int main(int argc, char* argv[])
 		{
 			tmpLight[i] = {
 				((float) i) * 10.0f * glm::vec4(std::cos(i + _time), 0.0, std::sin(i + _time), 1.0)
-				 + glm::vec4(0.0, 20.0 * std::sin(i + _time) + 30.0, 0.0 , 1.0), 	// Position
-				glm::vec4(1.0) 														// Color
+				 + glm::vec4(0.0, 20.0 * std::sin(i + 0.71 * _time) + 30.0, 0.0 , 1.0), 	// Position
+				glm::vec4(i % 2, (i % 3) / 2.0, (i % 5)/4.0, 1.0)		// Color
 			};
 		}
 		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
