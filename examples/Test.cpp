@@ -31,9 +31,6 @@
 int			_width = 1366;
 int			_height = 720;
 
-bool		_animateSun = true;
-glm::vec3	_sunPosition = glm::vec3(100.0, 800.0, 100.0);
-
 float		_fov = 60.0;
 glm::vec3 	_resolution(_width, _height, 0.0);
 glm::mat4 	_projection;
@@ -336,10 +333,6 @@ int main(int argc, char* argv[])
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
 	TwAddVarRW(bar, "Ball Diffuse Reflection", TW_TYPE_FLOAT, &_ballsDiffuseReflection, "min=0 max=1 step=0.05");
-	TwAddVarRW(bar, "AnimateSun", TW_TYPE_BOOLCPP, &_animateSun, "");
-	TwAddVarRW(bar, "SunX", TW_TYPE_FLOAT, &_sunPosition.x, "step=1.0");
-	TwAddVarRW(bar, "SunY", TW_TYPE_FLOAT, &_sunPosition.y, "step=1.0");
-	TwAddVarRW(bar, "SunZ", TW_TYPE_FLOAT, &_sunPosition.z, "step=1.0");
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -408,7 +401,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 50;
+	const size_t LightCount = 75;
 	Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	

@@ -52,7 +52,9 @@ void main(void)
 	colorOut.rgb = vec3(0.0, 0.0, 0.0);
 	for(int l = 0; l < lightCount; ++l)
 	{
-		colorOut.rgb += clamp(1.0 - length(position - Lights[l].position.xyz)/lightRadius, 0.0, 1.0) * phong(position, normal, color, Lights[l].position.xyz, Lights[l].color.rgb);
+		float d = length(position - Lights[l].position.xyz);
+		if(d < lightRadius)
+			colorOut.rgb += (1.0 - d/lightRadius) * phong(position, normal, color, Lights[l].position.xyz, Lights[l].color.rgb);
 	}
 	
 	colorOut.a = 1.0;
