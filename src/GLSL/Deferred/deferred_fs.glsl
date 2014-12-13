@@ -28,5 +28,5 @@ void main(void)
 	worldPositionOut.w = 1.0;
 	
 	colorDepthOut.rgb = texture(Texture, texcoord).rgb;
-	colorDepthOut.w = 1.0; //gl_FragDepth;
+	colorDepthOut.w = gl_FragCoord.z;
 }
