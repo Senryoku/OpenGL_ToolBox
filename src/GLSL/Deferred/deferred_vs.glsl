@@ -23,7 +23,7 @@ void main(void)
 	vec4 P = ModelMatrix * vec4(in_position, 1.f);
     gl_Position =  ProjectionMatrix * ViewMatrix * P;
 	
-	world_position = P.xyz;
+	world_position = P.xyz / P.w;
 	world_normal = mat3(ModelMatrix) * in_normal;
 	texcoord = in_texcoord;
 }

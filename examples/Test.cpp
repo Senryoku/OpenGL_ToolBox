@@ -375,6 +375,7 @@ int main(int argc, char* argv[])
 	PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
 	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
 	
+	/*
 	FragmentShader& FullScreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullScreenTextureFS");
 	FullScreenTextureFS.loadFromFile("src/GLSL/DisplayTexture.glsl");
 	FullScreenTextureFS.compile();
@@ -386,6 +387,7 @@ int main(int argc, char* argv[])
 	
 	if(!FullScreenTexture) return 0;
 	FullScreenTexture.setUniform("Texture", 0);
+	*/
 	
 	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
 	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
@@ -409,7 +411,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 75;
+	const size_t LightCount = 250;
 	Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
@@ -535,7 +537,7 @@ int main(int argc, char* argv[])
 		for(size_t i = 0; i < LightCount; ++i)
 		{
 			tmpLight[i] = {
-				((float) i) * 10.0f * glm::vec4(std::cos(i + _time), 0.0, std::sin(i + _time), 1.0)
+				((float) i) * 5.0f * glm::vec4(std::cos(i + _time), 0.0, std::sin(i + _time), 1.0)
 				 + glm::vec4(0.0, 20.0 * std::sin(i + 0.71 * _time) + 30.0, 0.0 , 1.0), 	// Position
 				glm::vec4(i % 2, (i % 3) / 2.0, (i % 5)/4.0, 1.0)		// Color
 			};
@@ -566,6 +568,8 @@ int main(int argc, char* argv[])
 		if(_colorToRender == 0)
 		{
 			PostProcessMaterial.use();
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+			PostProcessMaterial.useNone();
 		} else if(_colorToRender == 1) {	
 			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
@@ -575,18 +579,20 @@ int main(int argc, char* argv[])
 			DeferredCS.getProgram().setUniform("Normal", 2);	
 			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 			DeferredCS.use();
-			DeferredCS.dispatchCompute(_resolution.x / 32 + 1, _resolution.y / 32 + 1, 1);
+			DeferredCS.dispatchCompute(_resolution.x / 16 + 1, _resolution.y / 16 + 1, 1);
 			DeferredCS.memoryBarrier();
 		
-			_offscreenRender.getColor(0).bind(0);
-			FullScreenTexture.use();
+			// Blitting
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			_offscreenRender.bind(GL_READ_FRAMEBUFFER);
+			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		} else { 
-			_offscreenRender.getColor(_colorToRender - 2).bind(0);
-			FullScreenTexture.use();
+			// Blitting
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			_offscreenRender.bind(GL_READ_FRAMEBUFFER);
+			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 2));
+			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		}
-		
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		PostProcessMaterial.useNone();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
