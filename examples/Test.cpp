@@ -564,9 +564,9 @@ int main(int argc, char* argv[])
 		{
 			PostProcessMaterial.use();
 		} else if(_colorToRender == 1) {	
-			_offscreenRender.getColor(0).bind(0);
-			_offscreenRender.getColor(1).bind(1);
-			_offscreenRender.getColor(2).bind(2);
+			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
 			DeferredCS.getProgram().setUniform("Position", 1);
 			DeferredCS.getProgram().setUniform("Normal", 2);	

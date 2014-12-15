@@ -78,11 +78,11 @@ void main(void)
 	ivec2 image_size = imageSize(ColorDepth).xy;
 	
 	// DEBUG
+	if(pixel.x > image_size.x || pixel.y > image_size.y)
+		return;
 	imageStore(ColorDepth, ivec2(pixel), vec4(1.0, 0.0, 0.0, 1.0));
 	return;
-	
-	//if(pixel.x > image_size.x || pixel.y > image_size.y)
-	//	return;
+	/*
 
 	// Compute Bounding Box
 	
@@ -127,4 +127,5 @@ void main(void)
 			ColorOut.rgb += (1.0 - d/lightRadius) * phong(position, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
 	}
 	imageStore(ColorDepth, ivec2(pixel), ColorOut);
+	*/
 }
