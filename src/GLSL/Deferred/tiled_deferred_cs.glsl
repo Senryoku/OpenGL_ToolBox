@@ -16,7 +16,7 @@ layout(std140) uniform LightBlock
 {
 	LightStruct	Lights[1024];
 };
-uniform unsigned int lightCount = 0;
+uniform unsigned int lightCount = 75;
 uniform float lightRadius = 100.0;
 
 uniform float	minDiffuse = 0.0;
@@ -33,6 +33,13 @@ shared int max_depth; // = 0;
 shared vec4 min_bbox;
 shared vec4 max_bbox;
 
+shared int min_x;
+shared int min_y;
+shared int min_z;
+shared int max_x;
+shared int max_y;
+shared int max_z;
+
 // Lights
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
@@ -43,15 +50,20 @@ void add_light(int l)
 	local_lights[idx] = l;
 }
 
+float square(float f)
+{
+	return f * f;
+}
+
 bool sphereAABBIntersect(vec3 min, vec3 max, vec3 center, float radius)
 {
     float r = radius * radius;
-    if (center.x < min.x) r -= pow(center.x - min.x, 2.0);
-    else if (center.x > max.x) r -= pow(center.x - max.x, 2.0);
-    if (center.y < min.y) r -= pow(center.y - min.y, 2.0);
-    else if (center.y > max.y) r -= pow(center.y - max.y, 2.0);
-    if (center.z < min.z) r -= pow(center.z - min.y, 2.0);
-    else if (center.z > max.z) r -= pow(center.z - max.z, 2.0);
+    if(center.x < min.x) r -= square(center.x - min.x);
+    else if(center.x > max.x) r -= square(center.x - max.x);
+    if(center.y < min.y) r -= square(center.y - min.y);
+    else if(center.y > max.y) r -= square(center.y - max.y);
+    if(center.z < min.z) r -= square(center.z - min.z);
+    else if(center.z > max.z) r -= square(center.z - max.z);
     return r > 0;
 }
 
@@ -78,34 +90,66 @@ void main(void)
 	ivec2 image_size = imageSize(ColorDepth).xy;
 	
 	bool isVisible = pixel.x >= 0 && pixel.y >= 0 && pixel.x < uint(image_size.x) && pixel.y < image_size.y;
-	vec4 coldepth = imageLoad(ColorDepth, ivec2(pixel));
+	vec4 coldepth;
 	
 	if(local_pixel == uvec2(0, 0))
 	{
-		min_depth = 1000;
-		max_depth = 0;
+		min_depth = 100000;
+		max_depth = -100000;
 		local_lights_count = 0;
+		
+		// TEST (WHAAAAAAAT ?)
+		/*
+		ivec3 position = ivec3(imageLoad(Position, ivec2(pixel)).xyz);
+		min_x = position.x;
+		max_x = position.x;
+		min_y = position.y;
+		max_y = position.y;
+		min_z = position.z;
+		max_z = position.z;
+		*/
 	}
 	barrier();
 		
 	// Compute Bounding Box
 	if(isVisible)
 	{
+		coldepth = imageLoad(ColorDepth, ivec2(pixel));
+		/*
 		int depth = int(coldepth.w);
 		
 		atomicMin(min_depth, depth);
 		atomicMax(max_depth, depth);
+		*/
+		
+		// TEST
+		ivec3 position = ivec3(imageLoad(Position, ivec2(pixel)).xyz);
+		atomicMin(min_x, position.x);
+		atomicMax(max_x, position.x);
+		atomicMin(min_y, position.y);
+		atomicMax(max_y, position.y);
+		atomicMin(min_z, position.z);
+		atomicMax(max_z, position.z);
 	}
 	barrier();
 	
 	if(local_pixel == uvec2(0, 0))
 	{
 		// Construct AABB
-		mat4 inverseProjView = inverse(ProjectionMatrix * ViewMatrix); // Should be precomputed
+		// Doesn't work T_T
+		/*
+		mat4 inverseProjView = inverse(ViewMatrix) * inverse(ProjectionMatrix); // Should be precomputed
 		vec2 min_pixel = 2.0 * (vec2(pixel)/image_size) - 1.0;
 		vec2 max_pixel = 2.0 * (vec2(pixel + uvec2(31, 31))/image_size) - 1.0;
-		min_bbox = inverseProjView * vec4(min_pixel.x, min_pixel.y, min_depth, 1.0);
-		max_bbox = inverseProjView * vec4(max_pixel.x, max_pixel.y, max_depth, 1.0);
+		min_bbox = inverseProjView * vec4(min_pixel.x, min_pixel.y, min_depth * 0.001, 1.0);
+		max_bbox = inverseProjView * vec4(max_pixel.x, max_pixel.y, max_depth * 0.001, 1.0);
+		min_bbox /= min_bbox.w;
+		max_bbox /= max_bbox.w;
+		*/
+		
+		// TEST
+		min_bbox = vec4(min_x, min_x, min_x, 1.0);
+		max_bbox = vec4(max_x, max_x, max_x, 1.0);
 	}
 	barrier();
 	
@@ -113,7 +157,8 @@ void main(void)
 	{
 		// Test lights
 		// We have to test 1024 lights tops, and 32*32 = 1024 pixels per tile
-		// so let's have each of them test only one light :)
+		// so let's have each of them test only one light :) 
+		// (May cause problems for screen edges. I'll think it through later.)
 		int l = int(local_pixel.x * 32 + local_pixel.y); 
 		if(l < lightCount)
 		{
