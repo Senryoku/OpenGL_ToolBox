@@ -30,8 +30,8 @@ layout(binding = 2, rgba32f) uniform readonly image2D Normal;
 // Bounding Box
 shared int min_depth; // = 1000;
 shared int max_depth; // = 0;
-shared vec2 min_pixel;
-shared vec2 max_pixel;
+shared vec4 min_bbox;
+shared vec4 max_bbox;
 
 // Lights
 shared int local_lights_count; // = 0;
@@ -77,55 +77,69 @@ void main(void)
 	uvec2 local_pixel = gl_LocalInvocationID.xy;
 	ivec2 image_size = imageSize(ColorDepth).xy;
 	
-	// DEBUG
-	if(pixel.x > image_size.x || pixel.y > image_size.y)
-		return;
-	imageStore(ColorDepth, ivec2(pixel), vec4(1.0, 0.0, 0.0, 1.0));
-	return;
-	/*
-
-	// Compute Bounding Box
-	
-	int depth = int(imageLoad(ColorDepth, ivec2(pixel)).w);
-	
-	atomicMin(min_depth, depth);
-	atomicMax(max_depth, depth);
+	bool isVisible = pixel.x >= 0 && pixel.y >= 0 && pixel.x < uint(image_size.x) && pixel.y < image_size.y;
+	vec4 coldepth = imageLoad(ColorDepth, ivec2(pixel));
 	
 	if(local_pixel == uvec2(0, 0))
-		min_pixel = 2.0 * (vec2(pixel)/image_size) - 1.0;
-	else if(local_pixel == uvec2(31, 31))
-		max_pixel = 2.0 * (vec2(pixel)/image_size) - 1.0;
-	
+	{
+		min_depth = 1000;
+		max_depth = 0;
+		local_lights_count = 0;
+	}
+	barrier();
+		
+	// Compute Bounding Box
+	if(isVisible)
+	{
+		int depth = int(coldepth.w);
+		
+		atomicMin(min_depth, depth);
+		atomicMax(max_depth, depth);
+	}
 	barrier();
 	
-	// ... Construct AABB
-	mat4 inverseProjView = inverse(ProjectionMatrix * ViewMatrix); // Should be precomputed
-	vec4 min = inverseProjView * vec4(min_pixel.x, min_pixel.y, min_depth, 1.0);
-	vec4 max = inverseProjView * vec4(max_pixel.x, max_pixel.y, max_depth, 1.0);
-	
-	// Test lights
-	// We have to test 1024 lights tops, and 32*32 = 1024 pixels per tile
-	// so let's have each of them test only one light :)
-	int l = int(local_pixel.x * 32 + local_pixel.y); 
-	if(l < lightCount)
+	if(local_pixel == uvec2(0, 0))
 	{
-		if(sphereAABBIntersect(min.xyz, max.xyz, Lights[l].position.xyz, lightRadius))
-			add_light(l);
+		// Construct AABB
+		mat4 inverseProjView = inverse(ProjectionMatrix * ViewMatrix); // Should be precomputed
+		vec2 min_pixel = 2.0 * (vec2(pixel)/image_size) - 1.0;
+		vec2 max_pixel = 2.0 * (vec2(pixel + uvec2(31, 31))/image_size) - 1.0;
+		min_bbox = inverseProjView * vec4(min_pixel.x, min_pixel.y, min_depth, 1.0);
+		max_bbox = inverseProjView * vec4(max_pixel.x, max_pixel.y, max_depth, 1.0);
+	}
+	barrier();
+	
+	if(isVisible)
+	{
+		// Test lights
+		// We have to test 1024 lights tops, and 32*32 = 1024 pixels per tile
+		// so let's have each of them test only one light :)
+		int l = int(local_pixel.x * 32 + local_pixel.y); 
+		if(l < lightCount)
+		{
+			if(sphereAABBIntersect(min_bbox.xyz, max_bbox.xyz, Lights[l].position.xyz, lightRadius))
+				add_light(l);
+		}
 	}
 	barrier();
 	
 	//Compute lights' contributions
-	vec3 color = imageLoad(ColorDepth, ivec2(pixel)).xyz;
-	vec3 position = imageLoad(Position, ivec2(pixel)).xyz;
-	vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
-	
-	vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
-	for(int l2 = 0; l2 < local_lights_count; ++l2)
+	if(isVisible)
 	{
-		float d = length(position - Lights[local_lights[l2]].position.xyz);
-		if(d < lightRadius)
-			ColorOut.rgb += (1.0 - d/lightRadius) * phong(position, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+		vec3 color = coldepth.xyz;
+		vec3 position = imageLoad(Position, ivec2(pixel)).xyz;
+		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
+		
+		vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
+		for(int l2 = 0; l2 < local_lights_count; ++l2)
+		{
+			float d = length(position - Lights[local_lights[l2]].position.xyz);
+			if(d < lightRadius)
+				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+		}
+		imageStore(ColorDepth, ivec2(pixel), ColorOut);
+		
+		// DEBUG
+		//imageStore(ColorDepth, ivec2(pixel), vec4(float(local_lights_count) * 0.1, 0.0, 0.0, 1.0));
 	}
-	imageStore(ColorDepth, ivec2(pixel), ColorOut);
-	*/
 }

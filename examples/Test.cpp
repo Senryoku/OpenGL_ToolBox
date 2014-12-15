@@ -78,6 +78,7 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	
 	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height, true);
 	// Special format for world positions and normals.
+	_offscreenRender.getColor(0).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.getColor(1).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.getColor(2).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.init();
@@ -389,6 +390,8 @@ int main(int argc, char* argv[])
 	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
 	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
 	DeferredCS.compile();
+	
+	if(!DeferredCS.getProgram()) return 0;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
