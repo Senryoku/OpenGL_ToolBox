@@ -386,6 +386,10 @@ int main(int argc, char* argv[])
 	if(!FullScreenTexture) return 0;
 	FullScreenTexture.setUniform("Texture", 0);
 	
+	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
+	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
+	DeferredCS.compile();
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
 	
@@ -395,6 +399,7 @@ int main(int argc, char* argv[])
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	//PostProcess.bindUniformBlock("Camera", CameraBuffer);
+	DeferredCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
 	
 	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
 	
@@ -404,6 +409,7 @@ int main(int argc, char* argv[])
 	const size_t LightCount = 75;
 	Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
+	DeferredCS.getProgram().setUniform("lightCount", LightCount);
 	
 	UniformBuffer LightBuffer; //(Buffer::ShaderStorage);
 	
@@ -411,6 +417,7 @@ int main(int argc, char* argv[])
 	LightBuffer.bind(1);
 
 	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
+	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
 	
 	LightStruct tmpLight[LightCount];
 	
@@ -556,8 +563,19 @@ int main(int argc, char* argv[])
 		if(_colorToRender == 0)
 		{
 			PostProcessMaterial.use();
-		} else if(_colorToRender == 1) {
-			_offscreenRender.getDepth().bind(0);
+		} else if(_colorToRender == 1) {	
+			_offscreenRender.getColor(0).bind(0);
+			_offscreenRender.getColor(1).bind(1);
+			_offscreenRender.getColor(2).bind(2);
+			DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
+			DeferredCS.getProgram().setUniform("Position", 1);
+			DeferredCS.getProgram().setUniform("Normal", 2);	
+			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
+			DeferredCS.use();
+			DeferredCS.dispatchCompute(_resolution.x / 32 + 1, _resolution.y / 32 + 1, 1);
+			DeferredCS.memoryBarrier();
+		
+			_offscreenRender.getColor(0).bind(0);
 			FullScreenTexture.use();
 		} else { 
 			_offscreenRender.getColor(_colorToRender - 2).bind(0);

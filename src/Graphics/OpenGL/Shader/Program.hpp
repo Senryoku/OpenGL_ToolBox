@@ -92,7 +92,11 @@ public:
 	template<typename T>
 	inline void setUniform(const std::string& name, const T& value) const
 	{
-		::setUniform(getName(), getUniformLocation(name), value);
+		auto loc = getUniformLocation(name);
+		if(loc < 0)
+			std::cerr << "Program::Warning: Uniform " << name << " not found." << std::endl;
+		else
+			::setUniform(getName(), loc, value);
 	}
 	
 	/**
