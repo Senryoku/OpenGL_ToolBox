@@ -38,7 +38,7 @@ glm::vec4 	_mouse(0.0);
 
 glm::vec4 	_ambiant = glm::vec4(0.05f, 0.05f, 0.05f, 1.f);
 
-float 		_ballsDiffuseReflection = 0.4f;
+bool 		_updateVFC = true;
 
 int 		_poissonSamples = 4;
 float 		_poissonDiskRadius = 2500.f;
@@ -255,25 +255,38 @@ struct CameraStruct
 
 // Checks whether the provided bounding bound is visible after its transformation by MVPMatrix
 // Todo: Place in... MeshInstance ?
-bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
+// Todo: There is some overdraw (object right behind the camera are reported as visible)
+//		 but I don't know why :(
+bool isVisible(const glm::mat4& ProjectionMatrix, const glm::mat4& ViewMatrix, const glm::mat4& ModelMatrix, const BoundingBox& bbox)
 {
-	const glm::vec3& a = bbox.min;
-	const glm::vec3& b = bbox.max;
+	const glm::vec4 a = ModelMatrix * glm::vec4(bbox.min, 1.0);
+	const glm::vec4 b = ModelMatrix * glm::vec4(bbox.max, 1.0);
 	
-	std::array<glm::vec4, 8> p = {MVPMatrix * glm::vec4{a.x, a.y, a.z, 1.0},
-								  MVPMatrix * glm::vec4{a.x, a.y, b.z, 1.0},
-								  MVPMatrix * glm::vec4{a.x, b.y, a.z, 1.0},
-								  MVPMatrix * glm::vec4{a.x, b.y, b.z, 1.0},
-								  MVPMatrix * glm::vec4{b.x, a.y, a.z, 1.0},
-								  MVPMatrix * glm::vec4{b.x, a.y, b.z, 1.0},
-								  MVPMatrix * glm::vec4{b.x, b.y, a.z, 1.0},
-								  MVPMatrix * glm::vec4{b.x, b.y, b.z, 1.0}};
-
-	glm::vec2 min = glm::vec2(0.0), max = glm::vec2(0.0);
-								  
+	std::array<glm::vec4, 8> p = {glm::vec4{a.x, a.y, a.z, 1.0},
+								  glm::vec4{a.x, a.y, b.z, 1.0},
+								  glm::vec4{a.x, b.y, a.z, 1.0},
+								  glm::vec4{a.x, b.y, b.z, 1.0},
+								  glm::vec4{b.x, a.y, a.z, 1.0},
+								  glm::vec4{b.x, a.y, b.z, 1.0},
+								  glm::vec4{b.x, b.y, a.z, 1.0},
+								  glm::vec4{b.x, b.y, b.z, 1.0}};
+						
+	bool front = false;
 	for(auto& t : p)
 	{
-		t /= t.w;
+		t = ViewMatrix * t;
+		front = front || t.z < 0.0;
+	}
+
+	if(!front) return false;
+	
+	glm::vec2 min = glm::vec2(2.0, 2.0);
+	glm::vec2 max = glm::vec2(-2.0, -2.0);
+						
+	for(auto& t : p)
+	{
+		t = ProjectionMatrix * t;
+		if(t.w > 0.0) t /= t.w;
 		min.x = std::min(min.x, t.x);
 		min.y = std::min(min.y, t.y);
 		max.x = std::max(max.x, t.x);
@@ -281,7 +294,7 @@ bool isVisible(const glm::mat4& MVPMatrix, const BoundingBox& bbox)
 	}
 	
 	return !(max.x < -1.0 || max.y < -1.0 ||
-			 min.x > 1.0  || min.y > 1.0);
+			 min.x >  1.0 || min.y >  1.0);
 }
 
 int main(int argc, char* argv[])
@@ -333,7 +346,7 @@ int main(int argc, char* argv[])
 	TwAddVarRW(bar, "FOV", TW_TYPE_FLOAT, &_fov, "min=0.0 step=0.1");
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
-	TwAddVarRW(bar, "Ball Diffuse Reflection", TW_TYPE_FLOAT, &_ballsDiffuseReflection, "min=0 max=1 step=0.05");
+	TwAddVarRW(bar, "Update VFC", TW_TYPE_BOOLCPP, &_updateVFC, "");
 	
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -446,10 +459,10 @@ int main(int argc, char* argv[])
 	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(10.f, 10.f)));
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
+	Plane.setBoundingBox({glm::vec3(-s, 0.f, -s), glm::vec3(s, 0.f, s)});
 	Plane.createVAO();
 	Plane.getMaterial().setShadingProgram(Deferred);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
-	Plane.getMaterial().setUniform("ModelMatrix", glm::mat4(1.0));
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "Plane"));
@@ -467,8 +480,8 @@ int main(int argc, char* argv[])
 	
 	Ball->createVAO();
 	
-	size_t row_ball_count = 10;
-	size_t col_ball_count = 10;
+	size_t row_ball_count = 20;
+	size_t col_ball_count = 20;
 	for(size_t i = 0; i < row_ball_count; ++i)
 		for(size_t j = 0; j < col_ball_count; ++j)
 		{
@@ -486,6 +499,9 @@ int main(int argc, char* argv[])
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Main Loop
+	
+	MainCamera.updateView();
+	glm::mat4 VFC_ViewMatrix = MainCamera.getMatrix();
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -550,9 +566,11 @@ int main(int argc, char* argv[])
 		
 		// Offscreen
 		_offscreenRender.bind();
+		if(_updateVFC)
+			VFC_ViewMatrix = MainCamera.getMatrix();
 		for(auto& b : _meshInstances)
 		{
-			if(isVisible(_projection * MainCamera.getMatrix(), b.getMesh().getBoundingBox()))
+			if(isVisible(_projection, VFC_ViewMatrix, b.getModelMatrix(), b.getMesh().getBoundingBox()))
 			{
 				b.draw();
 			}

@@ -109,13 +109,17 @@ void main(void)
 		coldepth = imageLoad(ColorDepth, ivec2(pixel));
 		position = imageLoad(Position, ivec2(pixel));
 		
-		// TEST
-		atomicMin(min_x, int(position.x));
-		atomicMax(max_x, int(position.x + 1.0));
-		atomicMin(min_y, int(position.y));
-		atomicMax(max_y, int(position.y + 1.0));
-		atomicMin(min_z, int(position.z));
-		atomicMax(max_z, int(position.z + 1.0));
+		isVisible = isVisible && coldepth.w > 0.0 && coldepth.w < 1.0;
+		
+		if(isVisible)
+		{
+			atomicMin(min_x, int(position.x));
+			atomicMax(max_x, int(position.x + 1.0));
+			atomicMin(min_y, int(position.y));
+			atomicMax(max_y, int(position.y + 1.0));
+			atomicMin(min_z, int(position.z));
+			atomicMax(max_z, int(position.z + 1.0));
+		}
 	}
 	barrier();
 	

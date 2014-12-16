@@ -56,6 +56,7 @@ public:
 	void createVAO();
 	void draw() const;
 	
+	void setBoundingBox(const BoundingBox& bbox) { _bbox = bbox; }
 	const BoundingBox& getBoundingBox() const { return _bbox; }
 
 	static std::vector<Mesh*> load(const std::string& path);
