@@ -357,7 +357,7 @@ int main(int argc, char* argv[])
 	DeferredVS.compile();
 
 	FragmentShader& DeferredFS = ResourcesManager::getInstance().getShader<FragmentShader>("Deferred_FS");
-	DeferredFS.loadFromFile("src/GLSL/Deferred/deferred_fs.glsl");
+	DeferredFS.loadFromFile("src/GLSL/Deferred/deferred_normal_map_fs.glsl");
 	DeferredFS.compile();
 	
 	Program& Deferred = ResourcesManager::getInstance().getProgram("Deferred");
@@ -449,20 +449,23 @@ int main(int argc, char* argv[])
 	// Ground
 	
 	Texture2D GroundTexture;
-	GroundTexture.load("in/Textures/stone/cracked_c.png");
+	GroundTexture.load("in/Textures/Tex0.jpg");
+	Texture2D GroundNormalMap;
+	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
 	
 	Mesh Plane;
 	float s = 1000.f;
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 10.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 20.f)));
 	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 0.f)));
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(10.f, 0.f)));
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(10.f, 10.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 0.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 20.f)));
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
 	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
 	Plane.setBoundingBox({glm::vec3(-s, 0.f, -s), glm::vec3(s, 0.f, s)});
 	Plane.createVAO();
 	Plane.getMaterial().setShadingProgram(Deferred);
 	Plane.getMaterial().setUniform("Texture", GroundTexture);
+	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "Plane"));
@@ -474,9 +477,12 @@ int main(int argc, char* argv[])
 	auto& Ball = BallV[0];
 	Texture2D BallTex;
 	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
+	Texture2D BallNormalMap;
+	BallNormalMap.load(std::string("in/3DModels/poolball/lawl_n.jpg"));
 	
 	Ball->getMaterial().setShadingProgram(Deferred);
 	Ball->getMaterial().setUniform("Texture", BallTex);
+	Ball->getMaterial().setUniform("NormalMap", BallNormalMap);
 	
 	Ball->createVAO();
 	
