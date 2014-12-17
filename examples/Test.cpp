@@ -28,6 +28,8 @@
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
+//#define LIGHT_DEBUG_DISPLAY
+
 int			_width = 1366;
 int			_height = 720;
 
@@ -367,6 +369,23 @@ int main(int argc, char* argv[])
 	
 	if(!Deferred) return 0;
 	
+	#ifdef LIGHT_DEBUG_DISPLAY
+	VertexShader& DeferredColorVS = ResourcesManager::getInstance().getShader<VertexShader>("DeferredColor_VS");
+	DeferredColorVS.loadFromFile("src/GLSL/Deferred/deferred_color_vs.glsl");
+	DeferredColorVS.compile();
+
+	FragmentShader& DeferredColorFS = ResourcesManager::getInstance().getShader<FragmentShader>("DeferredColor_FS");
+	DeferredColorFS.loadFromFile("src/GLSL/Deferred/deferred_color_fs.glsl");
+	DeferredColorFS.compile();
+	
+	Program& DeferredColor = ResourcesManager::getInstance().getProgram("DeferredColor");
+	DeferredColor.attachShader(DeferredColorVS);
+	DeferredColor.attachShader(DeferredColorFS);
+	DeferredColor.link();
+	
+	if(!DeferredColor) return 0;
+	#endif
+	
 	VertexShader& PostProcessVS = ResourcesManager::getInstance().getShader<VertexShader>("PostProcess_VS");
 	PostProcessVS.loadFromFile("src/GLSL/vs.glsl");
 	PostProcessVS.compile();
@@ -574,6 +593,7 @@ int main(int argc, char* argv[])
 		_offscreenRender.bind();
 		if(_updateVFC)
 			VFC_ViewMatrix = MainCamera.getMatrix();
+			
 		for(auto& b : _meshInstances)
 		{
 			if(isVisible(_projection, VFC_ViewMatrix, b.getModelMatrix(), b.getMesh().getBoundingBox()))
@@ -581,8 +601,23 @@ int main(int argc, char* argv[])
 				b.draw();
 			}
 		}
-		_offscreenRender.unbind();
 		
+		#ifdef LIGHT_DEBUG_DISPLAY
+		for(const auto& l : tmpLight)
+		{
+			glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(l.position));
+			if(isVisible(_projection, VFC_ViewMatrix, model, Ball->getBoundingBox()))
+			{
+				DeferredColor.setUniform("Color", l.color);
+				DeferredColor.setUniform("ModelMatrix", model);
+				DeferredColor.use();
+				Ball->draw();
+			}
+		}
+		#endif
+		
+		_offscreenRender.unbind();		
+
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
