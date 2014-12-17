@@ -684,8 +684,7 @@ int main(int argc, char* argv[])
 			DeferredCS.getProgram().setUniform("Normal", 2);	
 			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 			DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
-			DeferredCS.use();
-			DeferredCS.dispatchCompute(_resolution.x / 16 + 1, _resolution.y / 16 + 1, 1);
+			DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
 			DeferredCS.memoryBarrier();
 		
 			// Blitting

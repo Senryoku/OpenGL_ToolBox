@@ -145,7 +145,7 @@ void main(void)
 		vec3 color = coldepth.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
 		
-		vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
+		vec4 ColorOut = vec4(0.0, 0.0, 0.0, coldepth.w);
 		for(int l2 = 0; l2 < local_lights_count; ++l2)
 		{
 			float d = length(position.xyz - Lights[local_lights[l2]].position.xyz);

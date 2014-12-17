@@ -32,11 +32,6 @@ void ComputeShader::initProgram()
 {
 	_program = new Program();
 }
-
-GLuint ComputeShader::getProgramName() const
-{
-	return (_standalone) ? _program->getName() : 0;
-}
 	
 void ComputeShader::compile()
 {
@@ -45,6 +40,7 @@ void ComputeShader::compile()
 	{
 		_program->attachShader(_handle);
 		_program->link();
+		glGetProgramiv(_program->getName(), GL_COMPUTE_WORK_GROUP_SIZE, &_workgroupSize.x);
 	}
 }
 
@@ -53,8 +49,9 @@ void ComputeShader::use() const
 	_program->use();
 }
 
-void ComputeShader::compute(GLint x, GLint y, GLint z)
+const ComputeShader::WorkgroupSize& ComputeShader::getWorkgroupSize()
 {
-	if(_standalone) use();
-	ComputeShader::dispatchCompute(x, y, z);
+	if(_workgroupSize.x < 1 && _program != nullptr)
+		glGetProgramiv(_program->getName(), GL_COMPUTE_WORK_GROUP_SIZE, &_workgroupSize.x);
+	return _workgroupSize;
 }
