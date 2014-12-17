@@ -16,7 +16,7 @@ ComputeShader::~ComputeShader()
 		delete _program;
 }
 
-void ComputeShader::initOGL()
+void ComputeShader::init()
 {
 	if(_handle != 0)
 		return;
@@ -24,7 +24,7 @@ void ComputeShader::initOGL()
 	_handle = glCreateShader(GL_COMPUTE_SHADER);
 	if(_handle == 0)
 	{
-		std::cerr << __FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
+		std::cerr << __PRETTY_FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
 	}
 }
 
@@ -38,6 +38,7 @@ void ComputeShader::compile()
 	Shader::compile();
 	if(_standalone)
 	{
+		assert(_program != nullptr);
 		_program->attachShader(_handle);
 		_program->link();
 		glGetProgramiv(_program->getName(), GL_COMPUTE_WORK_GROUP_SIZE, &_workgroupSize.x);
@@ -46,6 +47,7 @@ void ComputeShader::compile()
 
 void ComputeShader::use() const
 {
+	assert(_program != nullptr);
 	_program->use();
 }
 

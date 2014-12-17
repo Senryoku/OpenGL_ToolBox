@@ -19,14 +19,16 @@ class Shader : public OpenGLObject
 	void setSource(const std::string& src);
 	void compile();
 	
-	void compute(GLint x, GLint y = 1, GLint z = 1);
-	
-	inline bool isValid() const { return _compiled; }
+	inline bool isValid() const override;
 	
 	protected:
-	std::string	_srcPath = "";
+	std::string			_srcPath = "";
 	bool				_compiled = false;
 	
-	virtual void initOGL() =0;
+	virtual void init() =0;
 };
 
+inline bool Shader::isValid() const 
+{
+	return OpenGLObject::isValid() && _compiled;
+}

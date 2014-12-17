@@ -13,6 +13,6 @@ class FragmentShader : public Shader
 	public:
 	FragmentShader() : Shader() {}
 	private:
-	void initOGL();
+	void init();
 };
 

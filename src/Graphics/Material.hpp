@@ -5,7 +5,6 @@
 #include <iostream>
 #include <memory>
 
-
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -27,10 +26,7 @@ public:
 	//	Constructors
 	Material() =default;
 	
-	Material(const Program& P) :
-		_shadingProgram(&P)
-	{
-	}
+	Material(const Program& P);
 	
 	/**
 	 * Copy constructor
@@ -45,88 +41,26 @@ public:
 	Material& operator=(const Material&);
 
 	//	Getters/Setters
-	const Program& getShadingProgram() { return *_shadingProgram; }
-	void setShadingProgram(Program& P) { _shadingProgram = &P; updateLocations(); }
+	const Program& getShadingProgram() const;
+	void setShadingProgram(Program& P);
 	
 	////////////////////////////////////////////////////////////////
 	// Special cases for textures
 	
-	void setUniform(const std::string& name, const Texture3D& value)
-	{
-		setUniform(name, static_cast<const Texture&>(value));
-	}
-	
-	void setUniform(const std::string& name, const Texture2D& value)
-	{
-		setUniform(name, static_cast<const Texture&>(value));
-	}
-	
-	void setUniform(const std::string& name, const CubeMap& value)
-	{
-		setUniform(name, static_cast<const Texture&>(value));
-	}
-	
-	void setUniform(const std::string& name, const Texture& value)
-	{
-		GLint Location = getLocation(name);
-		
-		if(Location >= 0)
-		{
-			for(auto& U : _uniforms)
-			{
-				if(U.get()->getName() == name)
-				{
-					static_cast<Uniform<Texture>*>(U.get())->setValue(value);
-					return;
-				}
-			}
-			_uniforms.push_back(std::unique_ptr<GenericUniform>(new Uniform<Texture>(name, Location, _textureCount, value)));
-			++_textureCount;
-		} else {
-			std::cerr << "Material: Uniform " + name + " not found." << std::endl;
-		}
-	}
+	void setUniform(const std::string& name, const Texture3D& value);
+	void setUniform(const std::string& name, const Texture2D& value);
+	void setUniform(const std::string& name, const CubeMap& value);
+	void setUniform(const std::string& name, const Texture& value);
 	
 	////////////////////////////////////////////////////////////////
 	// Generic Uniform setting
 	
 	template<typename T>
-	void setUniform(const std::string& name, const T& value)
-	{
-		GLint Location = getLocation(name);
-		
-		if(Location >= 0)
-		{
-			for(auto& U : _uniforms)
-			{
-				if(U.get()->getName() == name)
-				{
-					//static_cast<Uniform<T>*>(U.get())->setValue(value);
-					// In case the types differs... We better create a shinny new one.
-					U.reset(new Uniform<T>(name, Location, value));
-					
-					return;
-				}
-			}
-			_uniforms.push_back(std::unique_ptr<GenericUniform>(new Uniform<T>(name, Location, value)));
-		} else {
-			std::cerr << "Material: Uniform " + name + " not found." << std::endl;
-		}
-	}
+	inline void setUniform(const std::string& name, const T& value);
 
-	inline void use() const
-	{
-		if(_shadingProgram != nullptr)
-			_shadingProgram->use();
-			
-		bind();
-	}
+	inline void use() const;
 	
-	inline void useNone() const
-	{
-		unbind();
-		Program::useNone();
-	}
+	inline void useNone() const;
 	
 	void bind() const;
 	
@@ -146,3 +80,91 @@ private:
 	
 	GLint getLocation(const std::string& name) const;
 };
+
+inline const Program& Material::getShadingProgram() const
+{
+	assert(_shadingProgram != nullptr);
+	return *_shadingProgram;
+}
+
+inline void Material::setShadingProgram(Program& P)
+{
+	_shadingProgram = &P;
+	updateLocations();
+}
+inline void Material::setUniform(const std::string& name, const Texture3D& value)
+{
+	setUniform(name, static_cast<const Texture&>(value));
+}
+
+inline void Material::setUniform(const std::string& name, const Texture2D& value)
+{
+	setUniform(name, static_cast<const Texture&>(value));
+}
+
+inline void Material::setUniform(const std::string& name, const CubeMap& value)
+{
+	setUniform(name, static_cast<const Texture&>(value));
+}
+
+inline void Material::setUniform(const std::string& name, const Texture& value)
+{
+	GLint Location = getLocation(name);
+	
+	if(Location >= 0)
+	{
+		for(auto& U : _uniforms)
+		{
+			if(U.get()->getName() == name)
+			{
+				static_cast<Uniform<Texture>*>(U.get())->setValue(value);
+				return;
+			}
+		}
+		_uniforms.push_back(std::unique_ptr<GenericUniform>(new Uniform<Texture>(name, Location, _textureCount, value)));
+		++_textureCount;
+	} else {
+		std::cerr << "Material: Uniform " + name + " not found." << std::endl;
+	}
+}
+
+////////////////////////////////////////////////////////////////
+// Generic Uniform setting
+
+template<typename T>
+void Material::setUniform(const std::string& name, const T& value)
+{
+	GLint Location = getLocation(name);
+	
+	if(Location >= 0)
+	{
+		for(auto& U : _uniforms)
+		{
+			if(U.get()->getName() == name)
+			{
+				//static_cast<Uniform<T>*>(U.get())->setValue(value);
+				// In case the types differs... We better create a shinny new one.
+				U.reset(new Uniform<T>(name, Location, value));
+				
+				return;
+			}
+		}
+		_uniforms.push_back(std::unique_ptr<GenericUniform>(new Uniform<T>(name, Location, value)));
+	} else {
+		std::cerr << "Warning: Uniform '" + name + "' not found (" << __PRETTY_FUNCTION__ << ")." << std::endl;
+	}
+}
+
+inline void Material::use() const
+{
+	if(_shadingProgram != nullptr)
+		_shadingProgram->use();
+		
+	bind();
+}
+
+inline void Material::useNone() const
+{
+	unbind();
+	Program::useNone();
+}

@@ -60,6 +60,17 @@ int			_colorToRender = 0;
 
 Framebuffer<Texture2D, 3>	_offscreenRender;
 	
+void screen(const std::string& path)
+{
+	GLubyte* pixels = new GLubyte[4 * _width * _height];
+
+	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	
+	stbi_write_png(path.c_str(), _width, _height, 4, pixels, 0);
+	
+	delete[] pixels;
+}
+
 void error_callback(int error, const char* description)
 {
 	std::cerr << "GLFW Error (" << error << "): " << description << std::endl;
@@ -183,6 +194,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 					_colorToRender = (_colorToRender + 1) % 6;
 					break;
 				}
+				case GLFW_KEY_L:
+				{
+					const std::string ScreenPath("out/screenshot.png");
+					std::cout << "Saving a screenshot to " << ScreenPath << "..." << std::endl;
+					screen(ScreenPath);
+				}
 			}
 		}
 	}
@@ -228,17 +245,6 @@ inline void TwEventMouseWheelGLFW3(GLFWwindow* window, double xoffset, double yo
 inline void TwEventKeyGLFW3(GLFWwindow* window, int key, int scancode, int action, int mods) { TwEventKeyGLFW(key, action); }
 
 inline void TwEventCharGLFW3(GLFWwindow* window, int codepoint) { TwEventCharGLFW(codepoint, GLFW_PRESS); }
-
-void screen(const std::string& path)
-{
-	GLubyte* pixels = new GLubyte[4 * _width * _height];
-
-	glReadPixels(0, 0, _width, _height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-	
-	stbi_write_png(path.c_str(), _width, _height, 4, pixels, 0);
-	
-	delete[] pixels;
-}
 
 // Temp
 struct LightStruct

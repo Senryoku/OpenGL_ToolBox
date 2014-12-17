@@ -1,6 +1,6 @@
 #include "GeometryShader.hpp"
 
-void GeometryShader::initOGL()
+void GeometryShader::init()
 {
 	if(_handle != 0)
 		return;
@@ -8,6 +8,6 @@ void GeometryShader::initOGL()
 	_handle = glCreateShader(GL_GEOMETRY_SHADER);
 	if(_handle == 0)
 	{
-		std::cerr << __FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
+		std::cerr << __PRETTY_FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
 	}
 }

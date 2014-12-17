@@ -19,6 +19,16 @@ public:
 	virtual ~Program();
 	
 	/**
+	 * Initializes the OpenGL object.
+	**/
+	void init();
+	
+	/**
+	 * Destroys the OpenGL object.
+	**/
+	void cleanup();
+	
+	/**
 	 * Attach a shader to this Program by its OpenGL name.
 	 *
 	 * Be careful using this (especially for a ComputeShader)
@@ -45,7 +55,7 @@ public:
 	void attachShader(ComputeShader& cshader);
 	
 	/**
-	 * Linking the program (all shaders must me compiled).
+	 * Linking the program (all shaders must be compiled).
 	**/
 	void link();
 	
@@ -57,14 +67,14 @@ public:
 	/**
 	 * @return true if the program is set and linked, false otherwise.
 	**/
-	inline bool isValid() const override { return _handle != 0 && _linked; }
+	inline bool isValid() const override;
 
 	/**
 	 * @param name Name of the vertex shader attribute
 	 * @return Location of the queried attribute
 	 * @see glGetAttribLocation
 	**/
-	inline GLint getAttribLocation(const std::string& name) const { return glGetAttribLocation(_handle, name.c_str()); }
+	inline GLint getAttribLocation(const std::string& name) const;
 	
 	/**
 	 * Associate a vertex attribute index with named attribute variable
@@ -72,7 +82,7 @@ public:
 	 * @param name Name of the attribute to which index is to be bound
 	 * @see glBindAttribLocation
 	**/
-	inline void bindAttribLocation(GLuint index, const std::string& name) const { return glBindAttribLocation(_handle, index, name.c_str()); }
+	inline void bindAttribLocation(GLuint index, const std::string& name) const;
 	
 	/**
 	 * Query for the location of the specified uniform.
@@ -90,14 +100,7 @@ public:
 	 * @see setUniform(GLint program, GLuint location, const T& value);
 	**/
 	template<typename T>
-	inline void setUniform(const std::string& name, const T& value) const
-	{
-		auto loc = getUniformLocation(name);
-		if(loc < 0)
-			std::cerr << "Program::Warning: Uniform " << name << " not found." << std::endl;
-		else
-			::setUniform(getName(), loc, value);
-	}
+	inline void setUniform(const std::string& name, const T& value) const;
 	
 	/**
 	 * glGetProgramResourceIndex
@@ -142,6 +145,32 @@ public:
 	static void useNone();
 	
 private:
-	bool	_linked = false;
+	bool	_linked = false;	///< Link status
 };
 
+// Inline functions definitions
+
+inline bool Program::isValid() const
+{ 
+	return _handle != 0 && _linked;
+}
+
+inline GLint Program::getAttribLocation(const std::string& name) const
+{
+	return glGetAttribLocation(_handle, name.c_str());
+}
+
+inline void Program::bindAttribLocation(GLuint index, const std::string& name) const
+{
+	return glBindAttribLocation(_handle, index, name.c_str());
+}
+	
+template<typename T>
+inline void Program::setUniform(const std::string& name, const T& value) const
+{
+	auto loc = getUniformLocation(name);
+	if(loc < 0)
+		std::cerr << "Warning: Uniform '" << name << "' not found (" << __PRETTY_FUNCTION__ << ")." << std::endl;
+	else
+		::setUniform(getName(), loc, value);
+}

@@ -1,6 +1,6 @@
 #include "VertexShader.hpp"
 
-void VertexShader::initOGL()
+void VertexShader::init()
 {
 	if(_handle != 0)
 		return;

@@ -14,6 +14,6 @@ class VertexShader : public Shader
 	public:
 	VertexShader() : Shader() {}
 	private:
-	void initOGL();
+	void init();
 };
 

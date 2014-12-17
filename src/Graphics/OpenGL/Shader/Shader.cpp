@@ -7,7 +7,7 @@ Shader::~Shader()
 
 void Shader::loadFromFile(const std::string& path)
 {
-	this->initOGL();
+	this->init();
 	
 	//std::cout << "loadFromFile " << path << std::endl;
 	std::ifstream Src(path);

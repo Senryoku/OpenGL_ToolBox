@@ -97,7 +97,7 @@ private:
 	Program*		_program = nullptr;
 	WorkgroupSize	_workgroupSize;
 	
-	void initOGL();
+	void init();
 	void initProgram();
 	
 	friend class Program;

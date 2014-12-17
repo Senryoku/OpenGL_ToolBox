@@ -14,6 +14,6 @@ class GeometryShader : public Shader
 	public:
 	GeometryShader() : Shader() {}
 	private:
-	void initOGL();
+	void init();
 };
 

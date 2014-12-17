@@ -1,5 +1,10 @@
 #include <Material.hpp>
 
+Material::Material(const Program& P) :
+	_shadingProgram(&P)
+{
+}
+	
 Material::Material(const Material& m)
 {
 	_shadingProgram = m._shadingProgram;

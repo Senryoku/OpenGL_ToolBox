@@ -1,6 +1,6 @@
 #include "FragmentShader.hpp"
 
-void FragmentShader::initOGL()
+void FragmentShader::init()
 {
 	if(_handle != 0)
 		return;
@@ -8,6 +8,6 @@ void FragmentShader::initOGL()
 	_handle = glCreateShader(GL_FRAGMENT_SHADER);
 	if(_handle == 0)
 	{
-		std::cerr << __FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
+		std::cerr << __PRETTY_FUNCTION__ << " : Error glCreateShader(GL_COMPUTE_SHADER)" << std::endl;
 	}
 }

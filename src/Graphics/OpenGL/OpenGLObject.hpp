@@ -59,7 +59,7 @@ public:
 	 * Allow the use of quick tests :
 	 * @code if(OpenGLObject_Instance) { ... }
 	**/
-	inline operator bool() const { return isValid(); }
+	inline operator bool() const { return this->isValid(); }
 	
 protected:
 	GLuint	_handle; ///< OpenGL name of the managed object
