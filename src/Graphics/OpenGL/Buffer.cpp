@@ -33,7 +33,7 @@ void Buffer::bind(GLuint bindingPoint)
 
 void Buffer::bindRange(GLuint bindingPoint, GLintptr offset, GLsizeiptr size) const
 {
-	assert(_type == AtomicCounter || _type == TransformFeedback || _type == Uniform || _type == ShaderStorage);
+	assert(_type == TransformFeedback || _type == Uniform);
 	glBindBufferRange(static_cast<GLenum>(_type), bindingPoint, getName(), offset, size);
 }
 	

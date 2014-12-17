@@ -71,19 +71,27 @@ void Framebuffer<TexType, ColorCount>::init()
 }
 
 template<typename TexType, unsigned int ColorCount> 
-void Framebuffer<TexType, ColorCount>::bind(GLenum target) const
+void Framebuffer<TexType, ColorCount>::bind(FramebufferTarget target) const
 {
-	glBindFramebuffer(target, _handle);
-	if(target == GL_FRAMEBUFFER ||
-	   target == GL_DRAW_FRAMEBUFFER)
+	glBindFramebuffer(static_cast<GLenum>(target), _handle);
+	if(target == Read)
 	{
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		if(!_useDepth)
-			glClear(GL_COLOR_BUFFER_BIT);
-		else
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glViewport(0, 0, _width, _height);
+		glReadBuffer(GL_COLOR_ATTACHMENT0); ///< @todo Do Better.
 	} else {
-		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glViewport(0, 0, _width, _height);
 	}
+}
+
+template<typename TexType, unsigned int ColorCount> 
+void Framebuffer<TexType, ColorCount>::clear() const
+{
+	GLbitfield target = (ColorCount > 0) ? GL_COLOR_BUFFER_BIT : 0;
+	if(_useDepth) target |= GL_DEPTH_BUFFER_BIT;
+	glClear(target);
+}
+	
+template<typename TexType, unsigned int ColorCount> 
+void Framebuffer<TexType, ColorCount>::clear(BufferBit target) const
+{
+	glClear(static_cast<GLbitfield>(target));
 }

@@ -4,6 +4,21 @@
 
 #include <Texture2D.hpp>
 
+enum FramebufferTarget
+{
+	Both = GL_FRAMEBUFFER,
+	Draw = GL_DRAW_FRAMEBUFFER,
+	Read = GL_READ_FRAMEBUFFER
+};
+
+enum BufferBit
+{
+	Color = GL_COLOR_BUFFER_BIT,
+	Depth = GL_DEPTH_BUFFER_BIT,
+	Stencil = GL_STENCIL_BUFFER_BIT,
+	All = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT
+};
+
 template<typename TexType = Texture2D, unsigned int ColorCount = 1>
 class Framebuffer : public OpenGLObject
 {
@@ -13,7 +28,30 @@ public:
 	virtual ~Framebuffer();
 	
 	virtual void init();
-	void bind(GLenum target = GL_FRAMEBUFFER) const;
+	
+	/**
+	 * Bind this framebuffer
+	 * @param target GL_FRAMEBUFFER, GL_DRAW_FRAMEBUFFER or GL_READ_FRAMEBUFFER
+	**/
+	void bind(FramebufferTarget target = FramebufferTarget::Both) const;
+	
+	/**
+	 * Clear the framebuffer.
+	 * Equivalent to a call to clear(GLenum target) with
+	 * Buffer::Color if any color buffer is attached to it, and
+	 * Buffer::Depth if using depth.
+	 * @see clear(GLenum target)
+	 * @see glClear
+	**/
+	void clear() const;
+	
+	/**
+	 * Clear the framebuffer.
+	 * @param target Combinaison of Buffer
+	 * @see clear()
+	 * @see glClear
+	**/
+	void clear(BufferBit target) const;
 	
 	inline TexType& getColor(unsigned int i = 0) { return _color[i]; }
 	inline TexType& getDepth() { return _depth; }

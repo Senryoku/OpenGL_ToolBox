@@ -28,8 +28,6 @@
 #include <Light.hpp>
 #include <stb_image_write.hpp>
 
-//#define LIGHT_DEBUG_DISPLAY
-
 int			_width = 1366;
 int			_height = 720;
 
@@ -182,7 +180,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_C:
 				{
-					_colorToRender = (_colorToRender + 1) % 5;
+					_colorToRender = (_colorToRender + 1) % 6;
 					break;
 				}
 			}
@@ -339,6 +337,9 @@ int main(int argc, char* argv[])
 	TwInit(TW_OPENGL, nullptr);
 	TwWindowSize(_width, _height);
 			
+	float LightRadius = 75.0;
+	bool DrawLights = false;
+	
 	TwBar* bar = TwNewBar("Global Tweaks");
 	TwDefine("'Global Tweaks' color='0 0 0' ");
 	TwDefine("'Global Tweaks' iconified=true ");
@@ -346,13 +347,13 @@ int main(int argc, char* argv[])
 	TwAddVarRO(bar, "FrameRate", TW_TYPE_FLOAT, &_frameRate, "");
 	TwAddVarRW(bar, "TimeScale", TW_TYPE_FLOAT, &_timescale, "min=0.0 step=0.1");
 	TwAddVarRW(bar, "FOV", TW_TYPE_FLOAT, &_fov, "min=0.0 step=0.1");
+	TwAddVarRW(bar, "LightRadius", TW_TYPE_FLOAT, &LightRadius, "min=0.0 step=1.0");
 	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
 	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
 	TwAddVarRW(bar, "Update VFC", TW_TYPE_BOOLCPP, &_updateVFC, "");
+	TwAddVarRW(bar, "Draw Lights", TW_TYPE_BOOLCPP, &DrawLights, "");
 	
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	VertexShader& DeferredVS = ResourcesManager::getInstance().getShader<VertexShader>("Deferred_VS");
 	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
@@ -369,13 +370,27 @@ int main(int argc, char* argv[])
 	
 	if(!Deferred) return 0;
 	
-	#ifdef LIGHT_DEBUG_DISPLAY
+	VertexShader& DeferredLightVS = ResourcesManager::getInstance().getShader<VertexShader>("DeferredLight_VS");
+	DeferredLightVS.loadFromFile("src/GLSL/Deferred/deferred_light_vs.glsl");
+	DeferredLightVS.compile();
+
+	FragmentShader& DeferredLightFS = ResourcesManager::getInstance().getShader<FragmentShader>("DeferredLight_FS");
+	DeferredLightFS.loadFromFile("src/GLSL/Deferred/deferred_light_fs.glsl");
+	DeferredLightFS.compile();
+	
+	Program& DeferredLight = ResourcesManager::getInstance().getProgram("DeferredLight");
+	DeferredLight.attachShader(DeferredLightVS);
+	DeferredLight.attachShader(DeferredLightFS);
+	DeferredLight.link();
+	
+	if(!DeferredLight) return 0;
+	
 	VertexShader& DeferredColorVS = ResourcesManager::getInstance().getShader<VertexShader>("DeferredColor_VS");
-	DeferredColorVS.loadFromFile("src/GLSL/Deferred/deferred_color_vs.glsl");
+	DeferredColorVS.loadFromFile("src/GLSL/Deferred/deferred_forward_color_vs.glsl");
 	DeferredColorVS.compile();
 
 	FragmentShader& DeferredColorFS = ResourcesManager::getInstance().getShader<FragmentShader>("DeferredColor_FS");
-	DeferredColorFS.loadFromFile("src/GLSL/Deferred/deferred_color_fs.glsl");
+	DeferredColorFS.loadFromFile("src/GLSL/Deferred/deferred_forward_color_fs.glsl");
 	DeferredColorFS.compile();
 	
 	Program& DeferredColor = ResourcesManager::getInstance().getProgram("DeferredColor");
@@ -384,7 +399,6 @@ int main(int argc, char* argv[])
 	DeferredColor.link();
 	
 	if(!DeferredColor) return 0;
-	#endif
 	
 	VertexShader& PostProcessVS = ResourcesManager::getInstance().getShader<VertexShader>("PostProcess_VS");
 	PostProcessVS.loadFromFile("src/GLSL/vs.glsl");
@@ -406,6 +420,7 @@ int main(int argc, char* argv[])
 	PostProcessMaterial.setUniform("Color", _offscreenRender.getColor(0));
 	PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
 	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
+	PostProcessMaterial.setUniform("lightRadius", &LightRadius);
 	
 	/*
 	FragmentShader& FullScreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullScreenTextureFS");
@@ -436,7 +451,9 @@ int main(int argc, char* argv[])
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	//PostProcess.bindUniformBlock("Camera", CameraBuffer);
-	DeferredCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
+	//DeferredCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
+	DeferredLight.bindUniformBlock("Camera", CameraBuffer);
+	DeferredColor.bindUniformBlock("Camera", CameraBuffer);
 	
 	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
 	
@@ -455,6 +472,7 @@ int main(int argc, char* argv[])
 
 	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
 	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
+	//DeferredLight.bindUniformBlock("LightBlock", 2);
 	
 	LightStruct tmpLight[LightCount];
 	
@@ -515,6 +533,12 @@ int main(int argc, char* argv[])
 					glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), 
 					glm::vec3(10.0))));
 		}
+		
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Light Sphere Mesh
+	auto LightSphereV = Mesh::load("in/3DModels/sphere/sphere.obj");
+	auto& LightSphere = LightSphereV[0];
+	LightSphere->createVAO();
 	
 	// Creating requested AntTweakBars
 	//for(auto& p : _tweakbars)
@@ -591,6 +615,7 @@ int main(int argc, char* argv[])
 		
 		// Offscreen
 		_offscreenRender.bind();
+		_offscreenRender.clear();
 		if(_updateVFC)
 			VFC_ViewMatrix = MainCamera.getMatrix();
 			
@@ -601,20 +626,6 @@ int main(int argc, char* argv[])
 				b.draw();
 			}
 		}
-		
-		#ifdef LIGHT_DEBUG_DISPLAY
-		for(const auto& l : tmpLight)
-		{
-			glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(l.position));
-			if(isVisible(_projection, VFC_ViewMatrix, model, Ball->getBoundingBox()))
-			{
-				DeferredColor.setUniform("Color", l.color);
-				DeferredColor.setUniform("ModelMatrix", model);
-				DeferredColor.use();
-				Ball->draw();
-			}
-		}
-		#endif
 		
 		_offscreenRender.unbind();		
 
@@ -629,7 +640,42 @@ int main(int argc, char* argv[])
 			PostProcessMaterial.use();
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 			PostProcessMaterial.useNone();
-		} else if(_colorToRender == 1) {	
+		} else if(_colorToRender == 1) {			
+			// Cull Front and Disable Depth Test : It doesn't matter for a sphere :]
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
+			glDisable(GL_DEPTH_TEST);
+			glDepthMask(GL_FALSE);
+			
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_ONE, GL_ONE);
+			_offscreenRender.getColor(0).bind(0);
+			_offscreenRender.getColor(1).bind(1);
+			_offscreenRender.getColor(2).bind(2);
+			DeferredLight.setUniform("Color", (int) 0);
+			DeferredLight.setUniform("Position", (int) 1);
+			DeferredLight.setUniform("Normal", (int) 2);	
+			DeferredLight.setUniform("cameraPosition", MainCamera.getPosition());
+			DeferredLight.setUniform("lightRadius", LightRadius);
+			DeferredLight.use();
+			for(int l = 0; l < (int) LightCount; ++l)
+			{
+				//LightBuffer.bindRange(2, sizeof(LightStruct) * l, sizeof(LightStruct));
+				DeferredLight.setUniform("LightPosition", tmpLight[l].position);			
+				DeferredLight.setUniform("LightColor", tmpLight[l].color);
+				glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(tmpLight[l].position)), glm::vec3(LightRadius));
+				if(isVisible(_projection, MainCamera.getMatrix(), model, LightSphere->getBoundingBox()))
+				{
+					DeferredLight.setUniform("ModelMatrix", model);
+					LightSphere->draw();
+				}
+			}
+			glDisable(GL_BLEND);
+			glDepthMask(GL_TRUE);
+			glEnable(GL_DEPTH_TEST);
+			glCullFace(GL_BACK);
+		} else if(_colorToRender == 2) {	
 			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
@@ -637,20 +683,44 @@ int main(int argc, char* argv[])
 			DeferredCS.getProgram().setUniform("Position", 1);
 			DeferredCS.getProgram().setUniform("Normal", 2);	
 			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
+			DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
 			DeferredCS.use();
 			DeferredCS.dispatchCompute(_resolution.x / 16 + 1, _resolution.y / 16 + 1, 1);
 			DeferredCS.memoryBarrier();
 		
 			// Blitting
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(GL_READ_FRAMEBUFFER);
+			_offscreenRender.bind(FramebufferTarget::Read);
 			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		} else { 
 			// Blitting
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(GL_READ_FRAMEBUFFER);
-			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 2));
+			_offscreenRender.bind(FramebufferTarget::Read);
+			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 3));
 			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		}
+		
+		if(DrawLights)
+		{
+			glDisable(GL_DEPTH_TEST);
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_ONE, GL_ONE);
+			_offscreenRender.getColor(0).bind(0);
+			DeferredColor.setUniform("ColorDepth", 0);
+			for(const auto& l : tmpLight)
+			{
+				glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(l.position));
+				if(isVisible(_projection, VFC_ViewMatrix, model, LightSphere->getBoundingBox()))
+				{
+					DeferredColor.setUniform("Color", l.color);
+					DeferredColor.setUniform("ModelMatrix", model);
+					DeferredColor.use();
+					LightSphere->draw();
+				}
+			}
+			glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
 		}
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
