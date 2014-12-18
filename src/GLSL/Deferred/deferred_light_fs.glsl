@@ -50,19 +50,19 @@ out vec4 colorOut;
 void main(void)
 {
 	vec2 texcoords = gl_FragCoord.xy/textureSize(Color, 0).xy;
-
-	vec4 In0 = texture(Color, texcoords);
 	vec4 In1 = texture(Position, texcoords);
-	vec4 In2 = texture(Normal, texcoords);
-
-	vec3 color = In0.rgb;
 	vec3 position = In1.xyz;
-	vec3 normal = normalize(In2.xyz);
-
-	colorOut = vec4(0.0, 0.0, 0.0, 1.0);
 	
 	float d = length(position - LightPosition.xyz);
 	if(d > lightRadius)
 		discard;
+
+	vec4 In0 = texture(Color, texcoords);
+	vec4 In2 = texture(Normal, texcoords);
+
+	vec3 color = In0.rgb;
+	vec3 normal = normalize(In2.xyz);
+
+	colorOut = vec4(0.0, 0.0, 0.0, 1.0);
 	colorOut.rgb = (1.0 - d/lightRadius) * phong(position, normal, color, LightPosition.xyz, LightColor.rgb);
 }
