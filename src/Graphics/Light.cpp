@@ -4,6 +4,7 @@
 #include <glm/gtx/transform.hpp> // glm::translate
 
 #include <MathTools.hpp>
+#include <ResourcesManager.hpp>
 
 ///////////////////////////////////////////////////////////////////
 // Static attributes

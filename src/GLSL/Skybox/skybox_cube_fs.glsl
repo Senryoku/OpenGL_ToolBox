@@ -2,8 +2,8 @@
  
 uniform samplerCube SkyBox;
 
-in vec2 o;
-in mat4 m;
+in layout(location = 0) vec2 o;
+in layout(location = 1) mat4 m;
  
 out vec4 colorOut;
  

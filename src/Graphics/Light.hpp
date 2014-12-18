@@ -6,7 +6,6 @@
 #include <Frustum.hpp>
 #include <Texture2D.hpp>
 #include <Framebuffer.hpp>
-#include <ResourcesManager.hpp>
 #include <AllShader.hpp>
 
 /**
@@ -25,6 +24,10 @@ public:
 	 * @param shadowMapResolution Resolution of the shadow map depth texture.
 	**/
 	Light(unsigned int shadowMapResolution = 4096);
+	
+	/**
+	 * Destructor
+	**/
 	~Light() =default;
 
 	/**
@@ -33,15 +36,54 @@ public:
 	**/
 	void init();
 	
+	/**
+	 * @return Color of the light
+	**/
 	inline const glm::vec4& getColor() const { return _color; }
+	
+	/**
+	 * @return Position of the light
+	**/
 	inline const glm::vec3& getPosition() const { return _position; }
+	
+	/**
+	 * @return Direction of the light
+	**/
 	inline const glm::vec3& getDirection() const { return _direction; }
+	
+	/**
+	 * @return Range of the light
+	**/
 	inline float getRange() const { return _range; }
 	
+	/**
+	 * Modifies the color of the light source
+	 * @param col New Color
+	**/
 	inline void setColor(const glm::vec4& col) { _color = col; }
+	
+	/**
+	 * Modifies the position of the light source
+	 * @param pos New position
+	**/
 	inline void setPosition(const glm::vec3& pos) { _position = pos; }
+	
+	/**
+	 * Modifies the direction of the light source (should be normalized)
+	 * @param dir Normalized new direction
+	**/
 	inline void setDirection(const glm::vec3& dir) { _direction = dir; }
+	
+	/**
+	 * Modifies the direction of the light source to look at the specified point in World Space
+	 * @param at Light's new focus point
+	**/
 	inline void lookAt(const glm::vec3& at) { _direction = glm::normalize(at - _position); }
+	
+	/**
+	 * Modifies the range of the light source
+	 * @param r New range
+	**/
 	inline void setRange(float r) { _range = r; }
 	
 	/**
@@ -108,27 +150,47 @@ public:
 	**/
 	void unbind() const;
 	
-	inline static const glm::mat4& getBiasMatrix() { return s_depthBiasMVP; }
-	inline static const Program& getShadowMapProgram() { return *s_depthProgram; }
-protected:
-	glm::vec4			_color = glm::vec4(1.f);
+	/**
+	 * @return Bias matrix (from screen space to texture space)
+	**/
+	inline static const glm::mat4& getBiasMatrix();
 	
-	glm::vec3			_position = glm::vec3(0.f); ///< Light's position in World Space
-	glm::vec3			_direction = glm::vec3(0.f, 0.f, 1.f); ///< Light's direction in World Space
-	float				_range = 1000.0; ///< Light's range, mainly used for the Shadow Mapping settings
+	/**
+	 * @return Program used to draw the shadow map.
+	**/
+	inline static const Program& getShadowMapProgram();
+protected:
+	glm::vec4			_color = glm::vec4(1.f);				///< Light's color
+	
+	glm::vec3			_position = glm::vec3(0.f);				///< Light's position in World Space
+	glm::vec3			_direction = glm::vec3(0.f, 0.f, 1.f);	///< Light's direction in World Space
+	float				_range = 1000.0; 						///< Light's range, mainly used for the Shadow Mapping settings
 
-	unsigned int				_shadowMapResolution = 4096;
-	Framebuffer<Texture2D, 0>	_shadowMapFramebuffer;
-	glm::mat4					_view;
-	glm::mat4					_projection;
-	glm::mat4					_VPMatrix;
-	glm::mat4					_biasedVPMatrix;
+	unsigned int				_shadowMapResolution = 4096;	///< Resolution of the shadow map (depth map)
+	Framebuffer<Texture2D, 0>	_shadowMapFramebuffer;			///< Framebuffer used to draw the shadow map
+	glm::mat4					_view;							///< View matrix used to draw the shadow map
+	glm::mat4					_projection;					///< Projection matrix used to draw the shadow map
+	glm::mat4					_VPMatrix;						///< ViewProjection matrix used to draw the shadow map
+	glm::mat4					_biasedVPMatrix;				///< biased ViewProjection matrix used to compute the shadows cast on the scene
 	
 	// Static Attributes
 	
-	static const glm::mat4	s_depthBiasMVP;
+	static const glm::mat4	s_depthBiasMVP;	///< Used to compute the biased ViewProjection matrix
 	
-	static Program* 		s_depthProgram;
-    static VertexShader*	s_depthVS;
-    static FragmentShader*	s_depthFS;
+	static Program* 		s_depthProgram;	///< Program used to draw the shadow map
+    static VertexShader*	s_depthVS;		///< VertexShader used to draw the shadow map
+    static FragmentShader*	s_depthFS;		///< FragmentShader used to draw the shadow map
 };
+
+// Inlined functions
+
+inline const glm::mat4& Light::getBiasMatrix()
+{
+	return s_depthBiasMVP;
+}
+
+inline const Program& Light::getShadowMapProgram()
+{
+	assert(s_depthProgram != nullptr);
+	return *s_depthProgram;
+}
