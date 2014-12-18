@@ -59,13 +59,10 @@ void main(void)
 	vec3 position = In1.xyz;
 	vec3 normal = normalize(In2.xyz);
 
-	colorOut = vec4(0.0, 0.0, 0.0, 1.0); //color;
-	//float d = length(position - Light.position.xyz);
-	float d = length(position - LightPosition.xyz);
-	if(d < lightRadius)
-	//	colorOut.rgb += (1.0 - d/lightRadius) * phong(position, normal, color, Light.position.xyz, Light.color.rgb);
-		colorOut.rgb = (1.0 - d/lightRadius) * phong(position, normal, color, LightPosition.xyz, LightColor.rgb);
-	//	colorOut.rgb += phong(position, normal, color, Light.position.xyz, Light.color.rgb);
+	colorOut = vec4(0.0, 0.0, 0.0, 1.0);
 	
-	//colorOut.a = 1.0 - d/lightRadius;
+	float d = length(position - LightPosition.xyz);
+	if(d > lightRadius)
+		discard;
+	colorOut.rgb = (1.0 - d/lightRadius) * phong(position, normal, color, LightPosition.xyz, LightColor.rgb);
 }

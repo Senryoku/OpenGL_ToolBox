@@ -21,6 +21,7 @@ void main(void)
 	if(gl_FragCoord.z < In.w)
 		colorOut.rgb = Color.rgb;
 	else
-		colorOut.rgb = vec3(0.0);
+		discard;
+	//colorOut.rgb = vec3(0.0);
 	colorOut.a = 1.0;
 }
