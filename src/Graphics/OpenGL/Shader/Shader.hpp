@@ -10,7 +10,7 @@
 
 class Shader : public OpenGLObject
 {
-	public:
+public:
 	Shader() =default;
 	virtual ~Shader();
 	
@@ -21,7 +21,7 @@ class Shader : public OpenGLObject
 	
 	inline bool isValid() const override;
 	
-	protected:
+protected:
 	std::string			_srcPath = "";
 	bool				_compiled = false;
 	

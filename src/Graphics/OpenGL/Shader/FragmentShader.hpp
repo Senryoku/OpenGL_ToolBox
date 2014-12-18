@@ -10,9 +10,10 @@
 
 class FragmentShader : public Shader
 {
-	public:
+public:
 	FragmentShader() : Shader() {}
-	private:
-	void init();
+	
+private:
+	virtual void init() override;
 };
 

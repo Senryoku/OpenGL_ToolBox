@@ -11,9 +11,10 @@
 
 class VertexShader : public Shader
 {
-	public:
+public:
 	VertexShader() : Shader() {}
-	private:
-	void init();
+	
+private:
+	virtual void init() override;
 };
 

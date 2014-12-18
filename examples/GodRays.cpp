@@ -704,13 +704,12 @@ int main(int argc, char* argv[])
 		
 		_godrayRender.bind();
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		_godrayRender.clear(BufferBit::Color);
 		//Sky.draw(_projection, MainCamera.getMatrix());
 		
 		LightRenderingMaterial.use();
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		LightRenderingMaterial.useNone();
-		
 		
 		GodRaysProgram.use();
 		glm::mat4 ortho_camera = _projection * MainCamera.getMatrix();
@@ -727,6 +726,7 @@ int main(int argc, char* argv[])
 		
 		// Offscreen
 		_offscreenRender.bind();
+		_offscreenRender.clear();
 		Sky.draw(_projection, MainCamera.getMatrix());
 			
 		for(size_t i = 0; i < LightCount; ++i)

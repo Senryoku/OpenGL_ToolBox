@@ -11,9 +11,10 @@
 
 class GeometryShader : public Shader
 {
-	public:
+public:
 	GeometryShader() : Shader() {}
-	private:
-	void init();
+
+private:
+	virtual void init() override;
 };
 

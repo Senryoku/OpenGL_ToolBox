@@ -41,9 +41,7 @@ void Program::attachShader(const Shader& shader)
 
 void Program::attachShader(ComputeShader& cshader)
 {
-	if(_handle == 0)
-		init();
-    glAttachShader(_handle, cshader.getName());
+	attachShader(static_cast<const Shader&>(cshader));
 	cshader._program = this;
 }
 

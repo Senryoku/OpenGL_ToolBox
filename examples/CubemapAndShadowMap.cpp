@@ -579,6 +579,7 @@ int main(int argc, char* argv[])
 		// Render to CubeMap Test ! :)
 		
 		CubeFramebufferTest.bind(FramebufferTarget::Draw);
+		CubeFramebufferTest.clear();
 		
 		Sky.cubedraw();
 		for(Mesh* m : Glados)

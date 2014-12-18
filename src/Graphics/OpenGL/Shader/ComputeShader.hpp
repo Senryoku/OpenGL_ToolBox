@@ -97,7 +97,8 @@ private:
 	Program*		_program = nullptr;
 	WorkgroupSize	_workgroupSize;
 	
-	void init();
+	virtual void init() override;
+	
 	void initProgram();
 	
 	friend class Program;
