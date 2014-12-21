@@ -1,20 +1,13 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#define GLEW_STATIC
-#include <GL/glew.h>
-
 #include <Shader.hpp>
-
 
 class VertexShader : public Shader
 {
 public:
-	VertexShader() : Shader() {}
+	VertexShader() =default;
 	
 private:
-	virtual void init() override;
+	inline virtual GLenum getType() const override { return GL_VERTEX_SHADER; }
 };
 

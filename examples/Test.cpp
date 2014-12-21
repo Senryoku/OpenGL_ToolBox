@@ -422,7 +422,7 @@ int main(int argc, char* argv[])
 	if(!PostProcess) return 0;
 	
 	Material PostProcessMaterial(PostProcess);
-	PostProcessMaterial.setUniform("iResolution", &_resolution);
+	//PostProcessMaterial.setUniform("iResolution", &_resolution);
 	PostProcessMaterial.setUniform("Color", _offscreenRender.getColor(0));
 	PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
 	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
@@ -467,7 +467,7 @@ int main(int argc, char* argv[])
 	// Light initialization
 	
 	const size_t LightCount = 250;
-	Deferred.setUniform("lightCount", LightCount);
+	//Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
 	

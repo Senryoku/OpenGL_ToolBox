@@ -1,12 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <iostream>
-#include <fstream>
-#include <string>
-#define GLEW_STATIC
-#include <GL/glew.h>
-
 #include <Shader.hpp>
 
 class Program;
@@ -97,7 +90,7 @@ private:
 	Program*		_program = nullptr;
 	WorkgroupSize	_workgroupSize;
 	
-	virtual void init() override;
+	inline virtual GLenum getType() const override;
 	
 	void initProgram();
 	
@@ -124,6 +117,11 @@ inline void ComputeShader::compute(GLint x, GLint y, GLint z) const
 	dispatchCompute(x, y, z);
 }
 
+inline GLenum ComputeShader::getType() const 
+{
+	return GL_COMPUTE_SHADER;
+}
+	
 // Static functions
 
 inline void ComputeShader::memoryBarrier(GLbitfield BF)

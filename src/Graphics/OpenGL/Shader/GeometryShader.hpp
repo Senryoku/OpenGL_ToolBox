@@ -1,11 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#define GLEW_STATIC
-#include <GL/glew.h>
-
 #include <Shader.hpp>
 
 
@@ -15,6 +9,6 @@ public:
 	GeometryShader() : Shader() {}
 
 private:
-	virtual void init() override;
+	inline virtual GLenum getType() const override { return GL_GEOMETRY_SHADER; }
 };
 

@@ -5,6 +5,21 @@ Shader::~Shader()
 	glDeleteShader(_handle);
 }
 
+void Shader::init()
+{
+	if(_handle != 0)
+		return;
+		
+	_handle = glCreateShader(this->getType());
+	if(_handle == 0)
+	{
+		std::cerr << __PRETTY_FUNCTION__ << " : Error glCreateShader(GL_FRAGMENT_SHADER)" << std::endl;
+	}
+	
+	_compiled = false;
+}
+
+
 void Shader::loadFromFile(const std::string& path)
 {
 	this->init();
@@ -40,9 +55,10 @@ void Shader::loadFromFile(const std::string& path)
 	_srcPath = path;
 	//std::cout << "... Done. " << std::endl;
 }
-
+	
 void Shader::reload()
 {
+	assert(_srcPath != "");
 	if(_srcPath == "")
 		return;
 	loadFromFile(_srcPath);
@@ -50,7 +66,10 @@ void Shader::reload()
 
 void Shader::compile()
 {
+	assert(_handle != 0);
     glCompileShader(_handle);
+	
+	// Check results
     int rvalue;
     glGetShaderiv(_handle, GL_COMPILE_STATUS, &rvalue);
     if (!rvalue)

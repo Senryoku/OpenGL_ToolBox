@@ -6,3 +6,5 @@
 #include <GeometryShader.hpp>
 #include <FragmentShader.hpp>
 #include <ComputeShader.hpp>
+#include <TesselationControlShader.hpp>
+#include <TesselationEvaluationShader.hpp>
