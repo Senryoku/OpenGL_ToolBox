@@ -10,16 +10,28 @@ layout(std140) uniform LightBlock
 {
 	LightStruct	Lights[1024];
 };
+
+layout(std140) uniform ShadowBlock {
+	vec4		position;
+	vec4		color;
+	mat4 		depthMVP;
+} Shadows[8];
+
 uniform unsigned int lightCount = 75;
 uniform float lightRadius = 100.0;
 
+uniform unsigned int shadowCount = 0;
+
 uniform float	minDiffuse = 0.0;
+uniform float	bias = 0.000005f;
 
 uniform vec3	cameraPosition;
 
 layout(binding = 0, rgba32f) uniform image2D ColorDepth;
 layout(binding = 1, rgba32f) uniform readonly image2D Position;
 layout(binding = 2, rgba32f) uniform readonly image2D Normal;
+
+layout(binding = 3) uniform sampler2D ShadowMaps[8];
 
 // Bounding Box
 shared int min_x;
@@ -33,10 +45,20 @@ shared int max_z;
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
 
+// Shadow casting lights
+shared int local_shadows_count; // = 0;
+shared int local_shadows[8];
+
 void add_light(int l)
 {
 	int idx = atomicAdd(local_lights_count, 1);
 	local_lights[idx] = l;
+}
+
+void add_shadow(int s)
+{
+	int idx = atomicAdd(local_shadows_count, 1);
+	local_shadows[idx] = s;
 }
 
 float square(float f)
@@ -87,6 +109,7 @@ void main(void)
 	if(local_pixel == uvec2(0, 0))
 	{
 		local_lights_count = 0;
+		local_shadows_count = 0;
 		
 		min_x = highValue;
 		max_x = -highValue;
@@ -131,6 +154,11 @@ void main(void)
 				add_light(l);
 		}
 	}
+	
+	// Test shadow casting lights
+	if(gl_LocalInvocationIndex < shadowCount)
+		add_shadow(int(gl_LocalInvocationIndex)); // TODO: Check if usefull
+		
 	barrier();
 	
 	//Compute lights' contributions
@@ -139,12 +167,25 @@ void main(void)
 		vec3 color = coldepth.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
 		
-		vec4 ColorOut = vec4(0.0, 0.0, 0.0, coldepth.w);
+		vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
 		for(int l2 = 0; l2 < local_lights_count; ++l2)
 		{
 			float d = length(position.xyz - Lights[local_lights[l2]].position.xyz);
 			if(d < lightRadius)
 				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+		}
+		
+		for(int shadow = 0; shadow < local_shadows_count; ++shadow)
+		{
+			vec4 sc = Shadows[local_shadows[shadow]].depthMVP * vec4(position.xyz, 1.0);
+			if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
+				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
+			{				
+				if(textureProj(ShadowMaps[local_shadows[shadow]], sc.xyw).z + bias >= sc.z/sc.w)
+				{
+					ColorOut.rgb += phong(position.xyz, normal, color, Shadows[local_shadows[shadow]].position.xyz, Shadows[local_shadows[shadow]].color.rgb);
+				}
+			}
 		}
 		imageStore(ColorDepth, ivec2(pixel), ColorOut);
 		

@@ -56,7 +56,7 @@ float		_frameTime;
 float		_frameRate;
 bool		_paused = false;
 
-int			_colorToRender = 3;
+int			_colorToRender = 0;
 
 Framebuffer<Texture2D, 3>	_offscreenRender;
 	
@@ -191,8 +191,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				}
 				case GLFW_KEY_C:
 				{
-					_colorToRender = (_colorToRender + 1) % 7;
-					std::cout << "Render setting: " << _colorToRender << std::endl;
+					_colorToRender = (_colorToRender + 1) % 6;
 					break;
 				}
 				case GLFW_KEY_L:
@@ -252,13 +251,6 @@ struct LightStruct
 {
 	glm::vec4	position;
 	glm::vec4	color;
-};
-
-struct ShadowStruct
-{
-	glm::vec4	position;
-	glm::vec4	color;
-	glm::mat4	depthMVP;
 };
 
 struct CameraStruct
@@ -456,12 +448,6 @@ int main(int argc, char* argv[])
 	
 	if(!DeferredCS.getProgram()) return 0;
 	
-	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
-	DeferredShadowCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_shadow_cs.glsl");
-	DeferredShadowCS.compile();
-	
-	if(!DeferredShadowCS.getProgram()) return 0;
-	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
 	
@@ -470,9 +456,10 @@ int main(int argc, char* argv[])
 	CameraBuffer.init();
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
+	//PostProcess.bindUniformBlock("Camera", CameraBuffer);
+	//DeferredCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
 	DeferredLight.bindUniformBlock("Camera", CameraBuffer);
 	DeferredColor.bindUniformBlock("Camera", CameraBuffer);
-	//DeferredShadowCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
 	
 	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
 	
@@ -480,53 +467,20 @@ int main(int argc, char* argv[])
 	// Light initialization
 	
 	const size_t LightCount = 250;
+	//Deferred.setUniform("lightCount", LightCount);
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
-	DeferredShadowCS.getProgram().setUniform("lightCount", LightCount);
 	
-	UniformBuffer LightBuffer;
+	UniformBuffer LightBuffer; //(Buffer::ShaderStorage);
 	
 	LightBuffer.init();
 	LightBuffer.bind(1);
 
 	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
 	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
-	DeferredShadowCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
+	//DeferredLight.bindUniformBlock("LightBlock", 2);
 	
 	LightStruct tmpLight[LightCount];
-	
-	// Shadow casting lights ---------------------------------------------------
-	const size_t ShadowCount = 3;
-	UniformBuffer ShadowBuffers[3];
-	DeferredShadowCS.getProgram().setUniform("shadowCount", ShadowCount);
-	
-	Light MainLights[ShadowCount] = {Light(2048), Light(2048), Light(2048)};
-	MainLights[0].init();
-	MainLights[0].setColor(glm::vec4(0.0, 1.0, 0.0, 1.0));
-	MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
-	MainLights[0].lookAt(glm::vec3(0.0));
-	
-	MainLights[1].init();
-	MainLights[1].setColor(glm::vec4(1.0, 0.0, 0.0, 1.0));
-	MainLights[1].setPosition(glm::vec3(-100.0, 800.0, 100.0));
-	MainLights[1].lookAt(glm::vec3(0.0));
-	
-	MainLights[2].init();
-	MainLights[2].setColor(glm::vec4(0.0, 0.0, 1.0, 1.0));
-	MainLights[2].setPosition(glm::vec3(100.0, 800.0, -100.0));
-	MainLights[2].lookAt(glm::vec3(0.0));
-	
-	for(size_t i = 0; i < ShadowCount; ++i)
-	{
-		ShadowBuffers[i].init();
-		ShadowBuffers[i].bind(i + 2);
-		MainLights[i].updateMatrices();
-		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
-		
-		DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
-		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
-	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
@@ -663,27 +617,6 @@ int main(int argc, char* argv[])
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
-		// ShadowMaps update
-		
-		for(size_t i = 0; i < ShadowCount; ++i)
-		{
-			//MainLights[i].updateMatrices();
-			//ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			//ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
-			MainLights[i].bind();
-			
-			for(auto& b : _meshInstances)
-				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-				{
-					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-					b.getMesh().draw();
-				}
-			
-			MainLights[i].unbind();
-		}
-		
-		
-		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
 		
 		// Offscreen
@@ -753,8 +686,8 @@ int main(int argc, char* argv[])
 			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
-			DeferredCS.getProgram().setUniform("Position", (int) 1);
-			DeferredCS.getProgram().setUniform("Normal", (int) 2);	
+			DeferredCS.getProgram().setUniform("Position", 1);
+			DeferredCS.getProgram().setUniform("Normal", 2);	
 			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 			DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
 			DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
@@ -764,29 +697,11 @@ int main(int argc, char* argv[])
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			_offscreenRender.bind(FramebufferTarget::Read);
 			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		} else if(_colorToRender == 3) {	
-			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			for(size_t i = 0; i < ShadowCount; ++i)
-				MainLights[i].getShadowMap().bind(i + 3);
-			DeferredShadowCS.getProgram().setUniform("ColorDepth", (int) 0);
-			DeferredShadowCS.getProgram().setUniform("Position", (int) 1);
-			DeferredShadowCS.getProgram().setUniform("Normal", (int) 2);	
-			DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
-			DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
-			DeferredShadowCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
-			DeferredShadowCS.memoryBarrier();
-		
-			// Blitting
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(FramebufferTarget::Read);
-			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		} else { 
 			// Blitting
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			_offscreenRender.bind(FramebufferTarget::Read);
-			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 4));
+			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 3));
 			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		}
 		
