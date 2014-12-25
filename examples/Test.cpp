@@ -500,7 +500,7 @@ int main(int argc, char* argv[])
 	UniformBuffer ShadowBuffers[3];
 	DeferredShadowCS.getProgram().setUniform("shadowCount", ShadowCount);
 	
-	Light MainLights[ShadowCount] = {Light(2048), Light(2048), Light(2048)};
+	Light MainLights[ShadowCount];
 	MainLights[0].init();
 	MainLights[0].setColor(glm::vec4(0.0, 1.0, 0.0, 1.0));
 	MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
@@ -524,7 +524,7 @@ int main(int argc, char* argv[])
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
 		
-		DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
+		//DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
 		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
 	}
 	
@@ -665,11 +665,17 @@ int main(int argc, char* argv[])
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// ShadowMaps update
 		
+		MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 800.0 , 0.0));
+		MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
+		
 		for(size_t i = 0; i < ShadowCount; ++i)
 		{
-			//MainLights[i].updateMatrices();
-			//ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			//ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+			MainLights[i].updateMatrices();
+			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+			
 			MainLights[i].bind();
 			
 			for(auto& b : _meshInstances)

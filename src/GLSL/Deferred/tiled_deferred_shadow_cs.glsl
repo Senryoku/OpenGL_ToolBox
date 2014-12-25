@@ -6,12 +6,13 @@ struct LightStruct
 	vec4		color;
 };
 
-layout(std140) uniform LightBlock
+layout(std140, binding = 1) uniform LightBlock
 {
 	LightStruct	Lights[1024];
 };
 
-layout(std140) uniform ShadowBlock {
+layout(std140, binding = 2) uniform ShadowBlock
+{
 	vec4		position;
 	vec4		color;
 	mat4 		depthMVP;
@@ -23,7 +24,7 @@ uniform float lightRadius = 100.0;
 uniform unsigned int shadowCount = 0;
 
 uniform float	minDiffuse = 0.0;
-uniform float	bias = 0.000005f;
+uniform float	bias = 0.00001f;
 
 uniform vec3	cameraPosition;
 
@@ -45,21 +46,24 @@ shared int max_z;
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
 
-// Shadow casting lights
-shared int local_shadows_count; // = 0;
-shared int local_shadows[8];
-
 void add_light(int l)
 {
 	int idx = atomicAdd(local_lights_count, 1);
 	local_lights[idx] = l;
 }
 
+
+// Shadow casting lights
+/*
+shared int local_shadows_count; // = 0;
+shared int local_shadows[8];
+
 void add_shadow(int s)
 {
 	int idx = atomicAdd(local_shadows_count, 1);
 	local_shadows[idx] = s;
 }
+*/
 
 float square(float f)
 {
@@ -109,7 +113,7 @@ void main(void)
 	if(local_pixel == uvec2(0, 0))
 	{
 		local_lights_count = 0;
-		local_shadows_count = 0;
+		//local_shadows_count = 0;
 		
 		min_x = highValue;
 		max_x = -highValue;
@@ -155,10 +159,12 @@ void main(void)
 		}
 	}
 	
-	// Test shadow casting lights
+	// Test shadow casting lights (Skiped for now.)
+	/*
 	if(gl_LocalInvocationIndex < shadowCount)
 		add_shadow(int(gl_LocalInvocationIndex)); // TODO: Check if usefull
-		
+	*/
+	
 	barrier();
 	
 	//Compute lights' contributions
@@ -175,6 +181,7 @@ void main(void)
 				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
 		}
 		
+		/*
 		for(int shadow = 0; shadow < local_shadows_count; ++shadow)
 		{
 			vec4 sc = Shadows[local_shadows[shadow]].depthMVP * vec4(position.xyz, 1.0);
@@ -187,6 +194,36 @@ void main(void)
 				}
 			}
 		}
+		*/
+		
+		for(int shadow = 0; shadow < shadowCount; ++shadow)
+		{
+			vec4 sc = Shadows[shadow].depthMVP * vec4(position.xyz, 1.0);
+			if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
+				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
+			{				
+				if(textureProj(ShadowMaps[shadow], sc.xyw).z + bias >= sc.z/sc.w)
+				{
+					// Ok, WHAT the actual FUCK ?! Inlining seem to fail here... compiler bug ? Oô
+					//ColorOut.rgb += phong(position.xyz, normal, color, Shadows[shadow].position.xyz, Shadows[shadow].color.rgb);
+					
+					// So... this is just the call to phong(...) but inlined by hand...
+					
+					vec3 L = normalize(Shadows[shadow].position.xyz - position.xyz);
+					float dNL = dot(normal, L);
+
+					float diffuseFactor = max(dNL, minDiffuse);
+
+					vec3 V = normalize(cameraPosition - position.xyz);
+					vec3 R = normalize(reflect(-L, normal));
+
+					float specularFactor = pow(max(dot(R, V), 0.f), 8.0);
+												
+					ColorOut.rgb += diffuseFactor * color * Shadows[shadow].color.rgb + specularFactor * Shadows[shadow].color.rgb;
+				}
+			}
+		}
+		
 		imageStore(ColorDepth, ivec2(pixel), ColorOut);
 		
 		// DEBUG

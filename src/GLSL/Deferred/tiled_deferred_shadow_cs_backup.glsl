@@ -1,21 +1,21 @@
 #version 430
 
-layout(std140) uniform ShadowBlock {
-	vec4		position;
-	vec4		color;
-	mat4 		depthMVP;
-} Shadows[8];
-
 struct LightStruct
 {
 	vec4		position;
 	vec4		color;
 };
 
-layout(std140) uniform LightBlock
+layout(std140, binding = 1) uniform LightBlock
 {
 	LightStruct	Lights[1024];
 };
+
+layout(std140, binding = 2) uniform ShadowBlock {
+	vec4		position;
+	vec4		color;
+	mat4 		depthMVP;
+} Shadows[8];
 
 uniform unsigned int lightCount = 75;
 uniform float lightRadius = 100.0;
