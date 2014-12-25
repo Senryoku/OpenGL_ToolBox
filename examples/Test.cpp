@@ -660,34 +660,7 @@ int main(int argc, char* argv[])
 			};
 		}
 		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
-		////////////////////////////////////////////////////////////////////////////////////////////
-		
-		////////////////////////////////////////////////////////////////////////////////////////////
-		// ShadowMaps update
-		
-		MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 800.0 , 0.0));
-		MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 800.0 , 0.0));
-		MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
-		
-		for(size_t i = 0; i < ShadowCount; ++i)
-		{
-			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
-			MainLights[i].updateMatrices();
-			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
-			
-			MainLights[i].bind();
-			
-			for(auto& b : _meshInstances)
-				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-				{
-					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-					b.getMesh().draw();
-				}
-			
-			MainLights[i].unbind();
-		}
-		
+		////////////////////////////////////////////////////////////////////////////////////////////		
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
@@ -771,6 +744,32 @@ int main(int argc, char* argv[])
 			_offscreenRender.bind(FramebufferTarget::Read);
 			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		} else if(_colorToRender == 3) {	
+			////////////////////////////////////////////////////////////////////////////////////////
+			// ShadowMaps update
+			
+			MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 800.0 , 0.0));
+			MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 800.0 , 0.0));
+			MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
+			
+			for(size_t i = 0; i < ShadowCount; ++i)
+			{
+				MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+				MainLights[i].updateMatrices();
+				ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+				ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+				
+				MainLights[i].bind();
+				
+				for(auto& b : _meshInstances)
+					if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+					{
+						Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+						b.getMesh().draw();
+					}
+				
+				MainLights[i].unbind();
+			}
+		
 			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
