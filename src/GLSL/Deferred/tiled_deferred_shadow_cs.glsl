@@ -199,8 +199,10 @@ void main(void)
 		for(int shadow = 0; shadow < shadowCount; ++shadow)
 		{
 			vec4 sc = Shadows[shadow].depthMVP * vec4(position.xyz, 1.0);
+			//if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
+			//	(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
 			if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
-				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
+				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f) && ((sc.x/sc.w * 2.0 - 1.0)*(sc.x/sc.w * 2.0 - 1.0) + (sc.y/sc.w * 2.0 - 1.0)*(sc.y/sc.w * 2.0 - 1.0) < 1.0))
 			{				
 				if(textureProj(ShadowMaps[shadow], sc.xyw).z + bias >= sc.z/sc.w)
 				{

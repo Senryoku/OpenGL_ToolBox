@@ -502,18 +502,18 @@ int main(int argc, char* argv[])
 	
 	Light MainLights[ShadowCount];
 	MainLights[0].init();
-	MainLights[0].setColor(glm::vec4(0.0, 1.0, 0.0, 1.0));
+	MainLights[0].setColor(glm::vec4(0.5, 0.75, 0.5, 1.0));
 	MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
 	MainLights[0].lookAt(glm::vec3(0.0));
 	
 	MainLights[1].init();
-	MainLights[1].setColor(glm::vec4(1.0, 0.0, 0.0, 1.0));
+	MainLights[1].setColor(glm::vec4(0.75, 0.5, 0.5, 1.0));
 	MainLights[1].setPosition(glm::vec3(-100.0, 800.0, 100.0));
 	MainLights[1].lookAt(glm::vec3(0.0));
 	
 	MainLights[2].init();
-	MainLights[2].setColor(glm::vec4(0.0, 0.0, 1.0, 1.0));
-	MainLights[2].setPosition(glm::vec3(100.0, 800.0, -100.0));
+	MainLights[2].setColor(glm::vec4(0.5, 0.5, 0.75, 1.0));
+	MainLights[2].setPosition(glm::vec3(0.0, 800.0, -100.0));
 	MainLights[2].lookAt(glm::vec3(0.0));
 	
 	for(size_t i = 0; i < ShadowCount; ++i)
@@ -747,9 +747,9 @@ int main(int argc, char* argv[])
 			////////////////////////////////////////////////////////////////////////////////////////
 			// ShadowMaps update
 			
-			MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 800.0 , 0.0));
-			MainLights[1].setPosition(-300.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 800.0 , 0.0));
-			MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 800.0 , 0.0));
+			MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 500.0 , 0.0));
+			MainLights[1].setPosition(400.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 400.0 , 0.0));
+			MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 700.0 , 0.0));
 			
 			for(size_t i = 0; i < ShadowCount; ++i)
 			{
