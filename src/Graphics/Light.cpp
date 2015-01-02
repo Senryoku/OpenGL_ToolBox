@@ -20,6 +20,8 @@ const glm::mat4 Light::s_depthBiasMVP
 Program* 			Light::s_depthProgram = nullptr;
 VertexShader*		Light::s_depthVS = nullptr;
 FragmentShader*		Light::s_depthFS = nullptr;
+Program* 			Light::s_depthInstanceProgram = nullptr;
+VertexShader*		Light::s_depthInstanceVS = nullptr;
 
 ///////////////////////////////////////////////////////////////////
 
@@ -32,30 +34,14 @@ Light::Light(unsigned int shadowMapResolution) :
 		
 void Light::init()
 {
-	if(s_depthProgram == nullptr)
-	{
-		s_depthProgram = &ResourcesManager::getInstance().getProgram("Light_Depth");
-		s_depthVS = &ResourcesManager::getInstance().getShader<VertexShader>("Light_DepthVS");
-		s_depthFS = &ResourcesManager::getInstance().getShader<FragmentShader>("Light_DepthFS");
-	}
-	
-	if(s_depthProgram != nullptr && !s_depthProgram->isValid())
-	{
-		s_depthVS->loadFromFile("src/GLSL/depth_vs.glsl");
-		s_depthVS->compile();
-		s_depthFS->loadFromFile("src/GLSL/depth_fs.glsl");
-		s_depthFS->compile();
-		s_depthProgram->attachShader(*s_depthVS);
-		s_depthProgram->attachShader(*s_depthFS);
-		s_depthProgram->link();
-	}
+	initPrograms();
 	
 	_shadowMapFramebuffer.init();
 }
 
 void Light::updateMatrices()
 {
-	_view = glm::lookAt(_position, _position + _direction, glm::vec3(0,1,0));
+	_view = glm::lookAt(_position, _position + _direction, glm::vec3(0, 1, 0));
 	_VPMatrix = _projection * _view;
 	_biasedVPMatrix = s_depthBiasMVP * _VPMatrix;
 }
@@ -69,9 +55,48 @@ void Light::bind() const
 	glCullFace(GL_FRONT);
 }
 
+void Light::bindInstanced() const
+{
+	getShadowBuffer().bind();
+	getShadowBuffer().clear(BufferBit::Depth);
+	getShadowMapInstanceProgram().setUniform("DepthVP", getMatrix());
+	getShadowMapInstanceProgram().use();
+	glCullFace(GL_FRONT);
+}
+
 void Light::unbind() const
 {
 	glCullFace(GL_BACK);
 	Program::useNone();
 	getShadowBuffer().unbind();
+}
+
+void Light::initPrograms()
+{
+	if(s_depthProgram == nullptr)
+	{
+		s_depthProgram = &ResourcesManager::getInstance().getProgram("Light_Depth");
+		s_depthVS = &ResourcesManager::getInstance().getShader<VertexShader>("Light_DepthVS");
+		s_depthFS = &ResourcesManager::getInstance().getShader<FragmentShader>("Light_DepthFS");
+		
+		s_depthInstanceProgram = &ResourcesManager::getInstance().getProgram("Light_DepthInstance");
+		s_depthInstanceVS = &ResourcesManager::getInstance().getShader<VertexShader>("Light_DepthInstanceVS");
+	}
+	
+	if(s_depthProgram != nullptr && !s_depthProgram->isValid())
+	{
+		s_depthVS->loadFromFile("src/GLSL/depth_vs.glsl");
+		s_depthVS->compile();
+		s_depthFS->loadFromFile("src/GLSL/depth_fs.glsl");
+		s_depthFS->compile();
+		s_depthProgram->attachShader(*s_depthVS);
+		s_depthProgram->attachShader(*s_depthFS);
+		s_depthProgram->link();
+		
+		s_depthInstanceVS->loadFromFile("src/GLSL/depth_instance_vs.glsl");
+		s_depthInstanceVS->compile();
+		s_depthInstanceProgram->attachShader(*s_depthInstanceVS);
+		s_depthInstanceProgram->attachShader(*s_depthFS);
+		s_depthInstanceProgram->link();
+	}
 }

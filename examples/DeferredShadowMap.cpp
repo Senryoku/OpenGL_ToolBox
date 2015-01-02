@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp> // glm::lookAt, glm::perspective
 #include <glm/gtx/transform.hpp> // glm::translate
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
+#include <AntTweakBar.h>
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
@@ -93,123 +94,158 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	_offscreenRender.getColor(2).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.init();
 	
+	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
 }
 
+// Hackish way to add basic support of GLFW3 to AntTweakBar
+// There may have some problems: http://sourceforge.net/p/anttweakbar/tickets/11/
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	if(action == GLFW_PRESS)
+	// Quick GLFW3 compatibility hack...
+	int twkey = key;
+	switch(twkey)
 	{
-		switch(key)
-		{
-			case GLFW_KEY_ESCAPE:
-			{
-				glfwSetWindowShouldClose(window, GL_TRUE);
-				break;
-			}
-			case GLFW_KEY_R:
-			{
-				std::cout << "Reloading shaders..." << std::endl;
-				ResourcesManager::getInstance().reloadShaders();
-				std::cout << "Reloading shaders... Done !" << std::endl;
-				break;
-			}
-			case GLFW_KEY_SPACE:
-			{
-				if(!_controlCamera)
-				{
-					glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-				} else {
-					glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-				}
-				_controlCamera = !_controlCamera;
-				break;
-			}
-			case GLFW_KEY_X:
-			{
-				_msaa = ! _msaa;
-				if(_msaa)
-				{
-					glEnable(GL_MULTISAMPLE);
-					glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
-					
-					GLint  iMultiSample = 0;
-					GLint  iNumSamples = 0;
-					glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
-					glGetIntegerv(GL_SAMPLES, &iNumSamples);
-					
-					std::cout << "Enabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
-				} else {
-					glDisable(GL_MULTISAMPLE);
-					
-					GLint  iMultiSample = 0;
-					GLint  iNumSamples = 0;
-					glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
-					glGetIntegerv(GL_SAMPLES, &iNumSamples);
-					std::cout << "Disabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
-				}
-				break;
-			}
-			case GLFW_KEY_V:
-			{
-				_fullscreen = !_fullscreen;
-				if(_fullscreen)
-				{
-					std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
-				} else {
-					std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
-				}
-				break;
-			}
-			case GLFW_KEY_P:
-			{
-				_paused = !_paused;
-				break;
-			}
-			case GLFW_KEY_C:
-			{
-				_colorToRender = (_colorToRender + 1) % 7;
-				std::cout << "Render setting: " << _colorToRender << std::endl;
-				break;
-			}
-			case GLFW_KEY_L:
-			{
-				const std::string ScreenPath("out/screenshot.png");
-				std::cout << "Saving a screenshot to " << ScreenPath << "..." << std::endl;
-				screen(ScreenPath);
-			}
-		}
-	}
-}
-
-inline void EventMouseButtonGLFW3(GLFWwindow* window, int button, int action, int mods)
-{	
-	float z = _mouse.z;
-	float w = _mouse.w;
-	if(button == GLFW_MOUSE_BUTTON_1)
-	{
-		if(action == GLFW_PRESS)
-		{
-			z = 1.0;
-		} else {
-			z = 0.0;
-		}
-	} else if(button == GLFW_MOUSE_BUTTON_2) {
-		if(action == GLFW_PRESS)
-		{
-			w = 1.0;
-		} else {
-			w = 0.0;
-		}
+		case GLFW_KEY_LEFT: twkey = TW_KEY_LEFT; break;
+		case GLFW_KEY_RIGHT: twkey = TW_KEY_RIGHT; break;
+		case GLFW_KEY_UP: twkey = TW_KEY_UP; break;
+		case GLFW_KEY_DOWN: twkey = TW_KEY_DOWN; break;
+		case GLFW_KEY_ESCAPE: twkey = 256 + 1; break;
+		case GLFW_KEY_ENTER: twkey = 256 + 38; break;
+		case GLFW_KEY_KP_ENTER: twkey = 62; break;
+		case GLFW_KEY_BACKSPACE: twkey = 256 + 39; break;
+		case GLFW_KEY_SPACE: twkey = 32; break;
+		default: break;
 	}
 	
-	_mouse = glm::vec4(_mouse.x, _mouse.y, z, w);
+	if(!TwEventKeyGLFW(twkey, action))
+	{
+		if(action == GLFW_PRESS)
+		{
+			switch(key)
+			{
+				case GLFW_KEY_ESCAPE:
+				{
+					glfwSetWindowShouldClose(window, GL_TRUE);
+					break;
+				}
+				case GLFW_KEY_R:
+				{
+					std::cout << "Reloading shaders..." << std::endl;
+					ResourcesManager::getInstance().reloadShaders();
+					std::cout << "Reloading shaders... Done !" << std::endl;
+					break;
+				}
+				case GLFW_KEY_SPACE:
+				{
+					if(!_controlCamera)
+					{
+						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+					} else {
+						glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					}
+					_controlCamera = !_controlCamera;
+					break;
+				}
+				case GLFW_KEY_X:
+				{
+					_msaa = ! _msaa;
+					if(_msaa)
+					{
+						glEnable(GL_MULTISAMPLE);
+						glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+						
+						GLint  iMultiSample = 0;
+						GLint  iNumSamples = 0;
+						glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+						glGetIntegerv(GL_SAMPLES, &iNumSamples);
+						
+						std::cout << "Enabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
+					} else {
+						glDisable(GL_MULTISAMPLE);
+						
+						GLint  iMultiSample = 0;
+						GLint  iNumSamples = 0;
+						glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+						glGetIntegerv(GL_SAMPLES, &iNumSamples);
+						std::cout << "Disabled MSAA (GL_SAMPLES : " << iNumSamples << ", GL_SAMPLE_BUFFERS : " << iMultiSample << ")" << std::endl;
+					}
+					break;
+				}
+				case GLFW_KEY_V:
+				{
+					_fullscreen = !_fullscreen;
+					if(_fullscreen)
+					{
+						std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
+					} else {
+						std::cout << "TODO: Add fullscreen :p (Sorry...)" << std::endl;
+					}
+					break;
+				}
+				case GLFW_KEY_P:
+				{
+					_paused = !_paused;
+					break;
+				}
+				case GLFW_KEY_C:
+				{
+					_colorToRender = (_colorToRender + 1) % 7;
+					std::cout << "Render setting: " << _colorToRender << std::endl;
+					break;
+				}
+				case GLFW_KEY_L:
+				{
+					const std::string ScreenPath("out/screenshot.png");
+					std::cout << "Saving a screenshot to " << ScreenPath << "..." << std::endl;
+					screen(ScreenPath);
+				}
+			}
+		}
+	}
 }
 
-inline void EventMousePosGLFW3(GLFWwindow* window, double xpos, double ypos)
-{
-	_mouse = glm::vec4(xpos, ypos, _mouse.z, _mouse.w);
+inline void TwEventMouseButtonGLFW3(GLFWwindow* window, int button, int action, int mods)
+{	
+	if(!TwEventMouseButtonGLFW(button, action))
+	{
+		float z = _mouse.z;
+		float w = _mouse.w;
+		if(button == GLFW_MOUSE_BUTTON_1)
+		{
+			if(action == GLFW_PRESS)
+			{
+				z = 1.0;
+			} else {
+				z = 0.0;
+			}
+		} else if(button == GLFW_MOUSE_BUTTON_2) {
+			if(action == GLFW_PRESS)
+			{
+				w = 1.0;
+			} else {
+				w = 0.0;
+			}
+		}
+		
+		_mouse = glm::vec4(_mouse.x, _mouse.y, z, w);
+	}
 }
+
+inline void TwEventMousePosGLFW3(GLFWwindow* window, double xpos, double ypos)
+{
+	if(!TwMouseMotion(int(xpos), int(ypos)))
+	{
+		_mouse = glm::vec4(xpos, ypos, _mouse.z, _mouse.w);
+	}
+}
+
+inline void TwEventMouseWheelGLFW3(GLFWwindow* window, double xoffset, double yoffset) { TwEventMouseWheelGLFW(yoffset); }
+
+inline void TwEventKeyGLFW3(GLFWwindow* window, int key, int scancode, int action, int mods) { TwEventKeyGLFW(key, action); }
+
+inline void TwEventCharGLFW3(GLFWwindow* window, int codepoint) { TwEventCharGLFW(codepoint, GLFW_PRESS); }
 
 // Temp
 struct LightStruct
@@ -303,21 +339,38 @@ int main(int argc, char* argv[])
 	
 	// Callback Setting
 	glfwSetKeyCallback(window, key_callback);
-	glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun) EventMouseButtonGLFW3);
-	glfwSetCursorPosCallback(window, (GLFWcursorposfun) EventMousePosGLFW3);
+	glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun) TwEventMouseButtonGLFW3);
+	glfwSetCursorPosCallback(window, (GLFWcursorposfun) TwEventMousePosGLFW3);
+	glfwSetScrollCallback(window, (GLFWscrollfun) TwEventMouseWheelGLFW3);
+	glfwSetCharCallback(window, (GLFWcharfun)TwEventCharGLFW3);
 	
 	glfwSetWindowSizeCallback(window, resize_callback);
 	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	
+	TwInit(TW_OPENGL, nullptr);
+	TwWindowSize(_width, _height);
 			
 	float LightRadius = 75.0;
 	bool DrawLights = false;
 	
+	TwBar* bar = TwNewBar("Global Tweaks");
+	TwDefine("'Global Tweaks' color='0 0 0' ");
+	TwDefine("'Global Tweaks' iconified=true ");
+	TwAddVarRO(bar, "FrameTime", TW_TYPE_FLOAT, &_frameTime, "");
+	TwAddVarRO(bar, "FrameRate", TW_TYPE_FLOAT, &_frameRate, "");
+	TwAddVarRW(bar, "TimeScale", TW_TYPE_FLOAT, &_timescale, "min=0.0 step=0.1");
+	TwAddVarRW(bar, "FOV", TW_TYPE_FLOAT, &_fov, "min=0.0 step=0.1");
+	TwAddVarRW(bar, "LightRadius", TW_TYPE_FLOAT, &LightRadius, "min=0.0 step=1.0");
+	TwAddVarRO(bar, "Fullscreen (V to toogle)", TW_TYPE_BOOLCPP, &_fullscreen, "");
+	TwAddVarRO(bar, "MSAA (X to toogle)", TW_TYPE_BOOLCPP, &_msaa, "");
+	TwAddVarRW(bar, "Update VFC", TW_TYPE_BOOLCPP, &_updateVFC, "");
+	TwAddVarRW(bar, "Draw Lights", TW_TYPE_BOOLCPP, &DrawLights, "");
+	
 	glEnable(GL_DEPTH_TEST);
 	
 	VertexShader& DeferredVS = ResourcesManager::getInstance().getShader<VertexShader>("Deferred_VS");
-	//DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
-	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_instance_vs.glsl");
+	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
 	DeferredVS.compile();
 
 	FragmentShader& DeferredFS = ResourcesManager::getInstance().getShader<FragmentShader>("Deferred_FS");
@@ -383,6 +436,20 @@ int main(int argc, char* argv[])
 	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
 	PostProcessMaterial.setUniform("lightRadius", &LightRadius);
 	
+	/*
+	FragmentShader& FullScreenTextureFS = ResourcesManager::getInstance().getShader<FragmentShader>("FullScreenTextureFS");
+	FullScreenTextureFS.loadFromFile("src/GLSL/DisplayTexture.glsl");
+	FullScreenTextureFS.compile();
+	
+	Program& FullScreenTexture = ResourcesManager::getInstance().getProgram("FullScreenTexture");
+	FullScreenTexture.attachShader(PostProcessVS);
+	FullScreenTexture.attachShader(FullScreenTextureFS);
+	FullScreenTexture.link();
+	
+	if(!FullScreenTexture) return 0;
+	FullScreenTexture.setUniform("Texture", 0);
+	*/
+	
 	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
 	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
 	DeferredCS.compile();
@@ -412,7 +479,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 10;
+	const size_t LightCount = 250;
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
 	DeferredShadowCS.getProgram().setUniform("lightCount", LightCount);
@@ -429,34 +496,25 @@ int main(int argc, char* argv[])
 	LightStruct tmpLight[LightCount];
 	
 	// Shadow casting lights ---------------------------------------------------
-	const size_t ShadowCount = 1;
-	UniformBuffer ShadowBuffers[ShadowCount];
+	const size_t ShadowCount = 3;
+	UniformBuffer ShadowBuffers[3];
 	DeferredShadowCS.getProgram().setUniform("shadowCount", ShadowCount);
 	
 	Light MainLights[ShadowCount];
-	if(ShadowCount > 0)
-	{
-		MainLights[0].init();
-		MainLights[0].setColor(glm::vec4(0.5, 0.75, 0.5, 1.0));
-		MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
-		MainLights[0].lookAt(glm::vec3(0.0));
-	}
+	MainLights[0].init();
+	MainLights[0].setColor(glm::vec4(0.5, 0.75, 0.5, 1.0));
+	MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
+	MainLights[0].lookAt(glm::vec3(0.0));
 	
-	if(ShadowCount > 1)
-	{
-		MainLights[1].init();
-		MainLights[1].setColor(glm::vec4(0.75, 0.5, 0.5, 1.0));
-		MainLights[1].setPosition(glm::vec3(-100.0, 800.0, 100.0));
-		MainLights[1].lookAt(glm::vec3(0.0));
-	}
+	MainLights[1].init();
+	MainLights[1].setColor(glm::vec4(0.75, 0.5, 0.5, 1.0));
+	MainLights[1].setPosition(glm::vec3(-100.0, 800.0, 100.0));
+	MainLights[1].lookAt(glm::vec3(0.0));
 	
-	if(ShadowCount > 2)
-	{
-		MainLights[2].init();
-		MainLights[2].setColor(glm::vec4(0.5, 0.5, 0.75, 1.0));
-		MainLights[2].setPosition(glm::vec3(0.0, 800.0, -100.0));
-		MainLights[2].lookAt(glm::vec3(0.0));
-	}
+	MainLights[2].init();
+	MainLights[2].setColor(glm::vec4(0.5, 0.5, 0.75, 1.0));
+	MainLights[2].setPosition(glm::vec3(0.0, 800.0, -100.0));
+	MainLights[2].lookAt(glm::vec3(0.0));
 	
 	for(size_t i = 0; i < ShadowCount; ++i)
 	{
@@ -484,101 +542,59 @@ int main(int argc, char* argv[])
 	Texture2D GroundNormalMap;
 	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
 	
-	Mesh Box;
-	float s = 2.0 / 2.0;
-	glm::vec3 BoxVertices[8] = {glm::vec3(-s, -s, -s), glm::vec3(-s, -s, s), glm::vec3(s, -s, s), glm::vec3(s, -s, -s),
-								   glm::vec3(-s,  s, -s), glm::vec3(-s,  s, s), glm::vec3(s,  s, s), glm::vec3(s,  s, -s)};
-	glm::vec3 up{0.0, 1.0, 0.0};
-	glm::vec3 down{0.0, -1.0, 0.0};
-	glm::vec3 right{1.0, 0.0, 0.0};
-	glm::vec3 left{-1.0, 0.0, 0.0};
-	glm::vec3 forward{0.0, 0.0, 1.0};
-	glm::vec3 backward{0.0, 0.0, -1.0};
+	Mesh Plane;
+	float s = 1000.f;
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 20.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 0.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 0.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 20.f)));
+	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
+	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
+	Plane.setBoundingBox({glm::vec3(-s, 0.f, -s), glm::vec3(s, 0.f, s)});
+	Plane.createVAO();
+	Plane.getMaterial().setShadingProgram(Deferred);
+	Plane.getMaterial().setUniform("Texture", GroundTexture);
+	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], down, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], down, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], down, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], down, glm::vec2(1.f, 1.f)));
+	_meshInstances.push_back(MeshInstance(Plane));
+	_tweakbars.push_back(std::make_pair(_meshInstances.size() - 1, "Plane"));
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], up, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], up, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], up, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], up, glm::vec2(1.f, 1.f)));
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Balls
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], backward, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], backward, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], backward, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], backward, glm::vec2(1.f, 1.f)));
+	auto BallV = Mesh::load("in/3DModels/poolball/Ball1.obj");
+	auto& Ball = BallV[0];
+	Texture2D BallTex;
+	BallTex.load(std::string("in/3DModels/poolball/lawl.jpg"));
+	Texture2D BallNormalMap;
+	BallNormalMap.load(std::string("in/3DModels/poolball/lawl_n.jpg"));
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], left, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], left, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], left, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], left, glm::vec2(1.f, 1.f)));
+	Ball->getMaterial().setShadingProgram(Deferred);
+	Ball->getMaterial().setUniform("Texture", BallTex);
+	Ball->getMaterial().setUniform("NormalMap", BallNormalMap);
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], forward, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], forward, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], forward, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], forward, glm::vec2(1.f, 1.f)));
+	Ball->createVAO();
 	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], right, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], right, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], right, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], right, glm::vec2(1.f, 1.f)));
-	
-	for(int i = 0; i < 6 * 4; i += 4)
-	{
-		Box.getTriangles().push_back(Mesh::Triangle(0 + i, 1 + i, 2 + i));
-		Box.getTriangles().push_back(Mesh::Triangle(0 + i, 2 + i, 3 + i));
-	}
-	
-	Box.setBoundingBox({glm::vec3(-s, -s, -s), glm::vec3(s, s, s)});
-	Box.createVAO();
-	Box.getMaterial().setShadingProgram(Deferred);
-	Box.getMaterial().setUniform("Texture", GroundTexture);
-	Box.getMaterial().setUniform("NormalMap", GroundNormalMap);
-
 	size_t row_ball_count = 20;
 	size_t col_ball_count = 20;
-	/*
 	for(size_t i = 0; i < row_ball_count; ++i)
 		for(size_t j = 0; j < col_ball_count; ++j)
 		{
-			_meshInstances.push_back(MeshInstance(Box, 
+			_meshInstances.push_back(MeshInstance(*Ball, 
 				glm::scale(glm::translate(glm::mat4(1.0), 
 					glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), 
 					glm::vec3(10.0))));
 		}
-	*/
-	
-	std::vector<glm::mat4> tmp_modelmatrices;
-	tmp_modelmatrices.reserve(row_ball_count*col_ball_count);
-	for(size_t i = 0; i < row_ball_count; ++i)
-		for(size_t j = 0; j < col_ball_count; ++j)
-		{
-			tmp_modelmatrices.push_back(glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0)));
-		}
 		
-	Buffer BoxesModelMatrices(Buffer::VertexAttributes);
-	BoxesModelMatrices.init();
-	BoxesModelMatrices.data(tmp_modelmatrices.data(), sizeof(glm::mat4) * tmp_modelmatrices.size(), Buffer::StaticDraw);
-	Box.getVAO().bind();
-	for(int i = 0; i < 8; ++i)
-		glEnableVertexAttribArray(i);
-	BoxesModelMatrices.bind();
-	for(int i = 0; i < 4; ++i)
-	{
-		Box.getVAO().attribute(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const GLvoid*) (sizeof(float) * i * 4));
-		glVertexAttribDivisor(3 + i, 1);
-	}
-	Box.getVAO().unbind();
-	BoxesModelMatrices.unbind();
-	
-	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light Sphere Mesh
 	auto LightSphereV = Mesh::load("in/3DModels/sphere/sphere.obj");
 	auto& LightSphere = LightSphereV[0];
 	LightSphere->createVAO();
+	
+	// Creating requested AntTweakBars
+	//for(auto& p : _tweakbars)
+	//	_meshInstances[p.first].getMaterial().createAntTweakBar(p.second);
 	
 	resize_callback(window, _width, _height);
 	
@@ -648,15 +664,13 @@ int main(int argc, char* argv[])
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
-		for(int i = 0; i < 8; ++i)
-			glEnableVertexAttribArray(i);
 		
 		// Offscreen
 		_offscreenRender.bind();
 		_offscreenRender.clear();
 		if(_updateVFC)
 			VFC_ViewMatrix = MainCamera.getMatrix();
-		/*
+			
 		for(auto& b : _meshInstances)
 		{
 			if(isVisible(_projection, VFC_ViewMatrix, b.getModelMatrix(), b.getMesh().getBoundingBox()))
@@ -664,13 +678,6 @@ int main(int argc, char* argv[])
 				b.draw();
 			}
 		}
-		*/
-		Box.getVAO().bind();
-		//BoxesModelMatrices.bind();
-		Box.getMaterial().use();
-		glDrawElementsInstanced(GL_TRIANGLES, Box.getTriangles().size() * 3, GL_UNSIGNED_INT, 0, tmp_modelmatrices.size());
-		//BoxesModelMatrices.unbind();
-		Box.getVAO().unbind();
 		
 		_offscreenRender.unbind();		
 
@@ -740,9 +747,9 @@ int main(int argc, char* argv[])
 			////////////////////////////////////////////////////////////////////////////////////////
 			// ShadowMaps update
 			
-			if(ShadowCount > 0) MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 500.0 , 0.0));
-			if(ShadowCount > 1) MainLights[1].setPosition(400.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 400.0 , 0.0));
-			if(ShadowCount > 2) MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 700.0 , 0.0));
+			MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 500.0 , 0.0));
+			MainLights[1].setPosition(400.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 400.0 , 0.0));
+			MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 700.0 , 0.0));
 			
 			for(size_t i = 0; i < ShadowCount; ++i)
 			{
@@ -751,22 +758,14 @@ int main(int argc, char* argv[])
 				ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 				ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
 				
-				/*
 				MainLights[i].bind();
+				
 				for(auto& b : _meshInstances)
 					if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
 					{
 						Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
 						b.getMesh().draw();
 					}
-				*/
-				
-				MainLights[i].bindInstanced();
-				Box.getVAO().bind();
-				//BoxesModelMatrices.bind();
-				glDrawElementsInstanced(GL_TRIANGLES, Box.getTriangles().size() * 3, GL_UNSIGNED_INT, 0, tmp_modelmatrices.size());
-				//BoxesModelMatrices.unbind();
-				Box.getVAO().unbind();
 				
 				MainLights[i].unbind();
 			}
@@ -821,9 +820,21 @@ int main(int argc, char* argv[])
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
+		// Quick Cleanup for AntTweakBar...
+		for(int i = 0; i < 8; ++i)
+		{
+			Texture::activeUnit(i);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		}
+		
+		TwDraw();
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+	
+	TwTerminate();
 	
 	glfwDestroyWindow(window);
 }

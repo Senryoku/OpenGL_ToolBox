@@ -145,10 +145,18 @@ public:
 	void bind() const;
 	
 	/**
+	 * Setup the context to draw to this light' shadow map, assuming instanced draw calls.
+	 * @todo Find a better name... (Even more urgent.)
+	**/
+	void bindInstanced() const;
+	
+	/**
 	 * Restores the default framebuffer.
 	 * @todo Find a better name...
 	**/
 	void unbind() const;
+	
+	// Static
 	
 	/**
 	 * @return Bias matrix (from screen space to texture space)
@@ -159,6 +167,11 @@ public:
 	 * @return Program used to draw the shadow map.
 	**/
 	inline static const Program& getShadowMapProgram();
+	
+	/**
+	 * @return Program used to draw the shadow map for instanced Draw Calls.
+	**/
+	inline static const Program& getShadowMapInstanceProgram();
 protected:
 	glm::vec4			_color = glm::vec4(1.f);				///< Light's color
 	
@@ -173,13 +186,17 @@ protected:
 	glm::mat4					_VPMatrix;						///< ViewProjection matrix used to draw the shadow map
 	glm::mat4					_biasedVPMatrix;				///< biased ViewProjection matrix used to compute the shadows cast on the scene
 	
-	// Static Attributes
-	
+	// Static
 	static const glm::mat4	s_depthBiasMVP;	///< Used to compute the biased ViewProjection matrix
 	
 	static Program* 		s_depthProgram;	///< Program used to draw the shadow map
     static VertexShader*	s_depthVS;		///< VertexShader used to draw the shadow map
     static FragmentShader*	s_depthFS;		///< FragmentShader used to draw the shadow map
+	
+	static Program* 		s_depthInstanceProgram;	///< Program used to draw the shadow map for instanced Draw Calls
+    static VertexShader*	s_depthInstanceVS;		///< VertexShader used to draw the shadow map for instanced Draw Calls
+	
+	static void initPrograms();
 };
 
 // Inlined functions
@@ -193,4 +210,10 @@ inline const Program& Light::getShadowMapProgram()
 {
 	assert(s_depthProgram != nullptr);
 	return *s_depthProgram;
+}
+
+inline const Program& Light::getShadowMapInstanceProgram()
+{
+	assert(s_depthInstanceProgram != nullptr);
+	return *s_depthInstanceProgram;
 }
