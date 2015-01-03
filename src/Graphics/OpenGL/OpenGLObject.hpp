@@ -27,7 +27,7 @@ public:
 	/**
 	 * Constructs a instance managing an existing OpenGL Object.
 	 * (Copy-constructor is generally a better option)
-	 * @param N Object to manage.
+	 * @param handle Object to manage.
 	**/
 	OpenGLObject(GLuint handle);
 	OpenGLObject(const OpenGLObject&) =default;
@@ -44,9 +44,9 @@ public:
 	/** 
 	 * Sets the OpenGL name of the object managed by this instance
 	 * /!\ Use with caution ! (assignment operator is probably what you're looking for)
-	 * @param N New object to manage.
+	 * @param n New object to manage.
 	**/
-	inline void setName(GLuint N) { _handle = N; }
+	inline void setName(GLuint n) { _handle = N; }
 	
 	/**
 	 * Returns true if the object seems valid.
@@ -58,6 +58,7 @@ public:
 	 * Syntactic sugar for isValid().
 	 * Allow the use of quick tests :
 	 * @code if(OpenGLObject_Instance) { ... }
+	 * @endcode
 	**/
 	inline operator bool() const { return this->isValid(); }
 	

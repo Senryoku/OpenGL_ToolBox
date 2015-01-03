@@ -2,6 +2,10 @@
 
 #include <OpenGLObject.hpp>
 
+/** @file
+ * Wrappers arround OpenGL buffer objects.
+**/
+
 /**
  * OpenGL Buffer Object
 **/
@@ -26,7 +30,7 @@ public:
 		ShaderStorage = GL_SHADER_STORAGE_BUFFER, 					///< Read-write storage for shaders
 		Texture = GL_TEXTURE_BUFFER, 								///< Texture data buffer
 		TransformFeedback = GL_TRANSFORM_FEEDBACK_BUFFER, 			///< Transform feedback buffer
-		Uniform = GL_UNIFORM_BUFFER 								///< Uniform block storage
+		Uniform = GL_UNIFORM_BUFFER 								///< Uniform block storage (UBO)
 	};
 	
 	/**
@@ -116,7 +120,7 @@ public:
 	
 	/**
 	 * Generates a new buffer of type t.
-	 * @param T Type of the new buffer
+	 * @param t Type of the new buffer
 	**/
 	void init(Type t);
 	
@@ -186,6 +190,12 @@ protected:
 	Type	_type = VertexAttributes;	///< Type of the Buffer
 };
 
+/**
+ * Specialization for buffers that can be bound (i.e. AtomicCounter, TransformFeedback, Uniform or ShaderStorage).
+ * @see bind(GLuint bindingPoint)
+ * @see isBound()
+ * @see getBindingPoint()
+**/
 class IndexedBuffer : public Buffer
 {
 public:
@@ -219,6 +229,9 @@ private:
 	GLuint	_bindingPoint	= 0;			///< Binding point of the buffer @see bindBase()
 };
 
+/**
+ * Uniform Buffer Object (UBO)
+**/
 class UniformBuffer : public IndexedBuffer
 {
 public:

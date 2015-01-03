@@ -537,8 +537,8 @@ int main(int argc, char* argv[])
 	Box.getMaterial().setUniform("Texture", GroundTexture);
 	Box.getMaterial().setUniform("NormalMap", GroundNormalMap);
 
-	size_t row_ball_count = 20;
-	size_t col_ball_count = 20;
+	size_t row_ball_count = 300;
+	size_t col_ball_count = 300;
 	/*
 	for(size_t i = 0; i < row_ball_count; ++i)
 		for(size_t j = 0; j < col_ball_count; ++j)
