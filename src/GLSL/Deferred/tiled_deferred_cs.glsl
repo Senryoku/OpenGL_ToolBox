@@ -33,6 +33,8 @@ shared int max_z;
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
 
+const float MATERIAL_UNLIT = 2.0;
+
 void add_light(int l)
 {
 	int idx = atomicAdd(local_lights_count, 1);
@@ -105,7 +107,7 @@ void main(void)
 		
 		isVisible = isVisible && coldepth.w > 0.0 && coldepth.w < 1.0;
 		
-		if(isVisible)
+		if(isVisible && position.w != MATERIAL_UNLIT)
 		{
 			atomicMin(min_x, int(position.x));
 			atomicMax(max_x, int(position.x + 1.0));
@@ -134,7 +136,7 @@ void main(void)
 	barrier();
 	
 	//Compute lights' contributions
-	if(isVisible)
+	if(isVisible && position.w != MATERIAL_UNLIT)
 	{
 		vec3 color = coldepth.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);

@@ -20,6 +20,7 @@
 #include <Framebuffer.hpp>
 #include <Buffer.hpp>
 #include <TransformFeedback.hpp>
+#include <MeshInstance.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
 #include <Skybox.hpp>
@@ -227,6 +228,12 @@ struct Particle
 {
 	glm::vec4	position_type;
 	glm::vec4	speed_lifetime;
+	
+	Particle(float type, const glm::vec3& position, const glm::vec3& speed, float lifetime) :
+		position_type(position, type),
+		speed_lifetime(speed, lifetime)
+	{
+	}
 };
 
 int main(int argc, char* argv[])
@@ -264,13 +271,12 @@ int main(int argc, char* argv[])
 	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			
-	float LightRadius = 500.0;
+	float LightRadius = 5.0;
 	
 	glEnable(GL_DEPTH_TEST);
 	
 	VertexShader& DeferredVS = ResourcesManager::getInstance().getShader<VertexShader>("Deferred_VS");
-	//DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
-	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_instance_vs.glsl");
+	DeferredVS.loadFromFile("src/GLSL/Deferred/deferred_vs.glsl");
 	DeferredVS.compile();
 
 	FragmentShader& DeferredFS = ResourcesManager::getInstance().getShader<FragmentShader>("Deferred_FS");
@@ -281,60 +287,6 @@ int main(int argc, char* argv[])
 	Deferred.attachShader(DeferredVS);
 	Deferred.attachShader(DeferredFS);
 	Deferred.link();
-	
-	if(!Deferred) return 0;
-	
-	VertexShader& DeferredLightVS = ResourcesManager::getInstance().getShader<VertexShader>("DeferredLight_VS");
-	DeferredLightVS.loadFromFile("src/GLSL/Deferred/deferred_light_vs.glsl");
-	DeferredLightVS.compile();
-
-	FragmentShader& DeferredLightFS = ResourcesManager::getInstance().getShader<FragmentShader>("DeferredLight_FS");
-	DeferredLightFS.loadFromFile("src/GLSL/Deferred/deferred_light_fs.glsl");
-	DeferredLightFS.compile();
-	
-	Program& DeferredLight = ResourcesManager::getInstance().getProgram("DeferredLight");
-	DeferredLight.attachShader(DeferredLightVS);
-	DeferredLight.attachShader(DeferredLightFS);
-	DeferredLight.link();
-	
-	if(!DeferredLight) return 0;
-	
-	VertexShader& DeferredColorVS = ResourcesManager::getInstance().getShader<VertexShader>("DeferredColor_VS");
-	DeferredColorVS.loadFromFile("src/GLSL/Deferred/deferred_forward_color_vs.glsl");
-	DeferredColorVS.compile();
-
-	FragmentShader& DeferredColorFS = ResourcesManager::getInstance().getShader<FragmentShader>("DeferredColor_FS");
-	DeferredColorFS.loadFromFile("src/GLSL/Deferred/deferred_forward_color_fs.glsl");
-	DeferredColorFS.compile();
-	
-	Program& DeferredColor = ResourcesManager::getInstance().getProgram("DeferredColor");
-	DeferredColor.attachShader(DeferredColorVS);
-	DeferredColor.attachShader(DeferredColorFS);
-	DeferredColor.link();
-	
-	if(!DeferredColor) return 0;
-	
-	VertexShader& PostProcessVS = ResourcesManager::getInstance().getShader<VertexShader>("PostProcess_VS");
-	PostProcessVS.loadFromFile("src/GLSL/vs.glsl");
-	PostProcessVS.compile();
-
-	FragmentShader& PostProcessFS = ResourcesManager::getInstance().getShader<FragmentShader>("PostProcess_FS");
-	PostProcessFS.loadFromFile("src/GLSL/Deferred/phong_deferred_fs.glsl");
-	PostProcessFS.compile();
-	
-	Program& PostProcess = ResourcesManager::getInstance().getProgram("PostProcess");
-	PostProcess.attachShader(PostProcessVS);
-	PostProcess.attachShader(PostProcessFS);
-	PostProcess.link();
-	
-	if(!PostProcess) return 0;
-	
-	Material PostProcessMaterial(PostProcess);
-	//PostProcessMaterial.setUniform("iResolution", &_resolution);
-	PostProcessMaterial.setUniform("Color", _offscreenRender.getColor(0));
-	PostProcessMaterial.setUniform("Position", _offscreenRender.getColor(1));
-	PostProcessMaterial.setUniform("Normal", _offscreenRender.getColor(2));
-	PostProcessMaterial.setUniform("lightRadius", &LightRadius);
 	
 	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
 	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
@@ -378,48 +330,52 @@ int main(int argc, char* argv[])
 	// Camera Initialization
 	
 	Camera MainCamera;
+	MainCamera.setPosition(glm::vec3(0.0, 10.0, 10.0));
+	MainCamera.lookAt(glm::vec3(0.0));
 	UniformBuffer CameraBuffer;
 	CameraBuffer.init();
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
-	DeferredLight.bindUniformBlock("Camera", CameraBuffer);
-	DeferredColor.bindUniformBlock("Camera", CameraBuffer);
 	ParticleDraw.bindUniformBlock("Camera", CameraBuffer);
-	//DeferredShadowCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
 	
-	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Loading Meshes and declaring instances
+	
+	std::vector<MeshInstance>							_meshInstances;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Light initialization
+	// Ground
 	
-	const size_t LightCount = 1;
-	PostProcessMaterial.setUniform("lightCount", LightCount);
-	DeferredCS.getProgram().setUniform("lightCount", LightCount);
+	Texture2D GroundTexture;
+	GroundTexture.load("in/Textures/Tex0.jpg");
+	Texture2D GroundNormalMap;
+	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
 	
-	UniformBuffer LightBuffer;
+	Mesh Plane;
+	float s = 1000.f;
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 20.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 0.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 0.f)));
+	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 20.f)));
+	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
+	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
+	Plane.setBoundingBox({glm::vec3(-s, 0.f, -s), glm::vec3(s, 0.f, s)});
+	Plane.createVAO();
+	Plane.getMaterial().setShadingProgram(Deferred);
+	Plane.getMaterial().setUniform("Texture", GroundTexture);
+	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
 	
-	LightBuffer.init();
-	LightBuffer.bind(1);
-
-	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
-	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
-	
-	LightStruct tmpLight[LightCount];
-	
+	_meshInstances.push_back(MeshInstance(Plane));
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
-	VertexArray particles_vao;
-	particles_vao.init();
-	particles_vao.bind();
+	std::vector<Particle> particles;
+	for(int i = 0; i < 100; ++i)
+		particles.push_back(Particle(0.0, glm::vec3{i * 0.1, 0.0, i * 0.02}, glm::vec3{std::cos(0.01 * (i - 50.0)), 5.0, std::sin(0.01 * (i - 50.0))}, 2.0));
 	
 	Buffer particles_buffers[2];
-	std::vector<Particle> particles;
-	
-	for(int i = 0; i < 100; ++i)
-		particles.push_back(Particle{glm::vec4{0.0, 10.0, i, 0.0}, glm::vec4{10.0, -10.0, 0.0, 10.0}});
-	
 	TransformFeedback particles_transform_feedback[2];
 	for(int i = 0; i < 2; ++i)
 	{
@@ -429,18 +385,39 @@ int main(int argc, char* argv[])
 		particles_buffers[i].bind();
 		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::DynamicDraw);
 		particles_transform_feedback[i].bindBuffer(0, particles_buffers[i]);
+		
+		//particles_buffers[i].bind(Buffer::Uniform, (GLuint) i + 1); // Usign them as light sources. Yeah.
 	}
 	
 	size_t ParticleStep = 0;
 	
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Light Sphere Mesh
-	auto LightSphereV = Mesh::load("in/3DModels/sphere/sphere.obj");
-	auto& LightSphere = LightSphereV[0];
-	LightSphere->createVAO();
-	
 	resize_callback(window, _width, _height);
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Light initialization
+	
+	const size_t LightCount = particles.size();
+	DeferredCS.getProgram().setUniform("lightCount", LightCount);
+	DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
+	
+	
+	UniformBuffer LightBuffer;
+	
+	LightBuffer.init();
+	LightBuffer.bind(1);
+
+	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
+	
+	LightStruct tmpLight[LightCount];
+	for(size_t i = 0; i < LightCount; ++i)
+	{
+		tmpLight[i] = {
+			glm::vec4(0.0), 	// Position
+			glm::vec4(1.0)		// Color
+		};
+	}
+	LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Main Loop
 	
@@ -490,18 +467,7 @@ int main(int argc, char* argv[])
 		std::ostringstream oss;
 		oss << _frameRate;
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
-	
-		////////////////////////////////////////////////////////////////////////////////////////////
-		// Light Management
-		
-		for(size_t i = 0; i < LightCount; ++i)
-		{
-			tmpLight[i] = {
-				glm::vec4(0.0, 10.0, 0.0, 1.0), 	// Position
-				glm::vec4(1.0, 1.0, 1.0, 1.0)		// Color
-			};
-		}
-		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+
 		////////////////////////////////////////////////////////////////////////////////////////////		
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -516,8 +482,8 @@ int main(int argc, char* argv[])
 		
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), 0); // position_type
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*) sizeof(glm::vec4)); // speed_lifetime
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 	 
 		TransformFeedback::begin(Points);
 		
@@ -539,19 +505,31 @@ int main(int argc, char* argv[])
 		_offscreenRender.bind();
 		_offscreenRender.clear();
 		
+		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		ParticleDraw.use();
 		
 		particles_buffers[(ParticleStep + 1) % 2].bind();
 		
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), 0); // position_type
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*) sizeof(glm::vec4)); // speed_lifetime
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 		
-		glPointSize(8.0);
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Points);
+			
+		for(auto& b : _meshInstances)
+		{
+			b.draw();
+		}
 		
 		_offscreenRender.unbind();		
+		
+		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
+		//DeferredCS.getProgram().bindUniformBlock("LightBlock", particles_buffers[ParticleStep]); // Not anymore, but it was cool.
+		glBindBuffer(Buffer::VertexAttributes, particles_buffers[(ParticleStep + 1) % 2].getName());
+		glBindBuffer(Buffer::Uniform, LightBuffer.getName());
+		for(size_t i = 0; i < particles.size(); ++i)
+			glCopyBufferSubData(Buffer::VertexAttributes, Buffer::Uniform, sizeof(Particle) * i, sizeof(Particle) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
 		
@@ -561,7 +539,6 @@ int main(int argc, char* argv[])
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		/*
 		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
@@ -577,13 +554,12 @@ int main(int argc, char* argv[])
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		_offscreenRender.bind(FramebufferTarget::Read);
 		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		*/
-		
+		/*
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		_offscreenRender.bind(FramebufferTarget::Read);
-		glReadBuffer(GL_COLOR_ATTACHMENT0 + (0));
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + 0);
 		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		
+		*/
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		glfwSwapBuffers(window);
