@@ -17,11 +17,9 @@
 #include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
-#include <Texture3D.hpp>
 #include <Framebuffer.hpp>
 #include <Buffer.hpp>
-#include <MeshInstance.hpp>
-#include <MeshBatch.hpp>
+#include <TransformFeedback.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
 #include <Skybox.hpp>
@@ -219,62 +217,17 @@ struct LightStruct
 	glm::vec4	color;
 };
 
-struct ShadowStruct
-{
-	glm::vec4	position;
-	glm::vec4	color;
-	glm::mat4	depthMVP;
-};
-
 struct CameraStruct
 {
 	glm::mat4	view;
 	glm::mat4	projection;
 };
 
-// Checks whether the provided bounding bound is visible after its transformation by MVPMatrix
-// Todo: Place in... MeshInstance ?
-// Todo: There is some overdraw (object right behind the camera are reported as visible)
-//		 but I don't know why :(
-bool isVisible(const glm::mat4& ProjectionMatrix, const glm::mat4& ViewMatrix, const glm::mat4& ModelMatrix, const BoundingBox& bbox)
+struct Particle
 {
-	const glm::vec4 a = ModelMatrix * glm::vec4(bbox.min, 1.0);
-	const glm::vec4 b = ModelMatrix * glm::vec4(bbox.max, 1.0);
-	
-	std::array<glm::vec4, 8> p = {glm::vec4{a.x, a.y, a.z, 1.0},
-								  glm::vec4{a.x, a.y, b.z, 1.0},
-								  glm::vec4{a.x, b.y, a.z, 1.0},
-								  glm::vec4{a.x, b.y, b.z, 1.0},
-								  glm::vec4{b.x, a.y, a.z, 1.0},
-								  glm::vec4{b.x, a.y, b.z, 1.0},
-								  glm::vec4{b.x, b.y, a.z, 1.0},
-								  glm::vec4{b.x, b.y, b.z, 1.0}};
-						
-	bool front = false;
-	for(auto& t : p)
-	{
-		t = ViewMatrix * t;
-		front = front || t.z < 0.0;
-	}
-
-	if(!front) return false;
-	
-	glm::vec2 min = glm::vec2(2.0, 2.0);
-	glm::vec2 max = glm::vec2(-2.0, -2.0);
-						
-	for(auto& t : p)
-	{
-		t = ProjectionMatrix * t;
-		if(t.w > 0.0) t /= t.w;
-		min.x = std::min(min.x, t.x);
-		min.y = std::min(min.y, t.y);
-		max.x = std::max(max.x, t.x);
-		max.y = std::max(max.y, t.y);
-	}
-	
-	return !(max.x < -1.0 || max.y < -1.0 ||
-			 min.x >  1.0 || min.y >  1.0);
-}
+	glm::vec4	position_type;
+	glm::vec4	speed_lifetime;
+};
 
 int main(int argc, char* argv[])
 {
@@ -311,8 +264,7 @@ int main(int argc, char* argv[])
 	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			
-	float LightRadius = 75.0;
-	bool DrawLights = false;
+	float LightRadius = 500.0;
 	
 	glEnable(GL_DEPTH_TEST);
 	
@@ -390,11 +342,37 @@ int main(int argc, char* argv[])
 	
 	if(!DeferredCS.getProgram()) return 0;
 	
-	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
-	DeferredShadowCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_shadow_cs.glsl");
-	DeferredShadowCS.compile();
+	Program& ParticleUpdate = ResourcesManager::getInstance().getProgram("ParticleUpdate");
+	VertexShader& ParticleUpdateVS = ResourcesManager::getInstance().getShader<VertexShader>("ParticleUpdate_VS");
+	ParticleUpdateVS.loadFromFile("src/GLSL/Particles/update_vs.glsl");
+	ParticleUpdateVS.compile();
+	GeometryShader& ParticleUpdateGS = ResourcesManager::getInstance().getShader<GeometryShader>("ParticleUpdate_GS");
+	ParticleUpdateGS.loadFromFile("src/GLSL/Particles/update_gs.glsl");
+	ParticleUpdateGS.compile();
+	ParticleUpdate.attachShader(ParticleUpdateVS);
+	ParticleUpdate.attachShader(ParticleUpdateGS);
+	const char* varyings[2] = {"position_type", "speed_lifetime"};
+	glTransformFeedbackVaryings(ParticleUpdate.getName(), 2, varyings, GL_INTERLEAVED_ATTRIBS);
+	ParticleUpdate.link();
 	
-	if(!DeferredShadowCS.getProgram()) return 0;
+	if(!ParticleUpdate) return 0;
+	
+	Program& ParticleDraw = ResourcesManager::getInstance().getProgram("ParticleDraw");
+	VertexShader& ParticleDrawVS = ResourcesManager::getInstance().getShader<VertexShader>("ParticleDraw_VS");
+	ParticleDrawVS.loadFromFile("src/GLSL/Particles/draw_vs.glsl");
+	ParticleDrawVS.compile();
+	GeometryShader& ParticleDrawGS = ResourcesManager::getInstance().getShader<GeometryShader>("ParticleDraw_GS");
+	ParticleDrawGS.loadFromFile("src/GLSL/Particles/draw_gs.glsl");
+	ParticleDrawGS.compile();
+	FragmentShader& ParticleDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("ParticleDraw_FS");
+	ParticleDrawFS.loadFromFile("src/GLSL/Particles/draw_fs.glsl");
+	ParticleDrawFS.compile();
+	ParticleDraw.attachShader(ParticleDrawVS);
+	ParticleDraw.attachShader(ParticleDrawGS);
+	ParticleDraw.attachShader(ParticleDrawFS);
+	ParticleDraw.link();
+	 
+	if(!ParticleDraw) return 0;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
@@ -406,6 +384,7 @@ int main(int argc, char* argv[])
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	DeferredLight.bindUniformBlock("Camera", CameraBuffer);
 	DeferredColor.bindUniformBlock("Camera", CameraBuffer);
+	ParticleDraw.bindUniformBlock("Camera", CameraBuffer);
 	//DeferredShadowCS.getProgram().bindUniformBlock("Camera", CameraBuffer);
 	
 	PostProcessMaterial.setUniform("cameraPosition", &MainCamera.getPosition());
@@ -413,10 +392,9 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light initialization
 	
-	const size_t LightCount = 10;
+	const size_t LightCount = 1;
 	PostProcessMaterial.setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
-	DeferredShadowCS.getProgram().setUniform("lightCount", LightCount);
 	
 	UniformBuffer LightBuffer;
 	
@@ -425,141 +403,36 @@ int main(int argc, char* argv[])
 
 	PostProcess.bindUniformBlock("LightBlock", LightBuffer);
 	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
-	DeferredShadowCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
 	
 	LightStruct tmpLight[LightCount];
 	
-	// Shadow casting lights ---------------------------------------------------
-	const size_t ShadowCount = 1;
-	UniformBuffer ShadowBuffers[ShadowCount];
-	DeferredShadowCS.getProgram().setUniform("shadowCount", ShadowCount);
-	
-	Light MainLights[ShadowCount];
-	if(ShadowCount > 0)
-	{
-		MainLights[0].init();
-		MainLights[0].setColor(glm::vec4(0.5, 0.75, 0.5, 1.0));
-		MainLights[0].setPosition(glm::vec3(100.0, 800.0, 100.0));
-		MainLights[0].lookAt(glm::vec3(0.0));
-	}
-	
-	if(ShadowCount > 1)
-	{
-		MainLights[1].init();
-		MainLights[1].setColor(glm::vec4(0.75, 0.5, 0.5, 1.0));
-		MainLights[1].setPosition(glm::vec3(-100.0, 800.0, 100.0));
-		MainLights[1].lookAt(glm::vec3(0.0));
-	}
-	
-	if(ShadowCount > 2)
-	{
-		MainLights[2].init();
-		MainLights[2].setColor(glm::vec4(0.5, 0.5, 0.75, 1.0));
-		MainLights[2].setPosition(glm::vec3(0.0, 800.0, -100.0));
-		MainLights[2].lookAt(glm::vec3(0.0));
-	}
-	
-	for(size_t i = 0; i < ShadowCount; ++i)
-	{
-		ShadowBuffers[i].init();
-		ShadowBuffers[i].bind(i + 2);
-		MainLights[i].updateMatrices();
-		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
-		
-		//DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
-		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
-	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Loading Meshes and declaring instances
+	// Particles
 	
-	std::vector<MeshInstance>							_meshInstances;
-	std::vector<std::pair<size_t, std::string>>			_tweakbars;
+	VertexArray particles_vao;
+	particles_vao.init();
+	particles_vao.bind();
 	
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	Buffer particles_buffers[2];
+	particles_buffers[0].init(Buffer::VertexAttributes);
+	particles_buffers[1].init(Buffer::VertexAttributes);
+	std::vector<Particle> particles;
 	
-	Texture2D GroundTexture;
-	GroundTexture.load("in/Textures/Tex0.jpg");
-	Texture2D GroundNormalMap;
-	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
+	for(int i = 0; i < 100; ++i)
+		particles.push_back(Particle{glm::vec4{0.0, 0.0, i, 0.0}, glm::vec4{0.0, 1.0, 0.0, 10.0}});
 	
-	Mesh Box;
-	float s = 2.0 / 2.0;
-	glm::vec3 BoxVertices[8] = {glm::vec3(-s, -s, -s), glm::vec3(-s, -s, s), glm::vec3(s, -s, s), glm::vec3(s, -s, -s),
-								   glm::vec3(-s,  s, -s), glm::vec3(-s,  s, s), glm::vec3(s,  s, s), glm::vec3(s,  s, -s)};
-	glm::vec3 up{0.0, 1.0, 0.0};
-	glm::vec3 down{0.0, -1.0, 0.0};
-	glm::vec3 right{1.0, 0.0, 0.0};
-	glm::vec3 left{-1.0, 0.0, 0.0};
-	glm::vec3 forward{0.0, 0.0, 1.0};
-	glm::vec3 backward{0.0, 0.0, -1.0};
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], down, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], down, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], down, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], down, glm::vec2(1.f, 1.f)));
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], up, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], up, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], up, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], up, glm::vec2(1.f, 1.f)));
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], backward, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], backward, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], backward, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], backward, glm::vec2(1.f, 1.f)));
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[3], left, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[7], left, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], left, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], left, glm::vec2(1.f, 1.f)));
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[0], forward, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[4], forward, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], forward, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], forward, glm::vec2(1.f, 1.f)));
-	
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[1], right, glm::vec2(0.f, 1.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[5], right, glm::vec2(0.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[6], right, glm::vec2(1.f, 0.f)));
-	Box.getVertices().push_back(Mesh::Vertex(BoxVertices[2], right, glm::vec2(1.f, 1.f)));
-	
-	for(int i = 0; i < 6 * 4; i += 4)
+	TransformFeedback particles_transform_feedback[2];
+	for(int i = 0; i < 2; ++i)
 	{
-		Box.getTriangles().push_back(Mesh::Triangle(0 + i, 1 + i, 2 + i));
-		Box.getTriangles().push_back(Mesh::Triangle(0 + i, 2 + i, 3 + i));
+		particles_transform_feedback[i].init();
+		particles_transform_feedback[i].bind();
+		particles_buffers[i].bind();
+		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::DynamicDraw);
+		particles_transform_feedback[i].bindBuffer(0, particles_buffers[i]);
 	}
 	
-	Box.setBoundingBox({glm::vec3(-s, -s, -s), glm::vec3(s, s, s)});
-	Box.createVAO();
-	Box.getMaterial().setShadingProgram(Deferred);
-	Box.getMaterial().setUniform("Texture", GroundTexture);
-	Box.getMaterial().setUniform("NormalMap", GroundNormalMap);
-
-	size_t row_ball_count = 300;
-	size_t col_ball_count = 300;
-	/*
-	for(size_t i = 0; i < row_ball_count; ++i)
-		for(size_t j = 0; j < col_ball_count; ++j)
-		{
-			_meshInstances.push_back(MeshInstance(Box, 
-				glm::scale(glm::translate(glm::mat4(1.0), 
-					glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), 
-					glm::vec3(10.0))));
-		}
-	*/
-	
-	MeshBatch BoxBatch(Box);
-	
-	for(size_t i = 0; i < row_ball_count; ++i)
-		for(size_t j = 0; j < col_ball_count; ++j)
-		{
-			BoxBatch.getInstancesData().push_back({glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))});
-		}
-	
-	BoxBatch.createVAO();
+	size_t ParticleStep = 0;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light Sphere Mesh
@@ -573,7 +446,7 @@ int main(int argc, char* argv[])
 	// Main Loop
 	
 	MainCamera.updateView();
-	glm::mat4 VFC_ViewMatrix = MainCamera.getMatrix();
+	bool firstStep = true;
 	
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -625,177 +498,92 @@ int main(int argc, char* argv[])
 		for(size_t i = 0; i < LightCount; ++i)
 		{
 			tmpLight[i] = {
-				((float) i) * 5.0f * glm::vec4(std::cos(i + _time), 0.0, std::sin(i + _time), 1.0)
-				 + glm::vec4(0.0, 20.0 * std::sin(i + 0.71 * _time) + 30.0, 0.0 , 1.0), 	// Position
-				glm::vec4(i % 2, (i % 3) / 2.0, (i % 5)/4.0, 1.0)		// Color
+				glm::vec4(0.0, 10.0, 0.0, 1.0), 	// Position
+				glm::vec4(1.0, 1.0, 1.0, 1.0)		// Color
 			};
 		}
 		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
 		////////////////////////////////////////////////////////////////////////////////////////////		
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
+		// Particle Update
+		
+		ParticleUpdate.setUniform("time", _frameTime);
+		ParticleUpdate.use();
+		
+		TransformFeedback::disableRasterization();
+		particles_buffers[ParticleStep].bind();
+		particles_transform_feedback[(ParticleStep + 1) % 2].bind();
+		
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), 0); // position_type
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*) sizeof(glm::vec4)); // speed_lifetime
+	 
+		TransformFeedback::begin(Points);
+		
+		if(firstStep)
+		{
+			glDrawArrays(GL_POINTS, 0, particles.size());
+			firstStep = false;
+		} else {
+			particles_transform_feedback[ParticleStep].draw(Points);
+		}
+		
+		TransformFeedback::end();
+		TransformFeedback::enableRasterization();
+		
+		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
-		for(int i = 0; i < 8; ++i)
-			glEnableVertexAttribArray(i);
 		
 		// Offscreen
 		_offscreenRender.bind();
 		_offscreenRender.clear();
-		if(_updateVFC)
-			VFC_ViewMatrix = MainCamera.getMatrix();
-		/*
-		for(auto& b : _meshInstances)
-		{
-			if(isVisible(_projection, VFC_ViewMatrix, b.getModelMatrix(), b.getMesh().getBoundingBox()))
-			{
-				b.draw();
-			}
-		}
-		*/
-		BoxBatch.draw();
+		
+		ParticleDraw.use();
+		
+		particles_buffers[(ParticleStep + 1) % 2].bind();
+		
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), 0); // position_type
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid*) sizeof(glm::vec4)); // speed_lifetime
+		
+		glPointSize(8.0);
+		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Points);
 		
 		_offscreenRender.unbind();		
-
+		
+		ParticleStep = (ParticleStep + 1) % 2;
+		
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		if(_colorToRender == 0)
-		{
-			PostProcessMaterial.use();
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-			PostProcessMaterial.useNone();
-		} else if(_colorToRender == 1) {			
-			// Cull Front and Disable Depth Test : It doesn't matter for a sphere :]
-			glEnable(GL_CULL_FACE);
-			glCullFace(GL_FRONT);
-			glDisable(GL_DEPTH_TEST);
-			glDepthMask(GL_FALSE);
-			
-			glEnable(GL_BLEND);
-			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_ONE, GL_ONE);
-			_offscreenRender.getColor(0).bind(0);
-			_offscreenRender.getColor(1).bind(1);
-			_offscreenRender.getColor(2).bind(2);
-			DeferredLight.setUniform("Color", (int) 0);
-			DeferredLight.setUniform("Position", (int) 1);
-			DeferredLight.setUniform("Normal", (int) 2);	
-			DeferredLight.setUniform("cameraPosition", MainCamera.getPosition());
-			DeferredLight.setUniform("lightRadius", LightRadius);
-			DeferredLight.use();
-			for(int l = 0; l < (int) LightCount; ++l)
-			{
-				//LightBuffer.bindRange(2, sizeof(LightStruct) * l, sizeof(LightStruct));
-				DeferredLight.setUniform("LightPosition", tmpLight[l].position);			
-				DeferredLight.setUniform("LightColor", tmpLight[l].color);
-				glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(tmpLight[l].position)), glm::vec3(LightRadius));
-				if(isVisible(_projection, MainCamera.getMatrix(), model, LightSphere->getBoundingBox()))
-				{
-					DeferredLight.setUniform("ModelMatrix", model);
-					LightSphere->draw();
-				}
-			}
-			glDisable(GL_BLEND);
-			glDepthMask(GL_TRUE);
-			glEnable(GL_DEPTH_TEST);
-			glCullFace(GL_BACK);
-		} else if(_colorToRender == 2) {	
-			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
-			DeferredCS.getProgram().setUniform("Position", (int) 1);
-			DeferredCS.getProgram().setUniform("Normal", (int) 2);	
-			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
-			DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
-			DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
-			DeferredCS.memoryBarrier();
+		/*
+		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
+		DeferredCS.getProgram().setUniform("Position", (int) 1);
+		DeferredCS.getProgram().setUniform("Normal", (int) 2);	
+		DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
+		DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
+		DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
+		DeferredCS.memoryBarrier();
 		
-			// Blitting
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(FramebufferTarget::Read);
-			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		} else if(_colorToRender == 3) {	
-			////////////////////////////////////////////////////////////////////////////////////////
-			// ShadowMaps update
-			
-			if(ShadowCount > 0) MainLights[0].setPosition(300.0f * glm::vec3(std::sin(_time * 0.25), 0.0, std::cos(_time * 0.25)) + glm::vec3(0.0, 500.0 , 0.0));
-			if(ShadowCount > 1) MainLights[1].setPosition(400.0f * glm::vec3(std::sin(_time * 0.4), 0.0, std::cos(_time * 0.4)) + glm::vec3(0.0, 400.0 , 0.0));
-			if(ShadowCount > 2) MainLights[2].setPosition(100.0f * glm::vec3(std::sin(_time * 0.1), 0.0, std::cos(_time * 0.1)) + glm::vec3(0.0, 700.0 , 0.0));
-			
-			for(size_t i = 0; i < ShadowCount; ++i)
-			{
-				MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
-				MainLights[i].updateMatrices();
-				ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-				ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
-				
-				/*
-				MainLights[i].bind();
-				for(auto& b : _meshInstances)
-					if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-					{
-						Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-						b.getMesh().draw();
-					}
-				*/
-				
-				MainLights[i].bindInstanced();
-				BoxBatch.draw(false);
-				
-				MainLights[i].unbind();
-			}
+		// Blitting
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		_offscreenRender.bind(FramebufferTarget::Read);
+		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		*/
 		
-			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			for(size_t i = 0; i < ShadowCount; ++i)
-				MainLights[i].getShadowMap().bind(i + 3);
-			DeferredShadowCS.getProgram().setUniform("ColorDepth", (int) 0);
-			DeferredShadowCS.getProgram().setUniform("Position", (int) 1);
-			DeferredShadowCS.getProgram().setUniform("Normal", (int) 2);	
-			DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
-			DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
-			DeferredShadowCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
-			DeferredShadowCS.memoryBarrier();
-		
-			// Blitting
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(FramebufferTarget::Read);
-			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		} else { 
-			// Blitting
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			_offscreenRender.bind(FramebufferTarget::Read);
-			glReadBuffer(GL_COLOR_ATTACHMENT0 + (_colorToRender - 4));
-			glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		}
-		
-		if(DrawLights)
-		{
-			glDisable(GL_DEPTH_TEST);
-			glEnable(GL_BLEND);
-			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_ONE, GL_ONE);
-			_offscreenRender.getColor(0).bind(0);
-			DeferredColor.setUniform("ColorDepth", 0);
-			for(const auto& l : tmpLight)
-			{
-				glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(l.position));
-				if(isVisible(_projection, VFC_ViewMatrix, model, LightSphere->getBoundingBox()))
-				{
-					DeferredColor.setUniform("Color", l.color);
-					DeferredColor.setUniform("ModelMatrix", model);
-					DeferredColor.use();
-					LightSphere->draw();
-				}
-			}
-			glDisable(GL_BLEND);
-			glEnable(GL_DEPTH_TEST);
-		}
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		_offscreenRender.bind(FramebufferTarget::Read);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + (0));
+		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
