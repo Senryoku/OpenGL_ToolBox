@@ -41,7 +41,7 @@ public:
 	 * @param VPMatrix ViewProjection Matrix used for culling.
 	 * @param usingMeshMaterial if true, binds the mesh's material before drawing.
 	**/
-	void draw(const glm::mat4& VPMatrix, bool usingMeshMaterial = true) const;
+	void draw(const glm::mat4& VPMatrix, bool usingMeshMaterial = true);
 	
 	/**
 	 * Initialize TransformFeedback for View Frustum Culling.
@@ -61,5 +61,6 @@ private:
 	VertexArray					_vao;					///< VertexArray Object.
 	Buffer						_instances_attributes;	///< Buffer containing the per-instance data
 	
-	TransformFeedback			_fransformFeedback;		///< TransformFeedback for View Frustum Culling.
+	TransformFeedback			_transformFeedback;		///< TransformFeedback for View Frustum Culling.
+	Buffer						_transformFeedbackBuffer;
 };

@@ -51,7 +51,7 @@ void MeshBatch::draw(bool usingMeshMaterial) const
 	_vao.unbind();
 }
 
-void MeshBatch::draw(const glm::mat4& VPMatrix, bool usingMeshMaterial) const
+void MeshBatch::draw(const glm::mat4& VPMatrix, bool usingMeshMaterial)
 {
 	if(!_transformFeedback)
 		initVFC();
@@ -67,7 +67,7 @@ void MeshBatch::draw(const glm::mat4& VPMatrix, bool usingMeshMaterial) const
 	_transformFeedback.enableRasterization();
 	
 	if(usingMeshMaterial) _mesh->getMaterial().use();
-	_transformFeedback.draw();
+	_transformFeedback.draw(Triangles);
 }
 
 void MeshBatch::initVFC()
