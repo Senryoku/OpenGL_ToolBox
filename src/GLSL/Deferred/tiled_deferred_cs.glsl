@@ -141,12 +141,17 @@ void main(void)
 		vec3 color = coldepth.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
 		
+		
 		vec4 ColorOut = vec4(0.0, 0.0, 0.0, coldepth.w);
 		for(int l2 = 0; l2 < local_lights_count; ++l2)
 		{
+			int light_col = int(Lights[local_lights[l2]].position.w);
+			vec3 light_color = vec3(light_col % 2, (light_col % 3) / 2.0, (light_col % 5)/4.0);
+			// Lights[local_lights[l2]].color.rgb
+		
 			float d = length(position.xyz - Lights[local_lights[l2]].position.xyz);
 			if(d < lightRadius)
-				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, light_color);
 		}
 		imageStore(ColorDepth, ivec2(pixel), ColorOut);
 		

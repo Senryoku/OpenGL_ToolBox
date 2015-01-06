@@ -373,7 +373,7 @@ int main(int argc, char* argv[])
 	
 	std::vector<Particle> particles;
 	for(int i = 0; i < 100; ++i)
-		particles.push_back(Particle(0.0, glm::vec3{i * 0.1, 0.0, i * 0.02}, glm::vec3{std::cos(0.01 * (i - 50.0)), 5.0, std::sin(0.01 * (i - 50.0))}, 2.0));
+		particles.push_back(Particle(i, glm::vec3{i * 0.1, 0.0, i * 0.02}, glm::vec3{std::cos(0.01 * (i - 50.0)), 5.0, std::sin(0.01 * (i - 50.0))}, 2.0));
 	
 	Buffer particles_buffers[2];
 	TransformFeedback particles_transform_feedback[2];
