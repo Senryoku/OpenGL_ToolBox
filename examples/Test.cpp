@@ -415,18 +415,17 @@ int main(int argc, char* argv[])
 	particles_vao.bind();
 	
 	Buffer particles_buffers[2];
-	particles_buffers[0].init(Buffer::VertexAttributes);
-	particles_buffers[1].init(Buffer::VertexAttributes);
 	std::vector<Particle> particles;
 	
 	for(int i = 0; i < 100; ++i)
-		particles.push_back(Particle{glm::vec4{0.0, 0.0, i, 0.0}, glm::vec4{0.0, 1.0, 0.0, 10.0}});
+		particles.push_back(Particle{glm::vec4{0.0, 10.0, i, 0.0}, glm::vec4{10.0, -10.0, 0.0, 10.0}});
 	
 	TransformFeedback particles_transform_feedback[2];
 	for(int i = 0; i < 2; ++i)
 	{
 		particles_transform_feedback[i].init();
 		particles_transform_feedback[i].bind();
+		particles_buffers[i].init(Buffer::VertexAttributes);
 		particles_buffers[i].bind();
 		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::DynamicDraw);
 		particles_transform_feedback[i].bindBuffer(0, particles_buffers[i]);

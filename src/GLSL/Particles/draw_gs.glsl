@@ -1,14 +1,14 @@
 #version 430
 
+layout(points) in;
+layout(triangle_strip) out;
+layout(max_vertices = 4) out;
+
 layout(std140) uniform Camera
 {
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
 };
-
-layout(points) in;
-layout(triangle_strip) out;
-layout(max_vertices = 4) out;
 
 uniform float time = 0.0;
 uniform float particle_size = 1.0;
