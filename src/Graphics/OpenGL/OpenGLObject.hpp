@@ -46,7 +46,7 @@ public:
 	 * /!\ Use with caution ! (assignment operator is probably what you're looking for)
 	 * @param n New object to manage.
 	**/
-	inline void setName(GLuint n) { _handle = N; }
+	inline void setName(GLuint n) { _handle = n; }
 	
 	/**
 	 * Returns true if the object seems valid.

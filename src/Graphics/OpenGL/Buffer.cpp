@@ -25,16 +25,28 @@ void Buffer::bind() const
     glBindBuffer(static_cast<GLenum>(_type), getName());
 }
 
-void Buffer::bind(GLuint bindingPoint)
+void Buffer::bind(GLuint bindingPoint, GLintptr offset, GLsizeiptr size) const
 {
 	assert(_type == AtomicCounter || _type == TransformFeedback || _type == Uniform || _type == ShaderStorage);
-	glBindBufferBase(static_cast<GLenum>(_type), bindingPoint, getName());
+	// Default values for offset and size: use entire buffer.
+	if(offset == 0 && size == 0)
+	{
+		glBindBufferBase(static_cast<GLenum>(_type), bindingPoint, getName());
+	} else {
+		glBindBufferRange(static_cast<GLenum>(_type), bindingPoint, getName(), offset, size);
+	}
 }
-
-void Buffer::bindRange(GLuint bindingPoint, GLintptr offset, GLsizeiptr size) const
+	
+void Buffer::bind(Type target, GLuint bindingPoint, GLintptr offset, GLsizeiptr size) const
 {
-	assert(_type == TransformFeedback || _type == Uniform);
-	glBindBufferRange(static_cast<GLenum>(_type), bindingPoint, getName(), offset, size);
+	assert(target == AtomicCounter || target == TransformFeedback || target == Uniform || target == ShaderStorage);
+	// Default values for offset and size: use entire buffer.
+	if(offset == 0 && size == 0)
+	{
+		glBindBufferBase(static_cast<GLenum>(target), bindingPoint, getName());
+	} else {
+		glBindBufferRange(static_cast<GLenum>(target), bindingPoint, getName(), offset, size);
+	}
 }
 	
 void Buffer::unbind() const

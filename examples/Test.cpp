@@ -21,6 +21,7 @@
 #include <Framebuffer.hpp>
 #include <Buffer.hpp>
 #include <MeshInstance.hpp>
+#include <MeshBatch.hpp>
 #include <MathTools.hpp>
 #include <Camera.hpp>
 #include <Skybox.hpp>
@@ -550,29 +551,15 @@ int main(int argc, char* argv[])
 		}
 	*/
 	
-	std::vector<glm::mat4> tmp_modelmatrices;
-	tmp_modelmatrices.reserve(row_ball_count*col_ball_count);
+	MeshBatch BoxBatch(Box);
+	
 	for(size_t i = 0; i < row_ball_count; ++i)
 		for(size_t j = 0; j < col_ball_count; ++j)
 		{
-			tmp_modelmatrices.push_back(glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0)));
+			BoxBatch.getInstancesData().push_back({glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0))});
 		}
-		
-	Buffer BoxesModelMatrices(Buffer::VertexAttributes);
-	BoxesModelMatrices.init();
-	BoxesModelMatrices.data(tmp_modelmatrices.data(), sizeof(glm::mat4) * tmp_modelmatrices.size(), Buffer::StaticDraw);
-	Box.getVAO().bind();
-	for(int i = 0; i < 8; ++i)
-		glEnableVertexAttribArray(i);
-	BoxesModelMatrices.bind();
-	for(int i = 0; i < 4; ++i)
-	{
-		Box.getVAO().attribute(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const GLvoid*) (sizeof(float) * i * 4));
-		glVertexAttribDivisor(3 + i, 1);
-	}
-	Box.getVAO().unbind();
-	BoxesModelMatrices.unbind();
 	
+	BoxBatch.createVAO();
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Light Sphere Mesh
@@ -665,12 +652,7 @@ int main(int argc, char* argv[])
 			}
 		}
 		*/
-		Box.getVAO().bind();
-		//BoxesModelMatrices.bind();
-		Box.getMaterial().use();
-		glDrawElementsInstanced(GL_TRIANGLES, Box.getTriangles().size() * 3, GL_UNSIGNED_INT, 0, tmp_modelmatrices.size());
-		//BoxesModelMatrices.unbind();
-		Box.getVAO().unbind();
+		BoxBatch.draw();
 		
 		_offscreenRender.unbind();		
 
@@ -762,11 +744,7 @@ int main(int argc, char* argv[])
 				*/
 				
 				MainLights[i].bindInstanced();
-				Box.getVAO().bind();
-				//BoxesModelMatrices.bind();
-				glDrawElementsInstanced(GL_TRIANGLES, Box.getTriangles().size() * 3, GL_UNSIGNED_INT, 0, tmp_modelmatrices.size());
-				//BoxesModelMatrices.unbind();
-				Box.getVAO().unbind();
+				BoxBatch.draw(false);
 				
 				MainLights[i].unbind();
 			}

@@ -4,6 +4,7 @@
 
 #include <OpenGLObject.hpp>
 #include <Enums.hpp>
+#include <Buffer.hpp>
 
 /**
  * OpenGL TransformFeedback Object
@@ -26,6 +27,17 @@ public:
 	 * @see unbind()
 	**/
 	inline void bind() const;
+	
+	/**
+	 * Binds the specified buffer to index for this TransformFeedback Object.
+	 * Note: This effectively binds the TransformFeedback Object (calls bind()).
+	 * @param index Binding Point
+	 * @param buffer Buffer to bind
+	 * @param offset Starting offset in basic machine unit (optional, default: 0)
+	 * @param size Amount of data in machine unit to bind (optional, default: 0, means the entire buffer)
+	 * @see bind()
+	**/ 
+	void bindBuffer(GLuint index, const Buffer& buffer, GLintptr offset = 0, GLsizeiptr size = 0);
 	
 	/**
 	 * Draw using this transform feedback.
@@ -118,6 +130,20 @@ public:
 	 * @todo add overload for Buffer (instead of raw stream).
 	**/
 	inline static void drawStreamInstanced(Primitive primitiveType, GLuint transformFeedbackObject, GLuint stream, GLuint instanceCount);
+	
+	/**
+	 * Enable rasterization (default behavior).
+	 * @todo Move this elsewhere ? (If we have a context class one day...)
+	 * @see GL_RASTERIZER_DISCARD 
+	**/
+	inline static void enableRasterization();
+	
+	/**
+	 * Disable rasterization (useful for TransformFeedback).
+	 * @todo Move this elsewhere ? (If we have a context class one day...)
+	 * @see GL_RASTERIZER_DISCARD 
+	**/
+	inline static void disableRasterization();
 };
 
 inline void TransformFeedback::bind() const
@@ -191,4 +217,14 @@ inline void TransformFeedback::drawStream(Primitive primitiveType, GLuint transf
 inline void TransformFeedback::drawStreamInstanced(Primitive primitiveType, GLuint transformFeedbackObject, GLuint stream, GLuint instanceCount)
 {
 	glDrawTransformFeedbackStreamInstanced(glenum(primitiveType), transformFeedbackObject, stream, instanceCount);
+}
+
+inline void TransformFeedback::enableRasterization()
+{
+	glDisable(GL_RASTERIZER_DISCARD);
+}
+
+inline void TransformFeedback::disableRasterization()
+{
+	glEnable(GL_RASTERIZER_DISCARD);
 }

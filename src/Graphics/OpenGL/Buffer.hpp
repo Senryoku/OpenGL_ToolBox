@@ -139,19 +139,21 @@ public:
 	 * Bind this buffer to the specified binding point in the OpenGL context.
 	 * Buffer type must be AtomicCounter, TransformFeedback, Uniform or ShaderStorage.
 	 * @param bindingPoint Binding Point
-	 * @see glBindBufferBase
+	 * @param offset Starting offset in basic machine unit (optional, default: 0)
+	 * @param size Amount of data in machine unit to bind (optional, default: 0, means the entire buffer)
+	 * @see glBindBufferBase, glBindBufferRange
 	**/
-	virtual void bind(GLuint bindingPoint);
+	void bind(GLuint bindingPoint, GLintptr offset = 0, GLsizeiptr size = 0) const;
 	
 	/**
-	 * Bind a slice of this buffer to the specified binding point in the OpenGL context.
-	 * Buffer type must be AtomicCounter, TransformFeedback, Uniform or ShaderStorage.
+	 * Similar to bind(GLuint, GLintptr, GLsizeiptr) but allowing for another target than the type of the buffer.
+	 * @param target Target of bind operation. Must be AtomicCounter, TransformFeedback, Uniform or ShaderStorage.
 	 * @param bindingPoint Binding Point
-	 * @param offset Starting offset in basic machine unit
-	 * @param size Amount of data in machine unit to bind
-	 * @see glBindBufferRange
+	 * @param offset Starting offset in basic machine unit (optional, default: 0)
+	 * @param size Amount of data in machine unit to bind (optional, default: 0, means the entire buffer)
+	 * @see bind(GLuint, GLintptr, GLsizeiptr)
 	**/
-	void bindRange(GLuint bindingPoint, GLintptr offset, GLsizeiptr size) const;
+	void bind(Type target, GLuint bindingPoint, GLintptr offset = 0, GLsizeiptr size = 0) const;
 	
 	/**
 	 * Unbinds the buffer.
@@ -187,7 +189,7 @@ public:
 	inline void setType(Type t) { _type = t; }
 	
 protected:
-	Type	_type = VertexAttributes;	///< Type of the Buffer
+	Type	_type = VertexAttributes;	///< Type of the Buffer.
 };
 
 /**
@@ -209,7 +211,7 @@ public:
 	 * @see getBindingPoint()
 	 * @see isBound()
 	**/
-	virtual void bind(GLuint bindingPoint) override;
+	void bind(GLuint bindingPoint);
 	
 	/**
 	 * @return True if this buffer is bound to a binding point (by a call to bindBase)

@@ -55,6 +55,24 @@ public:
 	void attachShader(ComputeShader& cshader);
 	
 	/**
+	 * Specifies values to record in transform feedback buffers. This have to be called before linking.
+	 * @param count Number of values to record.
+	 * @param varyings Array of null terminated char strings specifying the names of the varyings to record.
+	 * @param intervealed Specifies the mode of capture, if true, values will be intervealed (packed in one buffer). They will be separated otherwise (one buffer per value).
+	**/
+	inline void setTransformFeedbackVaryings(GLsizei count, const char** varyings, bool intervealed) const;
+	
+	/**
+	 * Specifies values to record in transform feedback buffers. Syntactic sugar around setTransformFeedbackVaryings(GLsizei, const char**, bool).
+	 * This have to be called before linking.
+	 * @param varyings Array of null terminated char strings specifying the names of the varyings to record.
+	 * @param intervealed Specifies the mode of capture, if true, values will be intervealed (packed in one buffer). They will be separated otherwise (one buffer per value).
+	 * @see setTransformFeedbackVaryings(GLsizei, const char**, bool).
+	**/
+	template<size_t Count>
+	inline void setTransformFeedbackVaryings(const std::array<const char*, Count>& varyings, bool intervealed) const;
+	
+	/**
 	 * Linking the program (all shaders must be compiled).
 	**/
 	void link();
@@ -90,7 +108,7 @@ public:
 	 *
 	 * @param name Uniform's name
 	 * @return -1 if the uniform isn't defined in any of the attached
-	 *	shaders, its location otherwise.
+	 *		   shaders, its location otherwise.
 	**/
 	GLint getUniformLocation(const std::string& name) const;
 	
@@ -144,9 +162,30 @@ public:
 	**/
 	static void useNone();
 	
+	/**
+	 * @return Program currently bound.
+	**/
+	inline static GLint getCurrent();
+	
+	/**
+	 * @return Location of uniform uniformName in specified program.
+	**/
+	inline static GLint getUniformLocation(GLuint programName, const std::string& uniformName);
+	
 private:
 	bool	_linked = false;	///< Link status
 };
+
+/**
+ * Utility function for quick uniform setting on currently bound program.
+ * @param name Name of the uniform.
+ * @param value New value of the uniform.
+**/
+template<typename T>
+void setUniform(const std::string& name, const T& value)
+{
+	::setUniform(Program::getUniformLocation(Program::getCurrent(), name), value);
+}
 
 // Inline functions definitions
 
@@ -173,4 +212,28 @@ inline void Program::setUniform(const std::string& name, const T& value) const
 		std::cerr << "Warning: Uniform '" << name << "' not found (" << __PRETTY_FUNCTION__ << ")." << std::endl;
 	else
 		::setUniform(getName(), loc, value);
+}
+
+inline void Program::setTransformFeedbackVaryings(GLsizei count, const char** varyings, bool intervealed) const
+{
+	glTransformFeedbackVaryings(_handle, count, varyings, (intervealed) ? GL_INTERLEAVED_ATTRIBS : GL_SEPARATE_ATTRIBS);
+}
+	
+template<size_t Count>
+inline void Program::setTransformFeedbackVaryings(const std::array<const char*, Count>& varyings, bool intervealed) const
+{
+	glTransformFeedbackVaryings(_handle, static_cast<GLsizei>(Count), varyings.data(),  (intervealed) ? GL_INTERLEAVED_ATTRIBS : GL_SEPARATE_ATTRIBS);
+}
+
+inline GLint Program::getCurrent()
+{
+	GLint name;
+	glGetIntegerv(GL_CURRENT_PROGRAM, &name);
+	return name;
+}
+
+inline GLint Program::getUniformLocation(GLuint programName, const std::string& uniformName)
+{
+	assert(glIsProgram(programName));
+	return glGetUniformLocation(programName, uniformName.c_str());
 }
