@@ -59,8 +59,8 @@ void main(void)
 	worldNormalOut.a = 1.0;
 	
 	worldPositionOut.xyz = world_position;
-	worldPositionOut.w = 1.0;
+	worldPositionOut.w = gl_FragCoord.z;
 	
 	colorDepthOut.rgb = texture(Texture, texcoord).rgb;
-	colorDepthOut.w = gl_FragCoord.z;
+	colorDepthOut.w = 0.0;
 }

@@ -28,8 +28,8 @@ uniform float	bias = 0.00001f;
 
 uniform vec3	cameraPosition;
 
-layout(binding = 0, rgba32f) uniform image2D ColorDepth;
-layout(binding = 1, rgba32f) uniform readonly image2D Position;
+layout(binding = 0, rgba32f) uniform image2D ColorMaterial;
+layout(binding = 1, rgba32f) uniform readonly image2D PositionDepth;
 layout(binding = 2, rgba32f) uniform readonly image2D Normal;
 
 layout(binding = 3) uniform sampler2D ShadowMaps[8];
@@ -104,10 +104,10 @@ void main(void)
 {
 	uvec2 pixel = gl_GlobalInvocationID.xy;
 	uvec2 local_pixel = gl_LocalInvocationID.xy;
-	ivec2 image_size = imageSize(ColorDepth).xy;
+	ivec2 image_size = imageSize(ColorMaterial).xy;
 	
 	bool isVisible = pixel.x >= 0 && pixel.y >= 0 && pixel.x < uint(image_size.x) && pixel.y < image_size.y;
-	vec4 coldepth;
+	vec4 colmat;
 	vec4 position;
 	
 	if(local_pixel == uvec2(0, 0))
@@ -127,12 +127,12 @@ void main(void)
 	// Compute Bounding Box
 	if(isVisible)
 	{
-		coldepth = imageLoad(ColorDepth, ivec2(pixel));
-		position = imageLoad(Position, ivec2(pixel));
+		colmat = imageLoad(ColorMaterial, ivec2(pixel));
+		position = imageLoad(PositionDepth, ivec2(pixel));
 		
-		isVisible = isVisible && coldepth.w > 0.0 && coldepth.w < 1.0;
+		isVisible = isVisible && position.w > 0.0 && position.w < 1.0;
 		
-		if(isVisible)
+		if(isVisible && colmat.w != MATERIAL_UNLIT)
 		{
 			atomicMin(min_x, int(position.x));
 			atomicMax(max_x, int(position.x + 1.0));
@@ -168,9 +168,9 @@ void main(void)
 	barrier();
 	
 	//Compute lights' contributions
-	if(isVisible)
+	if(isVisible && colmat.w != MATERIAL_UNLIT)
 	{
-		vec3 color = coldepth.xyz;
+		vec3 color = colmat.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
 		
 		vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
@@ -226,9 +226,9 @@ void main(void)
 			}
 		}
 		
-		imageStore(ColorDepth, ivec2(pixel), ColorOut);
+		imageStore(ColorMaterial, ivec2(pixel), ColorOut);
 		
 		// DEBUG
-		//imageStore(ColorDepth, ivec2(pixel), vec4(float(local_lights_count) / lightCount, 0.0, 0.0, 1.0));
+		//imageStore(ColorMaterial, ivec2(pixel), vec4(float(local_lights_count) / lightCount, 0.0, 0.0, 1.0));
 	}
 }

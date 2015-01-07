@@ -685,8 +685,8 @@ int main(int argc, char* argv[])
 			_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 			_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 			_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-			DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
-			DeferredCS.getProgram().setUniform("Position", 1);
+			DeferredCS.getProgram().setUniform("ColorMaterial", (int) 0);
+			DeferredCS.getProgram().setUniform("PositionDepth", 1);
 			DeferredCS.getProgram().setUniform("Normal", 2);	
 			DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 			DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
@@ -712,7 +712,7 @@ int main(int argc, char* argv[])
 			glBlendEquation(GL_FUNC_ADD);
 			glBlendFunc(GL_ONE, GL_ONE);
 			_offscreenRender.getColor(0).bind(0);
-			DeferredColor.setUniform("ColorDepth", 0);
+			DeferredColor.setUniform("ColorMaterial", 0);
 			for(const auto& l : tmpLight)
 			{
 				glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(l.position));

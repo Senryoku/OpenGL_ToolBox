@@ -13,7 +13,7 @@ in layout(location = 0) vec3 world_position;
 in layout(location = 1) vec3 world_normal;
 in layout(location = 2) vec2 texcoord;
 
-out layout(location = 0) vec4 colorDepthOut;
+out layout(location = 0) vec4 colorMaterialOut;
 out layout(location = 1) vec4 worldPositionOut;
 out layout(location = 2) vec4 worldNormalOut;
 
@@ -23,8 +23,8 @@ void main(void)
 	worldNormalOut.a = 1.0;
 	
 	worldPositionOut.xyz = world_position;
-	worldPositionOut.w = 1.0;
+	worldPositionOut.w = gl_FragCoord.z;
 	
-	colorDepthOut.rgb = texture(Texture, texcoord).rgb;
-	colorDepthOut.w = gl_FragCoord.z;
+	colorMaterialOut.rgb = texture(Texture, texcoord).rgb;
+	colorMaterialOut.w = 0.0;
 }

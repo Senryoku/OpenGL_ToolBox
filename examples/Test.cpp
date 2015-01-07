@@ -57,6 +57,8 @@ bool		_paused = false;
 
 int			_colorToRender = 3;
 
+bool		_video = false;
+
 Framebuffer<Texture2D, 3>	_offscreenRender;
 	
 void screen(const std::string& path)
@@ -177,6 +179,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				const std::string ScreenPath("out/screenshot.png");
 				std::cout << "Saving a screenshot to " << ScreenPath << "..." << std::endl;
 				screen(ScreenPath);
+			}
+			case GLFW_KEY_N:
+			{
+				_video = true;
 			}
 		}
 	}
@@ -330,15 +336,14 @@ int main(int argc, char* argv[])
 	// Camera Initialization
 	
 	Camera MainCamera;
-	MainCamera.setPosition(glm::vec3(0.0, 10.0, 10.0));
-	MainCamera.lookAt(glm::vec3(0.0));
+	MainCamera.setPosition(glm::vec3(0.0, 15.0, -20.0));
+	MainCamera.lookAt(glm::vec3(0.0, 5.0, 0.0));
 	UniformBuffer CameraBuffer;
 	CameraBuffer.init();
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	ParticleDraw.bindUniformBlock("Camera", CameraBuffer);
 	
-
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
 	
@@ -353,7 +358,7 @@ int main(int argc, char* argv[])
 	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
 	
 	Mesh Plane;
-	float s = 1000.f;
+	float s = 100.f;
 	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 20.f)));
 	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 0.f)));
 	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 0.f)));
@@ -368,12 +373,22 @@ int main(int argc, char* argv[])
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	
+	auto Model = Mesh::load("in/3DModels/dragon/Figurine Dragon N170112.3DS");
+	Texture2D ModelTexture;
+	ModelTexture.load("in/3DModels/dragon/AS2_concrete_02.jpg");
+	for(auto part : Model)
+	{
+		part->createVAO();
+		part->getMaterial().setShadingProgram(Deferred);
+		part->getMaterial().setUniform("Texture", ModelTexture);
+		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
+	}
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
 	std::vector<Particle> particles;
 	for(int i = 0; i < 100; ++i)
-		particles.push_back(Particle(0.0, glm::vec3{i * 0.1, 0.0, i * 0.02}, glm::vec3{std::cos(0.01 * (i - 50.0)), 5.0, std::sin(0.01 * (i - 50.0))}, 2.0));
+		particles.push_back(Particle(0.0, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
 	TransformFeedback particles_transform_feedback[2];
@@ -400,7 +415,6 @@ int main(int argc, char* argv[])
 	DeferredCS.getProgram().setUniform("lightCount", LightCount);
 	DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
 	
-	
 	UniformBuffer LightBuffer;
 	
 	LightBuffer.init();
@@ -424,6 +438,7 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
+	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
 	{	
 		// Time Management 
@@ -456,7 +471,8 @@ int main(int argc, char* argv[])
 				
 			double mx = _mouse_x, my = _mouse_y;
 			glfwGetCursorPos(window, &_mouse_x, &_mouse_y);
-			MainCamera.look(glm::vec2(_mouse_x - mx, my - _mouse_y));
+			if(_mouse_x != mx || _mouse_y != my)
+				MainCamera.look(glm::vec2(_mouse_x - mx, my - _mouse_y));
 		}
 		MainCamera.updateView();
 		// Uploading camera data to the corresponding camera buffer
@@ -542,9 +558,13 @@ int main(int argc, char* argv[])
 		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		DeferredCS.getProgram().setUniform("ColorDepth", (int) 0);
-		DeferredCS.getProgram().setUniform("Position", (int) 1);
+		_offscreenRender.getColor(1).bind(3);
+		DeferredCS.getProgram().setUniform("ColorMaterial", (int) 0);
+		DeferredCS.getProgram().setUniform("PositionDepth", (int) 1);
 		DeferredCS.getProgram().setUniform("Normal", (int) 2);	
+		
+		//DeferredCS.getProgram().setUniform("PositionDepthSampler", (int) 3); //SSAO
+		
 		DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 		DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
 		DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
@@ -564,6 +584,18 @@ int main(int argc, char* argv[])
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		
+		if(_video)
+		{
+			static int framecount = 0;
+			screen("out/video/" + StringConversion::to_string(framecount) + ".png");
+			framecount++;
+			if(framecount > 60)
+			{
+				framecount = 0;
+				_video = false;
+			}
+		}
 	}
 	
 	glfwDestroyWindow(window);

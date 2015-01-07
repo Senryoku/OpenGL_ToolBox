@@ -10,7 +10,7 @@ layout(std140) uniform Camera
 	mat4 ProjectionMatrix;
 };
 
-uniform float particle_size = 1.0;
+uniform float particle_size = 0.25;
 uniform vec3 cameraPosition;
 
 in layout(location = 0) vec4 in_position_type[1];

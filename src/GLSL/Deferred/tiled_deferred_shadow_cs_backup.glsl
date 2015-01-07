@@ -27,7 +27,7 @@ uniform float	bias = 0.000005f;
 
 uniform vec3	cameraPosition;
 
-layout(binding = 0, rgba32f) uniform image2D ColorDepth;
+layout(binding = 0, rgba32f) uniform image2D ColorMaterial;
 layout(binding = 1, rgba32f) uniform readonly image2D Position;
 layout(binding = 2, rgba32f) uniform readonly image2D Normal;
 
@@ -100,7 +100,7 @@ void main(void)
 {
 	uvec2 pixel = gl_GlobalInvocationID.xy;
 	uvec2 local_pixel = gl_LocalInvocationID.xy;
-	ivec2 image_size = imageSize(ColorDepth).xy;
+	ivec2 image_size = imageSize(ColorMaterial).xy;
 	
 	bool isVisible = pixel.x >= 0 && pixel.y >= 0 && pixel.x < uint(image_size.x) && pixel.y < image_size.y;
 	vec4 coldepth;
@@ -123,7 +123,7 @@ void main(void)
 	// Compute Bounding Box
 	if(isVisible)
 	{
-		coldepth = imageLoad(ColorDepth, ivec2(pixel));
+		coldepth = imageLoad(ColorMaterial, ivec2(pixel));
 		position = imageLoad(Position, ivec2(pixel));
 		
 		isVisible = isVisible && coldepth.w > 0.0 && coldepth.w < 1.0;
@@ -191,9 +191,9 @@ void main(void)
 				}
 			}
 		}
-		imageStore(ColorDepth, ivec2(pixel), ColorOut);
+		imageStore(ColorMaterial, ivec2(pixel), ColorOut);
 		
 		// DEBUG
-		//imageStore(ColorDepth, ivec2(pixel), vec4(float(local_lights_count) / lightCount, 0.0, 0.0, 1.0));
+		//imageStore(ColorMaterial, ivec2(pixel), vec4(float(local_lights_count) / lightCount, 0.0, 0.0, 1.0));
 	}
 }
