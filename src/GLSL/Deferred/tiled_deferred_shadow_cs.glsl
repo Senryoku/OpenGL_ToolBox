@@ -1,5 +1,7 @@
 #version 430
 
+const float MATERIAL_UNLIT = 2.0;
+
 struct LightStruct
 {
 	vec4		position;

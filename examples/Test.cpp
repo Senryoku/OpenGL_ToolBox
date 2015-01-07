@@ -241,7 +241,56 @@ struct Particle
 	{
 	}
 };
+struct ShadowStruct
+{
+	glm::vec4	position;
+	glm::vec4	color;
+	glm::mat4	depthMVP;
+};
 
+// Checks whether the provided bounding bound is visible after its transformation by MVPMatrix
+// Todo: Place in... MeshInstance ?
+// Todo: There is some overdraw (object right behind the camera are reported as visible)
+//		 but I don't know why :(
+bool isVisible(const glm::mat4& ProjectionMatrix, const glm::mat4& ViewMatrix, const glm::mat4& ModelMatrix, const BoundingBox& bbox)
+{
+	const glm::vec4 a = ModelMatrix * glm::vec4(bbox.min, 1.0);
+	const glm::vec4 b = ModelMatrix * glm::vec4(bbox.max, 1.0);
+	
+	std::array<glm::vec4, 8> p = {glm::vec4{a.x, a.y, a.z, 1.0},
+								  glm::vec4{a.x, a.y, b.z, 1.0},
+								  glm::vec4{a.x, b.y, a.z, 1.0},
+								  glm::vec4{a.x, b.y, b.z, 1.0},
+								  glm::vec4{b.x, a.y, a.z, 1.0},
+								  glm::vec4{b.x, a.y, b.z, 1.0},
+								  glm::vec4{b.x, b.y, a.z, 1.0},
+								  glm::vec4{b.x, b.y, b.z, 1.0}};
+						
+	bool front = false;
+	for(auto& t : p)
+	{
+		t = ViewMatrix * t;
+		front = front || t.z < 0.0;
+	}
+
+	if(!front) return false;
+	
+	glm::vec2 min = glm::vec2(2.0, 2.0);
+	glm::vec2 max = glm::vec2(-2.0, -2.0);
+						
+	for(auto& t : p)
+	{
+		t = ProjectionMatrix * t;
+		if(t.w > 0.0) t /= t.w;
+		min.x = std::min(min.x, t.x);
+		min.y = std::min(min.y, t.y);
+		max.x = std::max(max.x, t.x);
+		max.y = std::max(max.y, t.y);
+	}
+	
+	return !(max.x < -1.0 || max.y < -1.0 ||
+			 min.x >  1.0 || min.y >  1.0);
+}
 int main(int argc, char* argv[])
 {
 	if (glfwInit() == false)
@@ -299,6 +348,12 @@ int main(int argc, char* argv[])
 	DeferredCS.compile();
 	
 	if(!DeferredCS.getProgram()) return 0;
+	
+	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
+	DeferredShadowCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_shadow_cs.glsl");
+	DeferredShadowCS.compile();
+	
+	if(!DeferredShadowCS.getProgram()) return 0;
 	
 	Program& ParticleUpdate = ResourcesManager::getInstance().getProgram("ParticleUpdate");
 	VertexShader& ParticleUpdateVS = ResourcesManager::getInstance().getShader<VertexShader>("ParticleUpdate_VS");
@@ -432,12 +487,54 @@ int main(int argc, char* argv[])
 	}
 	LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
 		
+	// Shadow casting lights ---------------------------------------------------
+	const size_t ShadowCount = 4;
+	UniformBuffer ShadowBuffers[ShadowCount];
+	DeferredShadowCS.getProgram().setUniform("shadowCount", ShadowCount);
+	
+	Light MainLights[ShadowCount];
+	MainLights[0].init();
+	MainLights[0].setColor(glm::vec4(0.3));
+	MainLights[0].setPosition(glm::vec3(0.0, 40.0, 100.0));
+	MainLights[0].lookAt(glm::vec3(0.0, 10.0, 0.0));
+	
+	for(size_t i = 0; i < ShadowCount; ++i)
+	{
+		ShadowBuffers[i].init();
+		ShadowBuffers[i].bind(i + 2);
+		MainLights[i].updateMatrices();
+		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+		
+		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
+	}
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Main Loop
 	
 	MainCamera.updateView();
 	bool firstStep = true;
 	
+	// STATIC SHADOWS	
+	for(size_t i = 0; i < ShadowCount; ++i)
+	{
+		MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+		MainLights[i].updateMatrices();
+		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+		
+		MainLights[i].bind();
+		
+		for(auto& b : _meshInstances)
+			if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+			{
+				Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+				b.getMesh().draw();
+			}
+		
+		MainLights[i].unbind();
+	}
+		
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -483,9 +580,7 @@ int main(int argc, char* argv[])
 		std::ostringstream oss;
 		oss << _frameRate;
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
-
-		////////////////////////////////////////////////////////////////////////////////////////////		
-		
+	
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Particle Update
 		
@@ -535,7 +630,8 @@ int main(int argc, char* argv[])
 			
 		for(auto& b : _meshInstances)
 		{
-			b.draw();
+			if(isVisible(_projection, MainCamera.getMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+				b.draw();
 		}
 		
 		_offscreenRender.unbind();		
@@ -548,7 +644,7 @@ int main(int argc, char* argv[])
 			glCopyBufferSubData(Buffer::VertexAttributes, Buffer::Uniform, sizeof(Particle) * i, sizeof(Particle) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
-		
+			
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
 		glViewport(0, 0, _width, _height);
@@ -558,28 +654,22 @@ int main(int argc, char* argv[])
 		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		_offscreenRender.getColor(1).bind(3);
-		DeferredCS.getProgram().setUniform("ColorMaterial", (int) 0);
-		DeferredCS.getProgram().setUniform("PositionDepth", (int) 1);
-		DeferredCS.getProgram().setUniform("Normal", (int) 2);	
+		for(size_t i = 0; i < ShadowCount; ++i)
+			MainLights[i].getShadowMap().bind(i + 3);
+		DeferredShadowCS.getProgram().setUniform("ColorMaterial", (int) 0);
+		DeferredShadowCS.getProgram().setUniform("PositionDepth", (int) 1);
+		DeferredShadowCS.getProgram().setUniform("Normal", (int) 2);	
 		
-		//DeferredCS.getProgram().setUniform("PositionDepthSampler", (int) 3); //SSAO
-		
-		DeferredCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
-		DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
-		DeferredCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
-		DeferredCS.memoryBarrier();
+		DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
+		DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
+		DeferredShadowCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
+		DeferredShadowCS.memoryBarrier();
 		
 		// Blitting
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		_offscreenRender.bind(FramebufferTarget::Read);
 		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		/*
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		_offscreenRender.bind(FramebufferTarget::Read);
-		glReadBuffer(GL_COLOR_ATTACHMENT0 + 0);
-		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		*/
+		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		glfwSwapBuffers(window);

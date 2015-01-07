@@ -27,7 +27,7 @@ void main()
 		speed_lifetime.xyz = vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].y)), 
 								  5.0,
 								  -2.5 + 5.0 * rand(vec2(inter_position_type[0].y, lifetime)));
-		speed_lifetime.w = 10.0 * rand(inter_position_type[0].xy);
+		speed_lifetime.w = 20.0 * rand(inter_position_type[0].xy);
 	} else {
 		vec3 speed = inter_speed_lifetime[0].xyz + vec3(0.0, -9.0, 0.0) * time;
 		position_type.xyz = inter_position_type[0].xyz + speed * time;
