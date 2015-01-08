@@ -136,11 +136,11 @@ void main(void)
 		
 		if(isVisible && colmat.w != MATERIAL_UNLIT)
 		{
-			atomicMin(min_x, int(position.x));
+			atomicMin(min_x, int(position.x - 1.0));
 			atomicMax(max_x, int(position.x + 1.0));
-			atomicMin(min_y, int(position.y));
+			atomicMin(min_y, int(position.y - 1.0));
 			atomicMax(max_y, int(position.y + 1.0));
-			atomicMin(min_z, int(position.z));
+			atomicMin(min_z, int(position.z - 1.0));
 			atomicMax(max_z, int(position.z + 1.0));
 		}
 	}
