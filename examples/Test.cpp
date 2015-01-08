@@ -30,6 +30,7 @@
 int			_width = 1366;
 int			_height = 720;
 
+Camera MainCamera;
 float		_fov = 60.0;
 glm::vec3 	_resolution(_width, _height, 0.0);
 glm::mat4 	_projection;
@@ -179,10 +180,30 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				const std::string ScreenPath("out/screenshot.png");
 				std::cout << "Saving a screenshot to " << ScreenPath << "..." << std::endl;
 				screen(ScreenPath);
+				break;
 			}
 			case GLFW_KEY_N:
 			{
 				_video = true;
+				break;
+			}
+			case GLFW_KEY_KP_ADD:
+			{
+				if(MainCamera.speed() < 1)
+					MainCamera.speed() += .1;
+				else
+					MainCamera.speed() += 1;
+				std::cout << "Camera Speed: " << MainCamera.speed() << std::endl;
+				break;
+			}
+			case GLFW_KEY_KP_SUBTRACT:
+			{
+				if(MainCamera.speed() <= 1)
+					MainCamera.speed() -= .1;
+				else
+					MainCamera.speed() -= 1;
+				std::cout << "Camera Speed: " << MainCamera.speed() << std::endl;
+				break;
 			}
 		}
 	}
@@ -390,7 +411,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
 	
-	Camera MainCamera;
+	MainCamera.speed() = 15;
 	MainCamera.setPosition(glm::vec3(0.0, 15.0, -20.0));
 	MainCamera.lookAt(glm::vec3(0.0, 5.0, 0.0));
 	UniformBuffer CameraBuffer;
@@ -438,6 +459,21 @@ int main(int argc, char* argv[])
 		part->getMaterial().setUniform("Texture", ModelTexture);
 		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
 	}
+	
+	auto Model1 = Mesh::load("in/3DModels/alduin/OBJ/alduin.obj");
+	Texture2D AlduinTexture;
+	AlduinTexture.load("in/3DModels/alduin/OBJ/tex/alduin.jpg");
+	Texture2D AlduinNormalMap;
+	AlduinNormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
+	for(auto part : Model1)
+	{
+		part->createVAO();
+		part->getMaterial().setShadingProgram(Deferred);
+		part->getMaterial().setUniform("Texture", AlduinTexture);
+		part->getMaterial().setUniform("NormalMap", AlduinNormalMap);
+		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
+	}
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
@@ -456,7 +492,7 @@ int main(int argc, char* argv[])
 		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::DynamicDraw);
 		particles_transform_feedback[i].bindBuffer(0, particles_buffers[i]);
 		
-		//particles_buffers[i].bind(Buffer::Uniform, (GLuint) i + 1); // Usign them as light sources. Yeah.
+		//particles_buffers[i].bind(Buffer::Uniform, (GLuint) i + 1); // Using them as light sources. Yeah.
 	}
 	
 	size_t ParticleStep = 0;

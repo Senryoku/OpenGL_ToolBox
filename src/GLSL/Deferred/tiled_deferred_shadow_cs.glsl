@@ -94,7 +94,7 @@ vec3 phong(vec3 p, vec3 N, vec3 diffuse, vec3 lp, vec3 lc)
 	vec3 V = normalize(cameraPosition - p);
 	vec3 R = normalize(reflect(-L, N));
 	
-	float specularFactor = pow(max(dot(R, V), 0.f), 8.0);
+	float specularFactor = pow(max(dot(R, V), 0.f), 64.0);
 								
 	return diffuseFactor * diffuse * lc + specularFactor * lc;
 }

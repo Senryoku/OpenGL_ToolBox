@@ -36,7 +36,7 @@ void main()
 		speed_lifetime.w = lifetime;
 	}
 	
-	if(position_type.y < 0.0)
+	if(position_type.y < 0.05)
 		speed_lifetime.xyz = 0.75 * reflect(speed_lifetime.xyz, vec3(0.0, 1.0, 0.0));
 	
 	if(position_type.y < 0.05)
