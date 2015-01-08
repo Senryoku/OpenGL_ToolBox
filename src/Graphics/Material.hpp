@@ -9,7 +9,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <AllShader.hpp>
+#include <Shaders.hpp>
 #include <Uniform.hpp>
 #include <Texture2D.hpp>
 #include <Texture3D.hpp>

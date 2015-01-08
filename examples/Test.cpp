@@ -465,14 +465,19 @@ int main(int argc, char* argv[])
 	AlduinTexture.load("in/3DModels/alduin/OBJ/tex/alduin.jpg");
 	Texture2D AlduinNormalMap;
 	AlduinNormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
-	for(auto part : Model1)
-	{
-		part->createVAO();
-		part->getMaterial().setShadingProgram(Deferred);
-		part->getMaterial().setUniform("Texture", AlduinTexture);
-		part->getMaterial().setUniform("NormalMap", AlduinNormalMap);
-		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
-	}
+	Texture2D AlduinEyeTexture;
+	AlduinTexture.load("in/3DModels/alduin/OBJ/tex/alduineyes.jpg");
+	
+	Model1[1]->createVAO();
+	Model1[1]->getMaterial().setShadingProgram(Deferred);
+	Model1[1]->getMaterial().setUniform("Texture", AlduinTexture);
+	Model1[1]->getMaterial().setUniform("NormalMap", AlduinNormalMap);
+	_meshInstances.push_back(MeshInstance(*Model1[1], glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
+
+	Model1[0]->createVAO();
+	Model1[0]->getMaterial().setShadingProgram(Deferred);
+	Model1[0]->getMaterial().setUniform("Texture", AlduinEyeTexture);
+	_meshInstances.push_back(MeshInstance(*Model1[0], glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles

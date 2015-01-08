@@ -6,7 +6,7 @@
 #include <Frustum.hpp>
 #include <Texture2D.hpp>
 #include <Framebuffer.hpp>
-#include <AllShader.hpp>
+#include <Shaders.hpp>
 
 /**
  * Light

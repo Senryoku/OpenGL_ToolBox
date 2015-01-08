@@ -1,10 +1,11 @@
 cmake_minimum_required (VERSION 2.6)
 
+cmake_policy(SET CMP0015 NEW)
+cmake_policy(SET CMP0048 OLD)
+
 project (OpenGL_Toolbox)
 set (OpenGL_Toolbox_VERSION_MAJOR 0)
 set (OpenGL_Toolbox_VERSION_MINOR 1)
-
-cmake_policy(SET CMP0015 NEW)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -65,6 +66,15 @@ INCLUDE_DIRECTORIES(${ASSIMP_ROOT_DIR}/include)
 add_definitions(-DASSIMP_BUILD_NO_IFC_IMPORTER) #Workaround a MinGW problem...
 ADD_SUBDIRECTORY(${ASSIMP_ROOT_DIR} ${EXT_LIB_BUILD}/assimp)
 
+#SENOGL
+#SET(SENOGL_ROOT_DIR "../SenOGL" CACHE FILEPATH "SENOGL_ROOT_DIR")
+find_package(SenOGL REQUIRED)
+FOREACH(dir ${SenOGL_INCLUDE_DIRS})
+	INCLUDE_DIRECTORIES(${dir})
+ENDFOREACH(dir)
+LINK_DIRECTORIES(${SenOGL_LIBRARY_DIRS})
+ADD_DEFINITIONS(${SenOGL_DEFINITIONS})
+
 # -----------------------------------------------------------------------------------
 
 MACRO(SUBDIRLIST result curdir)
@@ -102,7 +112,7 @@ add_library(OpenGL_Toolbox STATIC ${SOURCE_FILES})
 foreach(Exe ${EXECUTABLES})
 	get_filename_component(Target ${Exe} NAME_WE [CACHE])
 	add_executable(${Target} ${Exe})
-	TARGET_LINK_LIBRARIES(${Target} OpenGL_Toolbox ${ANTTWEAKBAR_LIBRARY} assimp glfw3 ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
+	TARGET_LINK_LIBRARIES(${Target} ${SenOGL_LIBRARY} OpenGL_Toolbox ${ANTTWEAKBAR_LIBRARY} assimp.dll glfw3 ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
 	MESSAGE(STATUS "Adding rule for ${Target}.")
 endforeach(Exe)
 

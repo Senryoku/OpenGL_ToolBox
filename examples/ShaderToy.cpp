@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 #include <AntTweakBar.h>
 
-#include <AllShader.hpp>
+#include <Shaders.hpp>
 #include <CubeMap.hpp>
 #include <ResourcesManager.hpp>
 #include <TimeManager.hpp>
