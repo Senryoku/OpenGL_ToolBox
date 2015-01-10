@@ -180,7 +180,7 @@ void main(void)
 		{
 			float d = length(position.xyz - Lights[local_lights[l2]].position.xyz);
 			if(d < lightRadius)
-				ColorOut.rgb += (1.0 - d/lightRadius) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+				ColorOut.rgb += (1.0 - square(d/lightRadius)) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
 		}
 		
 		/*

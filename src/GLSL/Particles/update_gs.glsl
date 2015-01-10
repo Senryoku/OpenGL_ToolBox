@@ -4,6 +4,7 @@ layout(points) in;
 layout(points, max_vertices = 1) out;
 
 uniform float time = 0.0;
+uniform float particle_size = 0.25;
 
 layout(location = 0) in vec4 inter_position_type[];
 layout(location = 1) in vec4 inter_speed_lifetime[];
@@ -24,8 +25,8 @@ void main()
 	{
 		position_type.xyz = vec3(0.0, 10.0, 0.0);
 		position_type.w = inter_position_type[0].w;
-		speed_lifetime.xyz = vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].y)), 
-								  5.0,
+		speed_lifetime.xyz = 2.0 * vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].y)), 
+								  2.0 + 3.0 * rand(inter_position_type[0].yx),
 								  -2.5 + 5.0 * rand(vec2(inter_position_type[0].y, lifetime)));
 		speed_lifetime.w = 20.0 * rand(inter_position_type[0].xy);
 	} else {
@@ -36,11 +37,11 @@ void main()
 		speed_lifetime.w = lifetime;
 	}
 	
-	if(position_type.y < 0.05)
+	if(position_type.y < 0.25 / 2.0)
 		speed_lifetime.xyz = 0.75 * reflect(speed_lifetime.xyz, vec3(0.0, 1.0, 0.0));
 	
-	if(position_type.y < 0.05)
-		position_type.y = 0.05;
+	if(position_type.y < 0.25 / 2.0)
+		position_type.y = 0.25 / 2.0;
 	
 	EmitVertex();
 	EndPrimitive();

@@ -321,7 +321,12 @@ int main(int argc, char* argv[])
 	}
 	glfwSetErrorCallback(error_callback);
 	glfwWindowHint(GLFW_SAMPLES, 4);
-    GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
+	
+	// Debug Context (Does it work? =.=)
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+	glEnable(GL_DEBUG_OUTPUT);
+    
+	GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
 	
 	if (!window)
 	{
@@ -363,12 +368,6 @@ int main(int argc, char* argv[])
 	Deferred.attachShader(DeferredVS);
 	Deferred.attachShader(DeferredFS);
 	Deferred.link();
-	
-	ComputeShader& DeferredCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredCS");
-	DeferredCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_cs.glsl");
-	DeferredCS.compile();
-	
-	if(!DeferredCS.getProgram()) return 0;
 	
 	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
 	DeferredShadowCS.loadFromFile("src/GLSL/Deferred/tiled_deferred_shadow_cs.glsl");
@@ -460,30 +459,26 @@ int main(int argc, char* argv[])
 		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
 	}
 	
-	auto Model1 = Mesh::load("in/3DModels/alduin/OBJ/alduin.obj");
-	Texture2D AlduinTexture;
-	AlduinTexture.load("in/3DModels/alduin/OBJ/tex/alduin.jpg");
-	Texture2D AlduinNormalMap;
-	AlduinNormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
-	Texture2D AlduinEyeTexture;
-	AlduinTexture.load("in/3DModels/alduin/OBJ/tex/alduineyes.jpg");
+	auto Model1 = Mesh::load("in/3DModels/sculpt/Figurine N030611.3DS");
+	Texture2D Model1Texture;
+	Model1Texture.load("in/3DModels/sculpt/Stucco 1060 x 819 px 0705.jpg");
+	//Texture2D Model1NormalMap;
+	//Model1NormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
 	
-	Model1[1]->createVAO();
-	Model1[1]->getMaterial().setShadingProgram(Deferred);
-	Model1[1]->getMaterial().setUniform("Texture", AlduinTexture);
-	Model1[1]->getMaterial().setUniform("NormalMap", AlduinNormalMap);
-	_meshInstances.push_back(MeshInstance(*Model1[1], glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
-
-	Model1[0]->createVAO();
-	Model1[0]->getMaterial().setShadingProgram(Deferred);
-	Model1[0]->getMaterial().setUniform("Texture", AlduinEyeTexture);
-	_meshInstances.push_back(MeshInstance(*Model1[0], glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.01))));
+	for(auto m : Model1)
+	{
+		m->createVAO();
+		m->getMaterial().setShadingProgram(Deferred);
+		m->getMaterial().setUniform("Texture", Model1Texture);
+		//m->getMaterial().setUniform("NormalMap", Model1NormalMap);
+		_meshInstances.push_back(MeshInstance(*m, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.025))));
+	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
 	std::vector<Particle> particles;
-	for(int i = 0; i < 100; ++i)
+	for(int i = 0; i < 250; ++i)
 		particles.push_back(Particle(0.0, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
@@ -508,15 +503,15 @@ int main(int argc, char* argv[])
 	// Light initialization
 	
 	const size_t LightCount = particles.size();
-	DeferredCS.getProgram().setUniform("lightCount", LightCount);
-	DeferredCS.getProgram().setUniform("lightRadius", LightRadius);
+	DeferredShadowCS.getProgram().setUniform("lightCount", LightCount);
+	DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
 	
 	UniformBuffer LightBuffer;
 	
 	LightBuffer.init();
 	LightBuffer.bind(1);
 
-	DeferredCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
+	DeferredShadowCS.getProgram().bindUniformBlock("LightBlock", LightBuffer);
 	
 	LightStruct tmpLight[LightCount];
 	for(size_t i = 0; i < LightCount; ++i)
@@ -585,10 +580,12 @@ int main(int argc, char* argv[])
 		_frameRate = TimeManager::getInstance().getInstantFrameRate();
 		if(!_paused)
 			_time += _timescale * _frameTime;
+		else _frameTime = 0.0;
 		
 		// Camera Management
 		if(_controlCamera)
 		{
+			float _frameTime = TimeManager::getInstance().getRealDeltaTime(); // Should move even on pause :)
 			if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 				MainCamera.moveForward(_frameTime);
 				
@@ -701,7 +698,7 @@ int main(int argc, char* argv[])
 		
 		DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 		DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
-		DeferredShadowCS.compute(_resolution.x / DeferredCS.getWorkgroupSize().x + 1, _resolution.y / DeferredCS.getWorkgroupSize().y + 1, 1);
+		DeferredShadowCS.compute(_resolution.x / DeferredShadowCS.getWorkgroupSize().x + 1, _resolution.y / DeferredShadowCS.getWorkgroupSize().y + 1, 1);
 		DeferredShadowCS.memoryBarrier();
 		
 		// Blitting
