@@ -2,7 +2,7 @@
 
 MeshBatch::MeshBatch(const Mesh& mesh) :
 	_mesh(&mesh),
-	_instances_attributes(Buffer::VertexAttributes)
+	_instances_attributes(Buffer::Target::VertexAttributes)
 {
 }
 
@@ -28,7 +28,7 @@ void MeshBatch::createVAO()
 	// Per instance attributes
 	_instances_attributes.init();
 	_instances_attributes.bind();
-	_instances_attributes.data(_instances_data.data(), sizeof(InstanceData) * _instances_data.size(), Buffer::StaticDraw);
+	_instances_attributes.data(_instances_data.data(), sizeof(InstanceData) * _instances_data.size(), Buffer::Usage::StaticDraw);
 	for(int i = 0; i < 4; ++i)
 	{
 		_vao.attribute(PerVertexAttributesCount + i, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const GLvoid*) (sizeof(float) * i * 4));
@@ -67,7 +67,7 @@ void MeshBatch::draw(const glm::mat4& VPMatrix, bool usingMeshMaterial)
 	_transformFeedback.enableRasterization();
 	
 	if(usingMeshMaterial) _mesh->getMaterial().use();
-	_transformFeedback.draw(Triangles);
+	_transformFeedback.draw(Primitive::Triangles);
 }
 
 void MeshBatch::initVFC()

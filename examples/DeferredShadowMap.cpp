@@ -522,7 +522,7 @@ int main(int argc, char* argv[])
 		ShadowBuffers[i].bind(i + 2);
 		MainLights[i].updateMatrices();
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
 		//DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
 		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
@@ -641,7 +641,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		// Uploading camera data to the corresponding camera buffer
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		// (Updating window title)
 		std::ostringstream oss;
@@ -659,7 +659,7 @@ int main(int argc, char* argv[])
 				glm::vec4(i % 2, (i % 3) / 2.0, (i % 5)/4.0, 1.0)		// Color
 			};
 		}
-		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 		////////////////////////////////////////////////////////////////////////////////////////////		
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -756,7 +756,7 @@ int main(int argc, char* argv[])
 				MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
 				MainLights[i].updateMatrices();
 				ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-				ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+				ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 				
 				MainLights[i].bind();
 				

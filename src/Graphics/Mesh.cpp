@@ -33,8 +33,8 @@ Mesh::Vertex::Vertex(glm::vec3 pos,
 
 Mesh::Mesh() :
 	_vao(),
-	_vertex_buffer(Buffer::VertexAttributes),
-	_index_buffer(Buffer::VertexIndices)
+	_vertex_buffer(Buffer::Target::VertexAttributes),
+	_index_buffer(Buffer::Target::VertexIndices)
 {
 }
 
@@ -46,7 +46,7 @@ void Mesh::createVAO()
 	_vertex_buffer.init();
 	_vertex_buffer.bind();
 	
-	_vertex_buffer.data(&_vertices[0], sizeof(Vertex)*_vertices.size(), Buffer::StaticDraw);
+	_vertex_buffer.data(&_vertices[0], sizeof(Vertex)*_vertices.size(), Buffer::Usage::StaticDraw);
 
     _vao.attribute(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid *) offsetof(struct Vertex, position));
     _vao.attribute(1, 3, GL_FLOAT, GL_TRUE, sizeof(Vertex), (GLvoid *) offsetof(struct Vertex, normal));
@@ -54,7 +54,7 @@ void Mesh::createVAO()
 
 	_index_buffer.init();
 	_index_buffer.bind();
-	_index_buffer.data(&_triangles[0], sizeof(size_t)*_triangles.size()*3, Buffer::StaticDraw);
+	_index_buffer.data(&_triangles[0], sizeof(size_t)*_triangles.size()*3, Buffer::Usage::StaticDraw);
 	
 	_vao.unbind(); // Unbind first on purpose :)
 	_index_buffer.unbind();

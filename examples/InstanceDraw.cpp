@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
 		LightBuffers[i].bind(i);
 		MainLights[i].updateMatrices();
 		LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 	}
 	
 	Camera MainCamera;
@@ -474,7 +474,7 @@ int main(int argc, char* argv[])
 	
 	Ball->createVAO();
 	
-	Buffer BallsModelMatrices(Buffer::VertexAttributes);
+	Buffer BallsModelMatrices(Buffer::Target::VertexAttributes);
 	BallsModelMatrices.init();
 	std::vector<glm::mat4> tmp_modelmatrices;
 	tmp_modelmatrices.reserve(100);
@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
 			tmp_modelmatrices.push_back(glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(40.0 * (i - 0.5 * row_ball_count), 20.0, 40.0 * (j - 0.5 * col_ball_count))), glm::vec3(10.0)));
 		}
 		
-	BallsModelMatrices.data(tmp_modelmatrices.data(), sizeof(glm::mat4) * tmp_modelmatrices.size(), Buffer::StaticDraw);
+	BallsModelMatrices.data(tmp_modelmatrices.data(), sizeof(glm::mat4) * tmp_modelmatrices.size(), Buffer::Usage::StaticDraw);
 
 	Skybox Sky({"in/Textures/cubemaps/" CUBEMAP_FOLDER "/posx.jpg",
 				"in/Textures/cubemaps/" CUBEMAP_FOLDER "/negx.jpg",
@@ -534,7 +534,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		std::ostringstream oss;
 		oss << _frameRate;
@@ -556,7 +556,7 @@ int main(int argc, char* argv[])
 		{
 			MainLights[i].updateMatrices();
 			LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 		}
 		
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)

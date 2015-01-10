@@ -492,9 +492,9 @@ int main(int argc, char* argv[])
 	{
 		particles_transform_feedback[i].init();
 		particles_transform_feedback[i].bind();
-		particles_buffers[i].init(Buffer::VertexAttributes);
+		particles_buffers[i].init(Buffer::Target::VertexAttributes);
 		particles_buffers[i].bind();
-		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::DynamicDraw);
+		particles_buffers[i].data(particles.data(), sizeof(Particle) * particles.size(), Buffer::Usage::DynamicDraw);
 		particles_transform_feedback[i].bindBuffer(0, particles_buffers[i]);
 		
 		//particles_buffers[i].bind(Buffer::Uniform, (GLuint) i + 1); // Using them as light sources. Yeah.
@@ -526,7 +526,7 @@ int main(int argc, char* argv[])
 			glm::vec4(1.0)		// Color
 		};
 	}
-	LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+	LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 		
 	// Shadow casting lights ---------------------------------------------------
 	const size_t ShadowCount = 4;
@@ -545,7 +545,7 @@ int main(int argc, char* argv[])
 		ShadowBuffers[i].bind(i + 2);
 		MainLights[i].updateMatrices();
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
 		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
 	}
@@ -562,7 +562,7 @@ int main(int argc, char* argv[])
 		MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
 		MainLights[i].updateMatrices();
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::DynamicDraw);
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
 		MainLights[i].bind();
 		
@@ -615,7 +615,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		// Uploading camera data to the corresponding camera buffer
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		// (Updating window title)
 		std::ostringstream oss;
@@ -637,14 +637,14 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 	 
-		TransformFeedback::begin(Points);
+		TransformFeedback::begin(Primitive::Points);
 		
 		if(firstStep)
 		{
 			glDrawArrays(GL_POINTS, 0, particles.size());
 			firstStep = false;
 		} else {
-			particles_transform_feedback[ParticleStep].draw(Points);
+			particles_transform_feedback[ParticleStep].draw(Primitive::Points);
 		}
 		
 		TransformFeedback::end();
@@ -667,7 +667,7 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 		
-		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Points);
+		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
 			
 		for(auto& b : _meshInstances)
 		{
@@ -679,10 +679,8 @@ int main(int argc, char* argv[])
 		
 		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
 		//DeferredCS.getProgram().bindUniformBlock("LightBlock", particles_buffers[ParticleStep]); // Not anymore, but it was cool.
-		glBindBuffer(Buffer::VertexAttributes, particles_buffers[(ParticleStep + 1) % 2].getName());
-		glBindBuffer(Buffer::Uniform, LightBuffer.getName());
 		for(size_t i = 0; i < particles.size(); ++i)
-			glCopyBufferSubData(Buffer::VertexAttributes, Buffer::Uniform, sizeof(Particle) * i, sizeof(Particle) * i, sizeof(glm::vec4));
+			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
 			
@@ -707,7 +705,7 @@ int main(int argc, char* argv[])
 		DeferredShadowCS.memoryBarrier();
 		
 		// Blitting
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		Framebuffer<>::unbind(FramebufferTarget::Draw);
 		_offscreenRender.bind(FramebufferTarget::Read);
 		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		

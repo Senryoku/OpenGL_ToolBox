@@ -595,7 +595,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		// Uploading camera data to the corresponding camera buffer
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		// (Updating window title)
 		std::ostringstream oss;
@@ -613,7 +613,7 @@ int main(int argc, char* argv[])
 				glm::vec4(i % 2, (i % 3) / 2.0, (i % 5)/4.0, 1.0)		// Color
 			};
 		}
-		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::DynamicDraw);
+		LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		////////////////////////////////////////////////////////////////////////////////////////////

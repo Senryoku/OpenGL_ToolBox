@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
 		LightBuffers[i].bind(i);
 		MainLights[i].updateMatrices();
 		LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 	}
 	
 	Camera MainCamera;
@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
 	CubeCameraBuffer.init();
 	CubeCameraBuffer.bind(LightCount + 1);
 	CameraStruct CamS = {CubeCamera.getMatrix(), glm::perspective<float>((float) pi() / 2.0f, 1.f, 0.5f, 1000.0f)};
-	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::StaticDraw);
+	CubeCameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::StaticDraw);
 	CubeNormalMap.bindUniformBlock("Camera", CubeCameraBuffer);
 	
 	NormalMap.setUniform("lightCount", LightCount);
@@ -532,7 +532,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		std::ostringstream oss;
 		oss << _frameRate;
@@ -554,7 +554,7 @@ int main(int argc, char* argv[])
 		{
 			MainLights[i].updateMatrices();
 			LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+			LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 			MainLights[i].bind();
 			
 			for(Mesh* m : Glados)

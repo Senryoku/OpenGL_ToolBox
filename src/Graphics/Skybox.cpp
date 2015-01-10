@@ -5,8 +5,8 @@
 #include <ResourcesManager.hpp>
 
 VertexArray		Skybox::s_vao;
-Buffer			Skybox::s_vertex_buffer(Buffer::VertexAttributes);
-Buffer			Skybox::s_index_buffer(Buffer::VertexIndices);
+Buffer			Skybox::s_vertex_buffer(Buffer::Target::VertexAttributes);
+Buffer			Skybox::s_index_buffer(Buffer::Target::VertexIndices);
 
 Skybox::Skybox()
 {
@@ -133,13 +133,13 @@ void Skybox::init()
 	s_vertex_buffer.init();
 	s_vertex_buffer.bind();
 	
-	s_vertex_buffer.data(vertices, sizeof(float) * 24.0, Buffer::StaticDraw);
+	s_vertex_buffer.data(vertices, sizeof(float) * 24.0, Buffer::Usage::StaticDraw);
 
 	s_vao.attribute(0, 3, GL_FLOAT, GL_FALSE, 3.0 * sizeof(float), (GLvoid *) 0);
 
 	s_index_buffer.init();
 	s_index_buffer.bind();
-	s_index_buffer.data(indices, sizeof(GLubyte) * 24, Buffer::StaticDraw);
+	s_index_buffer.data(indices, sizeof(GLubyte) * 24, Buffer::Usage::StaticDraw);
 	
 	s_vao.unbind(); // Unbind first on purpose :)
 	s_index_buffer.unbind();

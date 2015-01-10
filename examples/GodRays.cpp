@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
 		LightBuffers[i].bind(i);
 		MainLights[i].updateMatrices();
 		LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+		LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 	}
 	
 	NormalMap.setUniform("lightCount", LightCount);
@@ -646,7 +646,7 @@ int main(int argc, char* argv[])
 		MainCamera.updateView();
 		// Uploading camera data to the corresponding camera buffer
 		CameraStruct CamS = {MainCamera.getMatrix(), _projection};
-		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::DynamicDraw);
+		CameraBuffer.data(&CamS, sizeof(CameraStruct), Buffer::Usage::DynamicDraw);
 		
 		// (Updating window title)
 		std::ostringstream oss;
@@ -683,7 +683,7 @@ int main(int argc, char* argv[])
 			{
 				MainLights[i].updateMatrices();
 				LightStruct tmpLight = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-				LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::DynamicDraw);
+				LightBuffers[i].data(&tmpLight, sizeof(LightStruct), Buffer::Usage::DynamicDraw);
 				MainLights[i].bind();
 				
 				for(auto& b : _meshInstances)
