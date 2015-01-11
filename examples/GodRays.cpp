@@ -86,8 +86,8 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	
 	_godrayRender = Framebuffer<Texture2D>(_width, _height, false);
 	_godrayRender.init();
-	_godrayRender.getColor().set(Texture::WrapS, GL_CLAMP_TO_EDGE);
-	_godrayRender.getColor().set(Texture::WrapT, GL_CLAMP_TO_EDGE);
+	_godrayRender.getColor().set(Texture::Parameter::WrapS, GL_CLAMP_TO_EDGE);
+	_godrayRender.getColor().set(Texture::Parameter::WrapT, GL_CLAMP_TO_EDGE);
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -509,7 +509,7 @@ int main(int argc, char* argv[])
 	{
 		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
 		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
-		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
+		GladosNormalMaps[i].set(Texture::Parameter::MinFilter, GL_LINEAR);
 	}
 	
 	for(Mesh* m : Glados)

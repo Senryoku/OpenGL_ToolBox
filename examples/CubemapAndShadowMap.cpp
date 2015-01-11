@@ -412,7 +412,7 @@ int main(int argc, char* argv[])
 	{
 		GladosTextures[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append(".jpg"));
 		GladosNormalMaps[i].load(std::string("in/3DModels/Glados/").append(GladosTex[i]).append("_n.jpg"));
-		GladosNormalMaps[i].set(Texture::MinFilter, GL_LINEAR);
+		GladosNormalMaps[i].set(Texture::Parameter::MinFilter, GL_LINEAR);
 	}
 	
 	for(Mesh* m : Glados)

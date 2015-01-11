@@ -17,6 +17,7 @@
 #include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
+#include <CubeMap.hpp>
 #include <Framebuffer.hpp>
 #include <Buffer.hpp>
 #include <TransformFeedback.hpp>
@@ -312,6 +313,7 @@ bool isVisible(const glm::mat4& ProjectionMatrix, const glm::mat4& ViewMatrix, c
 	return !(max.x < -1.0 || max.y < -1.0 ||
 			 min.x >  1.0 || min.y >  1.0);
 }
+
 int main(int argc, char* argv[])
 {
 	if (glfwInit() == false)
@@ -323,8 +325,8 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	
 	// Debug Context (Does it work? =.=)
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-	glEnable(GL_DEBUG_OUTPUT);
+	//glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+	//glEnable(GL_DEBUG_OUTPUT);
     
 	GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
 	
@@ -456,6 +458,7 @@ int main(int argc, char* argv[])
 		part->createVAO();
 		part->getMaterial().setShadingProgram(Deferred);
 		part->getMaterial().setUniform("Texture", ModelTexture);
+		part->getMaterial().setUniform("NormalMap", (unsigned int) 0);
 		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
 	}
 	
@@ -470,7 +473,7 @@ int main(int argc, char* argv[])
 		m->createVAO();
 		m->getMaterial().setShadingProgram(Deferred);
 		m->getMaterial().setUniform("Texture", Model1Texture);
-		//m->getMaterial().setUniform("NormalMap", Model1NormalMap);
+		m->getMaterial().setUniform("NormalMap", (unsigned int) 0);
 		_meshInstances.push_back(MeshInstance(*m, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.025))));
 	}
 	
@@ -479,7 +482,7 @@ int main(int argc, char* argv[])
 	
 	std::vector<Particle> particles;
 	for(int i = 0; i < 250; ++i)
-		particles.push_back(Particle(0.0, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
+		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
 	TransformFeedback particles_transform_feedback[2];
@@ -518,7 +521,7 @@ int main(int argc, char* argv[])
 	{
 		tmpLight[i] = {
 			glm::vec4(0.0), 	// Position
-			glm::vec4(1.0)		// Color
+			glm::vec4(0.5 + 0.5 * (i % 2), 0.5 + 0.5 * (i % 3), 0.5 + 0.5 * (i % 5), 1.0)		// Color
 		};
 	}
 	LightBuffer.data(&tmpLight, LightCount * sizeof(LightStruct), Buffer::Usage::DynamicDraw);
