@@ -18,6 +18,8 @@
 class Light
 {
 public:
+	using ShadowBuffer = Framebuffer<Texture2D, 0, Texture2D, true>;
+
 	/**
 	 * Constructor
 	 *
@@ -125,7 +127,7 @@ public:
 	/**
 	 * @return Light's shadow map framme buffer.
 	**/
-	inline const Framebuffer<Texture2D, 0>& getShadowBuffer() const { return _shadowMapFramebuffer; }
+	inline const ShadowBuffer& getShadowBuffer() const { return _shadowMapFramebuffer; }
 	
 	/**
 	 * @return Light's shadow map depth texture.
@@ -172,6 +174,7 @@ public:
 	 * @return Program used to draw the shadow map for instanced Draw Calls.
 	**/
 	inline static const Program& getShadowMapInstanceProgram();
+	
 protected:
 	glm::vec4			_color = glm::vec4(1.f);				///< Light's color
 	
@@ -179,12 +182,12 @@ protected:
 	glm::vec3			_direction = glm::vec3(0.f, 0.f, 1.f);	///< Light's direction in World Space
 	float				_range = 1000.0; 						///< Light's range, mainly used for the Shadow Mapping settings
 
-	unsigned int				_shadowMapResolution = 4096;	///< Resolution of the shadow map (depth map)
-	Framebuffer<Texture2D, 0>	_shadowMapFramebuffer;			///< Framebuffer used to draw the shadow map
-	glm::mat4					_view;							///< View matrix used to draw the shadow map
-	glm::mat4					_projection;					///< Projection matrix used to draw the shadow map
-	glm::mat4					_VPMatrix;						///< ViewProjection matrix used to draw the shadow map
-	glm::mat4					_biasedVPMatrix;				///< biased ViewProjection matrix used to compute the shadows cast on the scene
+	unsigned int		_shadowMapResolution = 4096;	///< Resolution of the shadow map (depth map)
+	ShadowBuffer		_shadowMapFramebuffer;			///< Framebuffer used to draw the shadow map
+	glm::mat4			_view;							///< View matrix used to draw the shadow map
+	glm::mat4			_projection;					///< Projection matrix used to draw the shadow map
+	glm::mat4			_VPMatrix;						///< ViewProjection matrix used to draw the shadow map
+	glm::mat4			_biasedVPMatrix;				///< biased ViewProjection matrix used to compute the shadows cast on the scene
 	
 	// Static
 	static const glm::mat4	s_depthBiasMVP;	///< Used to compute the biased ViewProjection matrix

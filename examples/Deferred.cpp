@@ -87,7 +87,7 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	float inRad = _fov * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
 	
-	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height, true);
+	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height);
 	// Special format for world positions and normals.
 	_offscreenRender.getColor(0).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.getColor(1).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);

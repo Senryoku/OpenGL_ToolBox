@@ -9,6 +9,8 @@ layout(std140) uniform Camera {
 
 uniform mat4 ModelMatrix = mat4(1.0);
 
+uniform int useNormalMap = 1;
+
 uniform layout(binding = 0) sampler2D Texture;
 uniform layout(binding = 1) sampler2D NormalMap;
 
@@ -55,7 +57,8 @@ vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
 
 void main(void)
 {	
-	worldNormalOut.rgb = perturb_normal(normalize(world_normal), world_position, texcoord);;
+	worldNormalOut.rgb = (useNormalMap > 0) ? perturb_normal(normalize(world_normal), world_position, texcoord) : 
+						 normalize(world_normal);
 	worldNormalOut.a = 1.0;
 	
 	worldPositionOut.xyz = world_position;

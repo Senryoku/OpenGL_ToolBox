@@ -231,3 +231,4 @@ install_manifest.txt
 
 extlib_build/*
 *.trace
+NppProject

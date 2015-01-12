@@ -27,7 +27,7 @@ VertexShader*		Light::s_depthInstanceVS = nullptr;
 
 Light::Light(unsigned int shadowMapResolution) :
 	_shadowMapResolution(shadowMapResolution),
-	_shadowMapFramebuffer(_shadowMapResolution, true),
+	_shadowMapFramebuffer(_shadowMapResolution),
 	_projection(glm::perspective(static_cast<float>(pi())/4.f, 1.0f, 2.0f, _range))
 {
 }

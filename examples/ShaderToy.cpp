@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 	Texture2D& Tex = ResourcesManager::getInstance().getTexture<Texture2D>("Tex");
 	Tex.load("in/Textures/Tex0.jpg");
 	
-	Framebuffer<Texture2D>	EyeTex(512, 512, false);
+	Framebuffer<Texture2D, 1, Texture2D, false>	EyeTex(512, 512);
 	EyeTex.init();
 	
 	//Material& RayTraced = ResourcesManager::getInstance().getMaterial("RayTraced");

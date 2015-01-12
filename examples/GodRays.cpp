@@ -81,10 +81,10 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	float inRad = _fov * pi()/180.f;
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
 	
-	_offscreenRender = Framebuffer<Texture2D>(_width, _height, true);
+	_offscreenRender = Framebuffer<Texture2D>(_width, _height);
 	_offscreenRender.init();
 	
-	_godrayRender = Framebuffer<Texture2D>(_width, _height, false);
+	_godrayRender = Framebuffer<Texture2D>(_width, _height);
 	_godrayRender.init();
 	_godrayRender.getColor().set(Texture::Parameter::WrapS, GL_CLAMP_TO_EDGE);
 	_godrayRender.getColor().set(Texture::Parameter::WrapT, GL_CLAMP_TO_EDGE);
