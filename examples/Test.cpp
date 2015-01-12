@@ -3,6 +3,7 @@
 #include <sstream>
 #include <map>
 #include <random>
+#include <iomanip>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -27,6 +28,7 @@
 #include <Skybox.hpp>
 #include <Light.hpp>
 #include <stb_image_write.hpp>
+#include <Query.hpp>
 
 int			_width = 1366;
 int			_height = 720;
@@ -555,6 +557,8 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
+	Query LightQuery, ParticleQuery;
+	
 	// STATIC SHADOWS	
 	for(size_t i = 0; i < ShadowCount; ++i)
 	{
@@ -620,7 +624,11 @@ int main(int argc, char* argv[])
 		
 		// (Updating window title)
 		std::ostringstream oss;
-		oss << _frameRate;
+		oss.setf(std::ios::fixed, std:: ios::floatfield);
+		oss.precision(2);
+		oss << std::setw(6) << std::setfill('0') << _frameRate;
+		oss << " - Light: " << std::setw(6) << std::setfill('0') << LightQuery.get<GLuint64>() / 1000000.0 << " ms";
+		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
 	
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -638,6 +646,7 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 	 
+		ParticleQuery.begin(Query::Target::TimeElapsed);
 		TransformFeedback::begin(Primitive::Points);
 		
 		if(firstStep)
@@ -649,6 +658,7 @@ int main(int argc, char* argv[])
 		}
 		
 		TransformFeedback::end();
+		ParticleQuery.end();
 		TransformFeedback::enableRasterization();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -702,8 +712,10 @@ int main(int argc, char* argv[])
 		
 		DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 		DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
+		LightQuery.begin(Query::Target::TimeElapsed);
 		DeferredShadowCS.compute(_resolution.x / DeferredShadowCS.getWorkgroupSize().x + 1, _resolution.y / DeferredShadowCS.getWorkgroupSize().y + 1, 1);
 		DeferredShadowCS.memoryBarrier();
+		LightQuery.end();
 		
 		// Blitting
 		Framebuffer<>::unbind(FramebufferTarget::Draw);
