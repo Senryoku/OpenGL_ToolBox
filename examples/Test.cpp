@@ -265,6 +265,19 @@ struct Particle
 	{
 	}
 };
+
+struct Cloth
+{
+	glm::vec4	position_fixed;
+	glm::vec4	speed_data1;
+	
+	Cloth(const glm::vec3& position, const glm::vec3& speed, float fixed, float data1) :
+		position_fixed(position, fixed),
+		speed_data1(speed, data1)
+	{
+	}
+};
+
 struct ShadowStruct
 {
 	glm::vec4	position;
@@ -410,6 +423,29 @@ int main(int argc, char* argv[])
 	ParticleDraw.link();
 	 
 	if(!ParticleDraw) return 0;
+		
+	ComputeShader& ClothUpdate = ResourcesManager::getInstance().getShader<ComputeShader>("ClothUpdate");
+	ClothUpdate.loadFromFile("src/GLSL/Cloth/update_cs.glsl");
+	ClothUpdate.compile();
+	
+	if(!ClothUpdate.getProgram()) return 0;
+	
+	Program& ClothDraw = ResourcesManager::getInstance().getProgram("ClothDraw");
+	VertexShader& ClothDrawVS = ResourcesManager::getInstance().getShader<VertexShader>("ClothDraw_VS");
+	ClothDrawVS.loadFromFile("src/GLSL/Cloth/draw_vs.glsl");
+	ClothDrawVS.compile();
+	GeometryShader& ClothDrawGS = ResourcesManager::getInstance().getShader<GeometryShader>("ClothDraw_GS");
+	ClothDrawGS.loadFromFile("src/GLSL/Cloth/draw_gs.glsl");
+	ClothDrawGS.compile();
+	FragmentShader& ClothDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("ClothDraw_FS");
+	ClothDrawFS.loadFromFile("src/GLSL/Cloth/draw_fs.glsl");
+	ClothDrawFS.compile();
+	ClothDraw.attachShader(ClothDrawVS);
+	ClothDraw.attachShader(ClothDrawGS);
+	ClothDraw.attachShader(ClothDrawFS);
+	ClothDraw.link();
+	 
+	if(!ClothDraw) return 0;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
@@ -422,6 +458,7 @@ int main(int argc, char* argv[])
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	ParticleDraw.bindUniformBlock("Camera", CameraBuffer);
+	ClothDraw.bindUniformBlock("Camera", CameraBuffer);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
@@ -503,6 +540,31 @@ int main(int argc, char* argv[])
 	
 	size_t ParticleStep = 0;
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Cloth
+	
+	std::vector<Cloth> cloth;
+	int cloth_width = 25;
+	int cloth_height = 25;
+	float cellsize = 1.0;
+	glm::vec3 cloth_position = glm::vec3(10.0, 0.0, 0.0);
+	for(int i = 0; i < cloth_width; ++i)
+		for(int j = 0; j < cloth_height; ++j)
+			cloth.push_back(Cloth(cloth_position + glm::vec3{i * cellsize, j * cellsize, 0.0}, 
+								  glm::vec3{0.0},
+								  (j == cloth_height - 1 && (i == 0 || i == cloth_width - 1) ) ? 0.0 : 1.0,
+								  0.0));
+	
+	ShaderStorage cloth_buffers[2];
+	for(int i = 0; i < 2; ++i)
+	{
+		cloth_buffers[i].init();
+		cloth_buffers[i].bind(i + 4);
+		cloth_buffers[i].data(cloth.data(), sizeof(Cloth) * cloth.size(), Buffer::Usage::DynamicDraw);
+	}
+	
+	size_t ClothStep = 0;
+
 	resize_callback(window, _width, _height);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -557,28 +619,8 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
-	Query LightQuery, ParticleQuery;
-	
-	// STATIC SHADOWS	
-	for(size_t i = 0; i < ShadowCount; ++i)
-	{
-		MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
-		MainLights[i].updateMatrices();
-		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
-		
-		MainLights[i].bind();
-		
-		for(auto& b : _meshInstances)
-			if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-			{
-				Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-				b.getMesh().draw();
-			}
-		
-		MainLights[i].unbind();
-	}
-		
+	Query LightQuery, ParticleQuery, ClothQuery;
+			
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -629,15 +671,35 @@ int main(int argc, char* argv[])
 		oss << std::setw(6) << std::setfill('0') << _frameRate;
 		oss << " - Light: " << std::setw(6) << std::setfill('0') << LightQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
+		oss << " - Cloth: " << std::setw(6) << std::setfill('0') << ClothQuery.get<GLuint64>() / 1000000.0 << " ms";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
 	
+		for(size_t i = 0; i < ShadowCount; ++i)
+		{
+			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+			MainLights[i].updateMatrices();
+			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
+			
+			MainLights[i].bind();
+			
+			for(auto& b : _meshInstances)
+				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+				{
+					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+					b.getMesh().draw();
+				}
+			
+			MainLights[i].unbind();
+		}
+		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Particle Update
 		
+		TransformFeedback::disableRasterization();
 		ParticleUpdate.setUniform("time", _frameTime);
 		ParticleUpdate.use();
 		
-		TransformFeedback::disableRasterization();
 		particles_buffers[ParticleStep].bind();
 		particles_transform_feedback[(ParticleStep + 1) % 2].bind();
 		
@@ -652,14 +714,30 @@ int main(int argc, char* argv[])
 		if(firstStep)
 		{
 			glDrawArrays(GL_POINTS, 0, particles.size());
-			firstStep = false;
 		} else {
 			particles_transform_feedback[ParticleStep].draw(Primitive::Points);
 		}
 		
 		TransformFeedback::end();
-		ParticleQuery.end();
 		TransformFeedback::enableRasterization();
+		ParticleQuery.end();
+		
+		////////////////////////////////////////////////////////////////////////////////////////////
+		// Cloth Update
+		
+		ClothUpdate.getProgram().setUniform("time", _frameTime);
+		ClothUpdate.getProgram().setUniform("width", cloth_width);
+		ClothUpdate.getProgram().setUniform("height", cloth_height);
+		ClothUpdate.getProgram().setUniform("cellsize", cellsize);
+		ClothUpdate.use();
+		
+		ClothUpdate.getProgram().bindShaderStorageBlock("InBuffer", cloth_buffers[ClothStep]);
+		ClothUpdate.getProgram().bindShaderStorageBlock("OutBuffer", cloth_buffers[(ClothStep + 1) % 2]);
+	 
+		ClothQuery.begin(Query::Target::TimeElapsed);
+		ClothUpdate.compute(cloth_width / ClothUpdate.getWorkgroupSize().x + 1, cloth_height / ClothUpdate.getWorkgroupSize().y + 1, 1);
+		ClothUpdate.memoryBarrier();
+		ClothQuery.end();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
@@ -668,6 +746,7 @@ int main(int argc, char* argv[])
 		_offscreenRender.bind();
 		_offscreenRender.clear();
 		
+		// Particles
 		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		ParticleDraw.use();
 		
@@ -679,6 +758,21 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 		
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
+		
+		// Cloth
+		ClothDraw.setUniform("cameraPosition", MainCamera.getPosition());
+		ClothDraw.use();
+		
+		cloth_buffers[(ClothStep + 1) % 2].bind(Buffer::Target::VertexAttributes);
+		
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Cloth), (const GLvoid *) offsetof(struct Cloth, position_fixed)); // position_type
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Cloth), (const GLvoid *) offsetof(struct Cloth, speed_data1)); // speed_lifetime
+		
+		glDrawArrays(GL_POINTS, 0, cloth.size());
+		
+		// Meshes
 			
 		for(auto& b : _meshInstances)
 		{
@@ -694,6 +788,7 @@ int main(int argc, char* argv[])
 			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
+		ClothStep = (ClothStep + 1) % 2;
 			
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
@@ -738,6 +833,8 @@ int main(int argc, char* argv[])
 				_video = false;
 			}
 		}
+		
+		firstStep = false;
 	}
 	
 	glfwDestroyWindow(window);
