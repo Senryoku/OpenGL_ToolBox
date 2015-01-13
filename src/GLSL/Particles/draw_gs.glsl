@@ -32,7 +32,7 @@ void main()
 	{
 		up = vec3(0.0, 1.0, 0.0);
 		right = 0.5 * particle_size * normalize(cross(up, n));
-		up *= 0.5 * particle_size;
+		up = 0.5 * particle_size * normalize(cross(right, n));
 	} else {
 		right = cameraRight;
 		up = 0.5 * particle_size * normalize(cross(right, n));
