@@ -63,25 +63,30 @@ void main()
 		vec4 v10;
 		vec4 v11;
 		
-		if(!valid(mod_coord))
+		ivec2 trunc_coord;
+		trunc_coord = ivec2(mod_coord);
+		if(!valid(trunc_coord))
 			v00 = vec4(moyheight, 0.0, 0.0, 0.0);
 		else
-			v00 = Ins[to1D(ivec2(int(mod_coord.x), int(mod_coord.y)))].data;
+			v00 = Ins[to1D(trunc_coord)].data;
 			
-		if(!valid(mod_coord + vec2(0.0, 1.0)))
+		trunc_coord = ivec2(mod_coord + vec2(0.0, 1.0));
+		if(!valid(trunc_coord))
 			v01 = vec4(moyheight, 0.0, 0.0, 0.0);
 		else
-			v01 = Ins[to1D(ivec2(int(mod_coord.x), int(mod_coord.y + 1.0)))].data;
+			v01 = Ins[to1D(trunc_coord)].data;
 			
-		if(!valid(mod_coord + vec2(1.0, 0.0)))
+		trunc_coord = ivec2(mod_coord + vec2(1.0, 0.0));
+		if(!valid(trunc_coord))
 			v10 = vec4(moyheight, 0.0, 0.0, 0.0);
 		else
-			v10 = Ins[to1D(ivec2(int(mod_coord.x + 1.0), int(mod_coord.y)))].data;
+			v10 = Ins[to1D(trunc_coord)].data;
 			
-		if(!valid(mod_coord + vec2(1.0, 1.0)))
+		trunc_coord = ivec2(mod_coord + vec2(1.0, 1.0));
+		if(!valid(trunc_coord))
 			v11 = vec4(moyheight, 0.0, 0.0, 0.0);
 		else
-			v11 = Ins[to1D(ivec2(int(mod_coord.x + 1.0), int(mod_coord.y + 1.0)))].data;
+			v11 = Ins[to1D(trunc_coord)].data;
 		
 		Outs[idx].data.x = interpolate(fract_mod_coord, v00.x, v01.x, v10.x, v11.x);
 		Outs[idx].data.z = interpolate(fract_mod_coord, v00.z, v01.z, v10.z, v11.z);
@@ -107,7 +112,7 @@ void main()
 		grad = grad / cell_size;
 			
 		float div = grad.x + grad.y;
-		Outs[idx].data.x += - Outs[idx].data.x * time * div;
+		Outs[idx].data.x -= Outs[idx].data.x * time * div;
 	}
 	
 	barrier();
@@ -115,19 +120,13 @@ void main()
 	{
 		// Update velocities, works on Water Height (.x) + Ground Height (.y)
 		float h = Outs[idx].data.x + Outs[idx].data.y;
-		int idx_x;
+		float h2 = moyheight + Outs[idx].data.y;
 		if(coord.x > 0)
-			idx_x = to1D(ivec2(coord.x - 1, coord.y));
-		else
-			idx_x = idx;
-		float h2 = Outs[idx_x].data.x + Outs[idx_x].data.y;
+			h2 = Outs[to1D(ivec2(coord.x - 1, coord.y))].data.x + Outs[to1D(ivec2(coord.x - 1, coord.y))].data.y;
 			
-		int idx_y;
+		float h3 = moyheight + Outs[idx].data.y;
 		if(coord.y > 0)
-			idx_y = to1D(ivec2(coord.x, coord.y - 1));
-		else
-			idx_y = idx;
-		float h3 = Outs[idx_y].data.x + Outs[idx_y].data.y;
+			h3 = Outs[to1D(ivec2(coord.x, coord.y - 1))].data.x + Outs[to1D(ivec2(coord.x, coord.y - 1))].data.y;
 		
 		Outs[idx].data.z += 9.81 * ( (h2 - h) / cell_size ) * time;
 		Outs[idx].data.w += 9.81 * ( (h3 - h) / cell_size ) * time;

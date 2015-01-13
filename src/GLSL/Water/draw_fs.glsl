@@ -1,6 +1,6 @@
 #version 430
 
-in layout(location = 0) vec4 in_position_fixed;
+in layout(location = 0) vec4 in_position;
 in layout(location = 1) vec3 normal;
 in layout(location = 2) vec2 texcoord;
 
@@ -14,6 +14,6 @@ void main()
 {
 	vec3 color = vec3(1.0, 0.0, 0.0);
 	colorMaterialOut = vec4(color, MATERIAL_UNLIT);
-	worldPositionOut = vec4(in_position_fixed.xyz, gl_FragCoord.z);
+	worldPositionOut = vec4(in_position.xyz, gl_FragCoord.z);
 	worldNormalOut = vec4(normal, 1.0);
 }

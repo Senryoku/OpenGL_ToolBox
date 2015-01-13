@@ -509,13 +509,14 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Water
 	std::vector<WaterCell> water;
-	size_t water_x = 10;
-	size_t water_z = 10;
+	size_t water_x = 100;
+	size_t water_z = 100;
 	float water_cellsize = 1.0;
 	float water_moyheight = 2.0;
 	for(size_t i = 0; i < water_x; ++i)
 		for(size_t j = 0; j < water_z; ++j)
-			water.push_back(WaterCell{glm::vec4{std::cos(water_moyheight + 10.0 * (((double) i) / water_x) + ((double) j) / water_z), 0.0, 0.0, 0.0}});
+			water.push_back(WaterCell{glm::vec4{water_moyheight + 1.5 * std::cos(0.5 * std::sqrt(((double) i - water_x/2.0)*((double) i - water_x/2.0) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
+												0.0, 0.0, 0.0}});
 
 	ShaderStorage water_buffers[2];
 	for(int i = 0; i < 2; ++i)
@@ -727,12 +728,8 @@ int main(int argc, char* argv[])
 		WaterDraw.setUniform("size_y", (int) water_z);
 		WaterDraw.setUniform("cell_size", water_cellsize);
 		WaterDraw.setUniform("cameraPosition", MainCamera.getPosition());
+		WaterDraw.bindShaderStorageBlock("InBuffer", water_buffers[WaterStep]);
 		WaterDraw.use();
-		
-		water_buffers[(WaterStep + 1) % 2].bind(Buffer::Target::VertexAttributes);
-		
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(WaterCell), (const GLvoid *) offsetof(struct WaterCell, data));
 		
 		glDrawArrays(GL_POINTS, 0, water.size());
 		
