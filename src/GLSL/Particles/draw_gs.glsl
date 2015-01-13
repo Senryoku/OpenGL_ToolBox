@@ -20,6 +20,7 @@ out layout(location = 0) vec4 position_type;
 out layout(location = 1) vec4 speed_lifetime;
 out layout(location = 2) vec3 normal;
 out layout(location = 3) vec2 texcoord;
+out layout(location = 4) vec3 center;
 
 void main()
 {
@@ -34,6 +35,7 @@ void main()
 	speed_lifetime = in_speed_lifetime[0];
 	normal = n;
 	texcoord = vec2(0.0, 0.0);
+	center = in_position_type[0].xyz;
 	EmitVertex();
 	
 	gl_Position = VP * vec4(in_position_type[0].xyz - up + right, 1.0);
@@ -41,6 +43,7 @@ void main()
 	speed_lifetime = in_speed_lifetime[0];
 	normal = n;
 	texcoord = vec2(1.0, 0.0);
+	center = in_position_type[0].xyz;
 	EmitVertex();
 	
 	gl_Position = VP * vec4(in_position_type[0].xyz + up - right, 1.0);
@@ -48,6 +51,7 @@ void main()
 	speed_lifetime = in_speed_lifetime[0];
 	normal = n;
 	texcoord = vec2(0.0, 1.0);
+	center = in_position_type[0].xyz;
 	EmitVertex();
 	
 	gl_Position = VP * vec4(in_position_type[0].xyz + up + right, 1.0);
@@ -55,6 +59,7 @@ void main()
 	speed_lifetime = in_speed_lifetime[0];
 	normal = n;
 	texcoord = vec2(1.0, 1.0);
+	center = in_position_type[0].xyz;
 	EmitVertex();
 	
 	EndPrimitive();

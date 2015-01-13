@@ -12,8 +12,8 @@ const float MATERIAL_UNLIT = 2.0;
 
 void main()
 {
-	vec3 color = vec3(1.0, 0.0, 0.0);
-	colorMaterialOut = vec4(color, MATERIAL_UNLIT);
+	vec3 color = vec3(0.5, 0.5, 1.0);
+	colorMaterialOut = vec4(color, 0.0);
 	worldPositionOut = vec4(in_position.xyz, gl_FragCoord.z);
 	worldNormalOut = vec4(normal, 1.0);
 }
