@@ -273,11 +273,6 @@ struct ShadowStruct
 	glm::mat4	depthMVP;
 };
 
-struct WaterCell
-{
-	glm::vec4	data; // water height, ground height, speed
-};
-
 // Checks whether the provided bounding bound is visible after its transformation by MVPMatrix
 // Todo: Place in... MeshInstance ?
 // Todo: There is some overdraw (object right behind the camera are reported as visible)
@@ -416,29 +411,6 @@ int main(int argc, char* argv[])
 	ParticleDraw.link();
 	 
 	if(!ParticleDraw) return 0;
-	
-	ComputeShader& WaterUpdate = ResourcesManager::getInstance().getShader<ComputeShader>("WaterUpdate");
-	WaterUpdate.loadFromFile("src/GLSL/Water/update_cs.glsl");
-	WaterUpdate.compile();
-	
-	if(!WaterUpdate.getProgram()) return 0;
-	
-	Program& WaterDraw = ResourcesManager::getInstance().getProgram("WaterDraw");
-	VertexShader& WaterDrawVS = ResourcesManager::getInstance().getShader<VertexShader>("WaterDraw_VS");
-	WaterDrawVS.loadFromFile("src/GLSL/Water/draw_vs.glsl");
-	WaterDrawVS.compile();
-	GeometryShader& WaterDrawGS = ResourcesManager::getInstance().getShader<GeometryShader>("WaterDraw_GS");
-	WaterDrawGS.loadFromFile("src/GLSL/Water/draw_gs.glsl");
-	WaterDrawGS.compile();
-	FragmentShader& WaterDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("WaterDraw_FS");
-	WaterDrawFS.loadFromFile("src/GLSL/Water/draw_fs.glsl");
-	WaterDrawFS.compile();
-	WaterDraw.attachShader(WaterDrawVS);
-	WaterDraw.attachShader(WaterDrawGS);
-	WaterDraw.attachShader(WaterDrawFS);
-	WaterDraw.link();
-	 
-	if(!WaterDraw) return 0;
 		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
@@ -451,7 +423,6 @@ int main(int argc, char* argv[])
 	CameraBuffer.bind(0);
 	Deferred.bindUniformBlock("Camera", CameraBuffer); 
 	ParticleDraw.bindUniformBlock("Camera", CameraBuffer);
-	WaterDraw.bindUniformBlock("Camera", CameraBuffer);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Loading Meshes and declaring instances
@@ -483,11 +454,38 @@ int main(int argc, char* argv[])
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	
+	auto Model = Mesh::load("in/3DModels/dragon/Figurine Dragon N170112.3DS");
+	Texture2D ModelTexture;
+	ModelTexture.load("in/3DModels/dragon/AS2_concrete_02.jpg");
+	for(auto part : Model)
+	{
+		part->createVAO();
+		part->getMaterial().setShadingProgram(Deferred);
+		part->getMaterial().setUniform("Texture", ModelTexture);
+		part->getMaterial().setUniform("useNormalMap", 0);
+		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
+	}
+	
+	auto Model1 = Mesh::load("in/3DModels/sculpt/Figurine N030611.3DS");
+	Texture2D Model1Texture;
+	Model1Texture.load("in/3DModels/sculpt/Stucco 1060 x 819 px 0705.jpg");
+	//Texture2D Model1NormalMap;
+	//Model1NormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
+	
+	for(auto m : Model1)
+	{
+		m->createVAO();
+		m->getMaterial().setShadingProgram(Deferred);
+		m->getMaterial().setUniform("Texture", Model1Texture);
+		m->getMaterial().setUniform("useNormalMap", 0);
+		_meshInstances.push_back(MeshInstance(*m, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.025))));
+	}
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
 	std::vector<Particle> particles;
-	for(int i = 0; i < 1; ++i)
+	for(int i = 0; i < 250; ++i)
 		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
@@ -505,27 +503,7 @@ int main(int argc, char* argv[])
 	}
 	
 	size_t ParticleStep = 0;
-	
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Water
-	std::vector<WaterCell> water;
-	size_t water_x = 10;
-	size_t water_z = 10;
-	float water_cellsize = 1.0;
-	float water_moyheight = 2.0;
-	for(size_t i = 0; i < water_x; ++i)
-		for(size_t j = 0; j < water_z; ++j)
-			water.push_back(WaterCell{glm::vec4{std::cos(water_moyheight + 10.0 * (((double) i) / water_x) + ((double) j) / water_z), 0.0, 0.0, 0.0}});
 
-	ShaderStorage water_buffers[2];
-	for(int i = 0; i < 2; ++i)
-	{
-		water_buffers[i].init();
-		water_buffers[i].bind(i + 4);
-		water_buffers[i].data(water.data(), sizeof(WaterCell) * water.size(), Buffer::Usage::DynamicDraw);
-	}
-	size_t WaterStep = 0;
-	
 	resize_callback(window, _width, _height);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -580,7 +558,7 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
-	Query LightQuery, ParticleQuery, WaterQuery;
+	Query LightQuery, ParticleQuery;
 			
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
@@ -632,7 +610,6 @@ int main(int argc, char* argv[])
 		oss << std::setw(6) << std::setfill('0') << _frameRate;
 		oss << " - Light: " << std::setw(6) << std::setfill('0') << LightQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
-		oss << " - Water: " << std::setw(6) << std::setfill('0') << WaterQuery.get<GLuint64>() / 1000000.0 << " ms";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
 	
 		for(size_t i = 0; i < ShadowCount; ++i)
@@ -682,24 +659,7 @@ int main(int argc, char* argv[])
 		TransformFeedback::end();
 		TransformFeedback::enableRasterization();
 		ParticleQuery.end();
-		
-		////////////////////////////////////////////////////////////////////////////////////////////
-		// Water Update
-		
-		WaterUpdate.getProgram().setUniform("time", _frameTime);
-		WaterUpdate.getProgram().setUniform("size_x", (int) water_x);
-		WaterUpdate.getProgram().setUniform("size_y", (int) water_z);
-		WaterUpdate.getProgram().setUniform("cell_size", water_cellsize);
-		WaterUpdate.getProgram().setUniform("moyheight", water_moyheight);
-		WaterUpdate.use();
-		
-		WaterUpdate.getProgram().bindShaderStorageBlock("InBuffer", water_buffers[WaterStep]);
-		WaterUpdate.getProgram().bindShaderStorageBlock("OutBuffer", water_buffers[(WaterStep + 1) % 2]);
-	 
-		WaterQuery.begin(Query::Target::TimeElapsed);
-		WaterUpdate.compute(water_x / WaterUpdate.getWorkgroupSize().x + 1, water_z / WaterUpdate.getWorkgroupSize().y + 1, 1);
-		WaterUpdate.memoryBarrier();
-		WaterQuery.end();
+
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
@@ -721,21 +681,6 @@ int main(int argc, char* argv[])
 		
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
 		
-		// Water
-		
-		WaterDraw.setUniform("size_x", (int) water_x);
-		WaterDraw.setUniform("size_y", (int) water_z);
-		WaterDraw.setUniform("cell_size", water_cellsize);
-		WaterDraw.setUniform("cameraPosition", MainCamera.getPosition());
-		WaterDraw.use();
-		
-		water_buffers[(WaterStep + 1) % 2].bind(Buffer::Target::VertexAttributes);
-		
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(WaterCell), (const GLvoid *) offsetof(struct WaterCell, data));
-		
-		glDrawArrays(GL_POINTS, 0, water.size());
-		
 		// Meshes
 			
 		for(auto& b : _meshInstances)
@@ -752,7 +697,6 @@ int main(int argc, char* argv[])
 			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
-		WaterStep = (WaterStep + 1) % 2;
 		
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
