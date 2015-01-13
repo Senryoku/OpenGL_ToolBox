@@ -62,7 +62,7 @@ vec3 computeNormal(vec2 coord)
 		neighbors[i].y = Ins[to1D(c)].data.x;
 	}
 	
-	return normalize(cross(normalize(neighbors[1] - neighbors[3]), normalize(neighbors[2] - neighbors[0])));
+	return normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
 }
 
 vec2 computeTexcoord(vec2 coord)
@@ -91,7 +91,7 @@ void main()
 		neighbors_normal[i] = computeNormal(c);
 	}
 	
-	vec3 n = normalize(cross(normalize(neighbors[1] - neighbors[3]), normalize(neighbors[2] - neighbors[0])));
+	vec3 n = normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
 	
 	if(coord.x > 0 && coord.y < size_y - 1)
 	{

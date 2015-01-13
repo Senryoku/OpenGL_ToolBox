@@ -38,6 +38,7 @@ public:
 	inline const glm::vec3& getPosition() const { return _position; }
 	inline const glm::vec3& getDirection() const { return _direction; }
 	inline const glm::vec3& getUp() const { return _up; }
+	inline const glm::vec3& getRight() const { return _cross; }
 	inline float& speed() { return _speed; }
 	inline float& sensitivity() { return _sensitivity; }
 	

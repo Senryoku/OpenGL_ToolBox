@@ -34,6 +34,9 @@ bool valid(vec2 c)
 }
 
 vec2 o[4] = {vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(0.0, -1.0)};
+vec2 o8[8] = {vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(0.0, -1.0),
+			  vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, -1.0), vec2(1.0, 1.0)};
+
 vec3 computeNormalHeightmap(vec2 coord)
 {
 	vec3 neighbors[4];
@@ -45,7 +48,7 @@ vec3 computeNormalHeightmap(vec2 coord)
 		neighbors[i].y = Ins[to1D(c)].data.x;
 	}
 	
-	return normalize(cross(normalize(neighbors[1] - neighbors[3]), normalize(neighbors[2] - neighbors[0])));
+	return normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), normalize(neighbors[2] - neighbors[0])/(2.0 * cell_size)));
 }
 
 uniform float time = 0.0;
@@ -85,18 +88,20 @@ void main()
 	const vec2 coord = (inverse(HeightmapModelMatrix) * vec4(position_type.xyz, 1.0)).xz / cell_size;
 	if(valid(coord))
 	{
-		float alt = Ins[to1D(coord)].data.x + particle_size * 0.1;
+		float alt = Ins[to1D(coord)].data.x + 0.1 * particle_size; // Little offset so we can see them shine :)
 		if(position_type.y < alt)
 		{
-			float displ = alt - position_type.y;
+			// Todo: Better Water displacement!
+			float displ = clamp(- speed_lifetime.y * (alt - position_type.y), 0.0, alt);
 			Ins[to1D(coord)].data.x -= displ;
-			for(int i = 0; i < 4; ++i)
+			float total = 4.0 * (1.0 + 0.25);
+			for(int i = 0; i < 8; ++i)
 			{
-				vec2 c = coord + o[i];
+				vec2 c = coord + o8[i];
 				if(!valid(c)) c = coord;
-				Ins[to1D(c)].data.x += displ * 0.25;
+				Ins[to1D(c)].data.x += displ * 0.125;
 			}
-			speed_lifetime.xyz = 0.2 * reflect(speed_lifetime.xyz, computeNormalHeightmap(coord));
+			speed_lifetime.xyz = 0.5 * reflect(speed_lifetime.xyz, computeNormalHeightmap(coord));
 			position_type.y = alt;
 		}
 	} else {

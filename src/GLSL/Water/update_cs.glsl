@@ -7,6 +7,7 @@ uniform int size_y = 200;
 uniform float cell_size;
 uniform float moyheight = 2.0;
 uniform vec3 acceleration = vec3(0.0, -9.0, 1.0);
+uniform float damping = 0.01;
 
 struct WaterCell
 {
@@ -126,6 +127,8 @@ void main()
 			float h3 = moyheight + Ins[idx].data.y;
 			if(coord.y > 0)
 				h3 = Ins[to1D(ivec2(coord.x, coord.y - 1))].data.x + Ins[to1D(ivec2(coord.x, coord.y - 1))].data.y;
+			
+			Ins[idx].data.zw *= (1.0 - damping*time);
 			
 			Ins[idx].data.z += 9.81 * ( (h2 - h) / cell_size ) * t;
 			Ins[idx].data.w += 9.81 * ( (h3 - h) / cell_size ) * t;

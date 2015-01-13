@@ -486,7 +486,8 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
-	const size_t ParticleCount = 10;
+	const size_t ParticleCount = 100;
+	const float ParticleSize = 0.1;
 	std::vector<Particle> particles;
 	for(int i = 0; i < (int) ParticleCount; ++i)
 		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
@@ -506,6 +507,8 @@ int main(int argc, char* argv[])
 	}
 	
 	size_t ParticleStep = 0;
+	ParticleUpdate.setUniform("particle_size", ParticleSize);
+	ParticleDraw.setUniform("particle_size", ParticleSize);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Water
@@ -518,8 +521,8 @@ int main(int argc, char* argv[])
 	for(size_t i = 0; i < water_x; ++i)
 		for(size_t j = 0; j < water_z; ++j)
 			water.push_back(WaterCell{glm::vec4{
-										water_moyheight,
-										//water_moyheight + 1.5 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
+										//water_moyheight,
+										water_moyheight + 0.1 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
 										0.0,
 										0.0,
 										0.0}});
@@ -604,7 +607,7 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
-	Query LightQuery, ParticleQuery, WaterQuery;
+	Query LightQuery, ParticleQuery, ParticleDrawQuery, WaterQuery, WaterDrawQuery, ShadowMapQuery;
 			
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
@@ -656,34 +659,19 @@ int main(int argc, char* argv[])
 		oss.setf(std::ios::fixed, std:: ios::floatfield);
 		oss.precision(2);
 		oss << std::setw(6) << std::setfill('0') << _frameRate;
+		oss << " - ShadowMap: " << std::setw(6) << std::setfill('0') << ShadowMapQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " - Light: " << std::setw(6) << std::setfill('0') << LightQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
+		oss << " (" << std::setw(6) << std::setfill('0') << ParticleDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
 		oss << " - Water: " << std::setw(6) << std::setfill('0') << WaterQuery.get<GLuint64>() / 1000000.0 << " ms";
+		oss << " (" << std::setw(6) << std::setfill('0') << WaterDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
-	
-		for(size_t i = 0; i < ShadowCount; ++i)
-		{
-			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
-			MainLights[i].updateMatrices();
-			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
-			
-			MainLights[i].bind();
-			
-			for(auto& b : _meshInstances)
-				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-				{
-					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-					b.getMesh().draw();
-				}
-			
-			MainLights[i].unbind();
-		}
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Particle Update
 		
 		TransformFeedback::disableRasterization();
+		ParticleQuery.begin(Query::Target::TimeElapsed);
 		ParticleUpdate.setUniform("time", _frameTime);
 		ParticleUpdate.use();
 		
@@ -695,7 +683,6 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, position_type)); // position_type
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 	 
-		ParticleQuery.begin(Query::Target::TimeElapsed);
 		TransformFeedback::begin(Primitive::Points);
 		
 		if(firstStep)
@@ -706,8 +693,8 @@ int main(int argc, char* argv[])
 		}
 		
 		TransformFeedback::end();
-		TransformFeedback::enableRasterization();
 		ParticleQuery.end();
+		TransformFeedback::enableRasterization();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Water Update
@@ -724,6 +711,30 @@ int main(int argc, char* argv[])
 		WaterQuery.end();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
+		// ShadowMap drawing
+		
+		ShadowMapQuery.begin(Query::Target::TimeElapsed);
+		for(size_t i = 0; i < ShadowCount; ++i)
+		{
+			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+			MainLights[i].updateMatrices();
+			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
+			
+			MainLights[i].bind();
+			
+			for(auto& b : _meshInstances)
+				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+				{
+					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+					b.getMesh().draw();
+				}
+		
+			MainLights[i].unbind();
+		}
+		ShadowMapQuery.end();
+		
+		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
 		
 		// Offscreen
@@ -731,7 +742,9 @@ int main(int argc, char* argv[])
 		_offscreenRender.clear();
 		
 		// Particles
+		ParticleDrawQuery.begin(Query::Target::TimeElapsed);
 		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
+		ParticleDraw.setUniform("cameraRight", MainCamera.getRight());
 		ParticleDraw.use();
 		
 		particles_buffers[(ParticleStep + 1) % 2].bind();
@@ -742,11 +755,13 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 		
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
+		ParticleDrawQuery.end();
 		
 		// Water
+		WaterDrawQuery.begin(Query::Target::TimeElapsed);
 		WaterDraw.use();
-		
 		glDrawArrays(GL_POINTS, 0, water.size());
+		WaterDrawQuery.end();
 		
 		// Meshes
 			
