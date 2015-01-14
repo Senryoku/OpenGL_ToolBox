@@ -61,21 +61,20 @@ void computeNormals(vec2 coord, out vec3 n, out vec3 n_g)
 	for(int i = 0; i < 4; ++i)
 	{
 		vec2 c = coord + o[i];
-		vec2 h = Ins[to1D(c)].data.xy;
-		
 		if(!valid(c)) c = coord;
+		vec2 h = Ins[to1D(c)].data.xy;
 		neighbors[i].xz = c * cell_size;
 		neighbors[i].y = h.x;
 		if(draw_ground)
 		{
-			neighbors_g[i].y = h.y;
 			neighbors_g[i].xz = c * cell_size;
+			neighbors_g[i].y = h.y;
 		}
 	}
 	
-	n = normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+	n = normalize(cross((neighbors[1] - neighbors[3]), (neighbors[2] - neighbors[0])));
 	if(draw_ground)
-		n_g = normalize(cross((neighbors_g[1] - neighbors_g[3])/(2.0 * cell_size), (neighbors_g[2] - neighbors_g[0])/(2.0 * cell_size)));
+		n_g = normalize(cross((neighbors_g[1] - neighbors_g[3]), (neighbors_g[2] - neighbors_g[0])));
 }
 
 vec2 computeTexcoord(vec2 coord)
@@ -107,7 +106,6 @@ void main()
 	
 	for(int i = 0; i < 4; ++i)
 	{
-		
 		vec2 c = coord + o[i];
 		if(!valid(c)) c = coord;
 		vec2 h = Ins[to1D(c)].data.xy;
@@ -115,8 +113,6 @@ void main()
 		neighbors[i].xz = c * cell_size;
 		neighbors[i].y = h.x;
 		
-		if(!b0 && i < 2) continue;
-		if(!b1 && i >= 2) continue;
 		neighbors[i] = vec3(ModelMatrix * vec4(neighbors[i], 1.0));
 		
 		if(draw_ground)
@@ -126,12 +122,14 @@ void main()
 			neighbors_g[i] = vec3(ModelMatrix * vec4(neighbors_g[i], 1.0));
 		}
 			
+		if(!b0 && i < 2) continue;
+		if(!b1 && i >= 2) continue;
 		computeNormals(c, neighbors_normal[i], neighbors_normal_g[i]);
 	}
 	
-	vec3 n = normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+	vec3 n = normalize(cross((neighbors[1] - neighbors[3]), (neighbors[2] - neighbors[0])));
 	vec3 n_g;
-	if(draw_ground) n_g = normalize(cross((neighbors_g[1] - neighbors_g[3])/(2.0 * cell_size), (neighbors_g[2] - neighbors_g[0])/(2.0 * cell_size)));
+	if(draw_ground) n_g = normalize(cross((neighbors_g[1] - neighbors_g[3]), (neighbors_g[2] - neighbors_g[0])));
 	
 	if(b0)
 	{
@@ -203,23 +201,16 @@ void main()
 		
 		if(b0 || b1)
 		{
-				gl_Position = VP * vec4(pos_g, 1.0);
-				position = vec4(pos_g, 1.0);
-				normal = n_g;
-				texcoord = computeTexcoord(coord);
-				ground = 1.0;
-				EmitVertex();
-		}
-		
-		if(b1)
-		{
 			gl_Position = VP * vec4(pos_g, 1.0);
 			position = vec4(pos_g, 1.0);
 			normal = n_g;
 			texcoord = computeTexcoord(coord);
 			ground = 1.0;
 			EmitVertex();
-			
+		}
+		
+		if(b1)
+		{			
 			gl_Position = VP * vec4(neighbors_g[3], 1.0);
 			position = vec4(neighbors_g[3], 1.0);
 			normal = neighbors_normal_g[3];
