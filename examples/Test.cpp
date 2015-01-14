@@ -515,7 +515,7 @@ int main(int argc, char* argv[])
 	std::vector<WaterCell> water;
 	size_t water_x = 200;
 	size_t water_z = 200;
-	float water_cellsize = 0.05;
+	float water_cellsize = 0.1;
 	float water_moyheight = 2.0;
 			
 	for(size_t i = 0; i < water_x; ++i)

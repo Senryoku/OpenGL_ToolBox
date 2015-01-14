@@ -128,7 +128,7 @@ void main()
 			if(coord.y > 0)
 				h3 = Ins[to1D(ivec2(coord.x, coord.y - 1))].data.x + Ins[to1D(ivec2(coord.x, coord.y - 1))].data.y;
 			
-			Ins[idx].data.zw *= (1.0 - damping*time);
+			Ins[idx].data.zw *= (1.0 - damping*t);
 			
 			Ins[idx].data.z += 9.81 * ( (h2 - h) / cell_size ) * t;
 			Ins[idx].data.w += 9.81 * ( (h3 - h) / cell_size ) * t;
