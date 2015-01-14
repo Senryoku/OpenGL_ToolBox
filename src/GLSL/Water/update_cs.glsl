@@ -7,7 +7,7 @@ uniform int size_y = 200;
 uniform float cell_size;
 uniform float moyheight = 2.0;
 uniform vec3 acceleration = vec3(0.0, -9.0, 1.0);
-uniform float damping = 0.01;
+uniform float damping = 0.1;
 
 struct WaterCell
 {
@@ -120,11 +120,11 @@ void main()
 		{
 			// Update velocities, works on Water Height (.x) + Ground Height (.y)
 			float h = Ins[idx].data.x + Ins[idx].data.y;
-			float h2 = moyheight + Ins[idx].data.y;
+			float h2 = moyheight;
 			if(coord.x > 0)
 				h2 = Ins[to1D(ivec2(coord.x - 1, coord.y))].data.x + Ins[to1D(ivec2(coord.x - 1, coord.y))].data.y;
 				
-			float h3 = moyheight + Ins[idx].data.y;
+			float h3 = moyheight;
 			if(coord.y > 0)
 				h3 = Ins[to1D(ivec2(coord.x, coord.y - 1))].data.x + Ins[to1D(ivec2(coord.x, coord.y - 1))].data.y;
 			

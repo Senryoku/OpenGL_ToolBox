@@ -523,7 +523,7 @@ int main(int argc, char* argv[])
 			water.push_back(WaterCell{glm::vec4{
 										//water_moyheight,
 										water_moyheight + 0.1 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
-										0.0,
+										0.2 + 0.1 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
 										0.0,
 										0.0}});
 

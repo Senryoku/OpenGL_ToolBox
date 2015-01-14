@@ -2,7 +2,7 @@
 
 layout(points) in;
 layout(triangle_strip) out;
-layout(max_vertices = 6) out;
+layout(max_vertices = 12) out;
 
 layout(std140) uniform Camera
 {
@@ -16,12 +16,15 @@ uniform int size_x = 200;
 uniform int size_y = 200;
 uniform float cell_size;
 
+uniform bool draw_ground = true;
+
 in layout(location = 0) vec4 in_position[];
 in layout(location = 1) int in_id[];
 
 out layout(location = 0) vec4 position;
 out layout(location = 1) vec3 normal;
 out layout(location = 2) vec2 texcoord;
+flat out layout(location = 3) float ground;
 
 struct WaterCell
 {
@@ -51,18 +54,28 @@ bool valid(vec2 c)
 		c.x < size_x && c.y < size_y;
 }
 
-vec3 computeNormal(vec2 coord)
+void computeNormals(vec2 coord, out vec3 n, out vec3 n_g)
 {
 	vec3 neighbors[4];
+	vec3 neighbors_g[4];
 	for(int i = 0; i < 4; ++i)
 	{
 		vec2 c = coord + o[i];
+		vec2 h = Ins[to1D(c)].data.xy;
+		
 		if(!valid(c)) c = coord;
 		neighbors[i].xz = c * cell_size;
-		neighbors[i].y = Ins[to1D(c)].data.x;
+		neighbors[i].y = h.x;
+		if(draw_ground)
+		{
+			neighbors_g[i].y = h.y;
+			neighbors_g[i].xz = c * cell_size;
+		}
 	}
 	
-	return normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+	n = normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+	if(draw_ground)
+		n_g = normalize(cross((neighbors_g[1] - neighbors_g[3])/(2.0 * cell_size), (neighbors_g[2] - neighbors_g[0])/(2.0 * cell_size)));
 }
 
 vec2 computeTexcoord(vec2 coord)
@@ -79,63 +92,151 @@ void main()
 	pos.y = Ins[to1D(coord)].data.x;
 	pos = vec3(ModelMatrix * vec4(pos, 1.0));
 	
+	vec3 pos_g;
+	pos_g.xz = coord * cell_size;
+	pos_g.y = Ins[to1D(coord)].data.y;
+	pos_g = vec3(ModelMatrix * vec4(pos_g, 1.0));
+	
 	vec3 neighbors[4];
 	vec3 neighbors_normal[4];
+	vec3 neighbors_g[4];
+	vec3 neighbors_normal_g[4];
+	
+	bool b0 = (coord.x > 0 && coord.y < size_y - 1);
+	bool b1 = (coord.y > 0 && coord.x < size_x - 1);
+	
 	for(int i = 0; i < 4; ++i)
 	{
+		
 		vec2 c = coord + o[i];
 		if(!valid(c)) c = coord;
+		vec2 h = Ins[to1D(c)].data.xy;
+		
 		neighbors[i].xz = c * cell_size;
-		neighbors[i].y = Ins[to1D(c)].data.x;
+		neighbors[i].y = h.x;
+		
+		if(!b0 && i < 2) continue;
+		if(!b1 && i >= 2) continue;
 		neighbors[i] = vec3(ModelMatrix * vec4(neighbors[i], 1.0));
-		neighbors_normal[i] = computeNormal(c);
+		
+		if(draw_ground)
+		{
+			neighbors_g[i].xz = c * cell_size;
+			neighbors_g[i].y = h.y;
+			neighbors_g[i] = vec3(ModelMatrix * vec4(neighbors_g[i], 1.0));
+		}
+			
+		computeNormals(c, neighbors_normal[i], neighbors_normal_g[i]);
 	}
 	
 	vec3 n = normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), (neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+	vec3 n_g;
+	if(draw_ground) n_g = normalize(cross((neighbors_g[1] - neighbors_g[3])/(2.0 * cell_size), (neighbors_g[2] - neighbors_g[0])/(2.0 * cell_size)));
 	
-	if(coord.x > 0 && coord.y < size_y - 1)
+	if(b0)
 	{
-		gl_Position = VP * vec4(pos, 1.0);
-		position = vec4(pos, 1.0);
-		normal = n;
-		texcoord = computeTexcoord(coord);
-		EmitVertex();
-		
 		gl_Position = VP * vec4(neighbors[0], 1.0);
 		position = vec4(neighbors[0], 1.0);
 		normal = neighbors_normal[0];
 		texcoord = computeTexcoord(coord + o[0]);
+		ground = 0.0;
 		EmitVertex();
 		
 		gl_Position = VP * vec4(neighbors[1], 1.0);
 		position = vec4(neighbors[1], 1.0);
 		normal = neighbors_normal[1];
 		texcoord = computeTexcoord(coord + o[1]);
+		ground = 0.0;
 		EmitVertex();
-		
-		EndPrimitive();
 	}
 	
-	if(coord.y > 0 && coord.x < size_x - 1)
-	{
+	if(b0 || b1)
+	{		
 		gl_Position = VP * vec4(pos, 1.0);
 		position = vec4(pos, 1.0);
 		normal = n;
 		texcoord = computeTexcoord(coord);
+		ground = 0.0;
 		EmitVertex();
-		
+	}
+	
+	if(b1)
+	{		
 		gl_Position = VP * vec4(neighbors[3], 1.0);
 		position = vec4(neighbors[3], 1.0);
 		normal = neighbors_normal[3];
 		texcoord = computeTexcoord(coord + o[3]);
+		ground = 0.0;
 		EmitVertex();
 		
 		gl_Position = VP * vec4(neighbors[2], 1.0);
 		position = vec4(neighbors[2], 1.0);
 		normal = neighbors_normal[2];
 		texcoord = computeTexcoord(coord + o[2]);
+		ground = 0.0;
 		EmitVertex();
 		
 		EndPrimitive();
+	} else if(b0) {
+		EndPrimitive();
+	}
+	
+	// Ground
+	if(draw_ground)
+	{
+		if(b0)
+		{			
+			gl_Position = VP * vec4(neighbors_g[0], 1.0);
+			position = vec4(neighbors_g[0], 1.0);
+			normal = neighbors_normal_g[0];
+			texcoord = computeTexcoord(coord + o[0]);
+			ground = 1.0;
+			EmitVertex();
+			
+			gl_Position = VP * vec4(neighbors_g[1], 1.0);
+			position = vec4(neighbors_g[1], 1.0);
+			normal = neighbors_normal_g[1];
+			texcoord = computeTexcoord(coord + o[1]);
+			ground = 1.0;
+			EmitVertex();
+		}
+		
+		if(b0 || b1)
+		{
+				gl_Position = VP * vec4(pos_g, 1.0);
+				position = vec4(pos_g, 1.0);
+				normal = n_g;
+				texcoord = computeTexcoord(coord);
+				ground = 1.0;
+				EmitVertex();
+		}
+		
+		if(b1)
+		{
+			gl_Position = VP * vec4(pos_g, 1.0);
+			position = vec4(pos_g, 1.0);
+			normal = n_g;
+			texcoord = computeTexcoord(coord);
+			ground = 1.0;
+			EmitVertex();
+			
+			gl_Position = VP * vec4(neighbors_g[3], 1.0);
+			position = vec4(neighbors_g[3], 1.0);
+			normal = neighbors_normal_g[3];
+			texcoord = computeTexcoord(coord + o[3]);
+			ground = 1.0;
+			EmitVertex();
+			
+			gl_Position = VP * vec4(neighbors_g[2], 1.0);
+			position = vec4(neighbors_g[2], 1.0);
+			normal = neighbors_normal_g[2];
+			texcoord = computeTexcoord(coord + o[2]);
+			ground = 1.0;
+			EmitVertex();
+			
+			EndPrimitive();
+		} else if(b0) {
+			EndPrimitive();
+		}
 	}
 }

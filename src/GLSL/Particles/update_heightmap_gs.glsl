@@ -51,6 +51,20 @@ vec3 computeNormalHeightmap(vec2 coord)
 	return normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), normalize(neighbors[2] - neighbors[0])/(2.0 * cell_size)));
 }
 
+vec3 computeNormalGroundHeightmap(vec2 coord)
+{
+	vec3 neighbors[4];
+	for(int i = 0; i < 4; ++i)
+	{
+		vec2 c = coord + o[i];
+		if(!valid(c)) c = coord;
+		neighbors[i].xz = c * cell_size;
+		neighbors[i].y = Ins[to1D(c)].data.y;
+	}
+	
+	return normalize(cross((neighbors[1] - neighbors[3])/(2.0 * cell_size), normalize(neighbors[2] - neighbors[0])/(2.0 * cell_size)));
+}
+
 uniform float time = 0.0;
 uniform float particle_size = 0.25;
 
@@ -92,56 +106,62 @@ void main()
 		position_type.w = inter_position_type[0].w;
 		speed_lifetime.xyz = speed;
 		speed_lifetime.w = lifetime;
-	}
 	
-	float Density = AirDensity;
-	const vec2 coord = (inverse(HeightmapModelMatrix) * vec4(position_type.xyz, 1.0)).xz / cell_size;
-	if(valid(coord))
-	{
-		float alt = Ins[to1D(coord)].data.x;
-		// Under Water
-		if(position_type.y - particle_size * 0.5 < alt)
+		float Density = AirDensity;
+		const vec2 coord = (inverse(HeightmapModelMatrix) * vec4(position_type.xyz, 1.0)).xz / cell_size;
+		if(valid(coord))
 		{
-			float displ = clamp((alt - (position_type.y - particle_size * 0.5)), 0.0, alt);
-			speed_lifetime.xyz += vec3(0.0, buoyancy * clamp(displ / particle_size, 0.0, 1.0) * 9.81, 0.0) * time;
-			Density = WaterDensity;
-			// Just came under.
-			if(old_pos.y + particle_size * 0.5 > alt)
+			float alt = Ins[to1D(coord)].data.x;
+			// Under Water
+			if(position_type.y - particle_size * 0.5 < alt)
 			{
-				Ins[to1D(coord)].data.x -= displ;
-				for(int i = 0; i < 8; ++i)
+				float displ = clamp((alt - (position_type.y - particle_size * 0.5)), 0.0, alt);
+				speed_lifetime.xyz += vec3(0.0, buoyancy * clamp(displ / particle_size, 0.0, 1.0) * 9.81, 0.0) * time;
+				Density = WaterDensity;
+				// Just came under.
+				if(old_pos.y + particle_size * 0.5 > alt)
 				{
-					vec2 c = coord + o8[i];
-					if(!valid(c)) c = coord;
-					Ins[to1D(c)].data.x += displ * 0.125;
+					Ins[to1D(coord)].data.x -= displ;
+					for(int i = 0; i < 8; ++i)
+					{
+						vec2 c = coord + o8[i];
+						if(!valid(c)) c = coord;
+						Ins[to1D(c)].data.x += displ * 0.125;
+					}
+				}
+			} else { // Above Water
+				float displ = (position_type.y - particle_size * 0.5) - alt;
+				// Just moved out!
+				if(old_pos.y - particle_size * 0.5 < alt)
+				{
+					Ins[to1D(coord)].data.x += displ;
+					for(int i = 0; i < 8; ++i)
+					{
+						vec2 c = coord + o8[i];
+						if(!valid(c)) c = coord;
+						Ins[to1D(c)].data.x -= displ * 0.125;
+					}
 				}
 			}
-		} else { // Above Water
-			float displ = (position_type.y - particle_size * 0.5) - alt;
-			// Just moved out!
-			if(old_pos.y - particle_size * 0.5 < alt)
+		
+			if(position_type.y - particle_size * 0.5 < Ins[to1D(coord)].data.y)
 			{
-				Ins[to1D(coord)].data.x += displ;
-				for(int i = 0; i < 8; ++i)
-				{
-					vec2 c = coord + o8[i];
-					if(!valid(c)) c = coord;
-					Ins[to1D(c)].data.x -= displ * 0.125;
-				}
+				speed_lifetime.xyz = 0.9 * reflect(speed_lifetime.xyz, computeNormalGroundHeightmap(coord));
+				position_type.y = Ins[to1D(coord)].data.y + particle_size * 0.5;
 			}
 		}
+		
+		if(position_type.y - particle_size * 0.5 < 0.0)
+		{
+			speed_lifetime.xyz = 0.9 * reflect(speed_lifetime.xyz, vec3(0.0, 1.0, 0.0));
+			position_type.y = particle_size * 0.5;
+		}
+		
+		// Drag Force
+		const float CrossSectionArea = (3.1415926 * particle_size * particle_size * 0.25);
+		float s = length(speed_lifetime.xyz);
+		speed_lifetime.xyz -= (0.5 * Density * CrossSectionArea * SphereDragCoef * s * s * time) * normalize(speed_lifetime.xyz);
 	}
-	
-	if(position_type.y < particle_size * 0.5)
-	{
-		speed_lifetime.xyz = 0.75 * reflect(speed_lifetime.xyz, vec3(0.0, 1.0, 0.0));
-		position_type.y = particle_size * 0.5;
-	}
-	
-	// Drag Force
-	const float CrossSectionArea = (3.1415926 * particle_size * particle_size * 0.25);
-	float s = length(speed_lifetime.xyz);
-	speed_lifetime.xyz -= (0.5 * Density * CrossSectionArea * SphereDragCoef * s * s * time) * normalize(speed_lifetime.xyz);
 	
 	EmitVertex();
 	EndPrimitive();
