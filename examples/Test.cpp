@@ -324,6 +324,11 @@ bool isVisible(const glm::mat4& ProjectionMatrix, const glm::mat4& ViewMatrix, c
 
 int main(int argc, char* argv[])
 {
+	if(argc > 1)
+	{
+		_fullscreen = true;
+	}
+	
 	if (glfwInit() == false)
 	{
 		std::cerr << "Error: couldn't initialize GLFW." << std::endl;
@@ -335,8 +340,17 @@ int main(int argc, char* argv[])
 	// Debug Context (Does it work? =.=)
 	//glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 	//glEnable(GL_DEBUG_OUTPUT);
-    
-	GLFWwindow* window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
+	
+	GLFWwindow* window = nullptr;
+	if(!_fullscreen)
+	{
+		window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", nullptr, nullptr);
+	} else {
+		auto videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		_width = videoMode->width;
+		_height = videoMode->height;
+		window = glfwCreateWindow(_width, _height, "OpenGL ToolBox Test", glfwGetPrimaryMonitor(), nullptr);
+	}
 	
 	if (!window)
 	{
@@ -620,6 +634,7 @@ int main(int argc, char* argv[])
 		{
 			_time += _timescale * _frameTime;
 			_frameTime *= _timescale;
+			if(_frameTime > 0.2) _frameTime = 0.2; // In case the window is moved
 		} else _frameTime = 0.0;
 		
 		// Camera Management

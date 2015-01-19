@@ -558,7 +558,7 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
-	Query LightQuery, ParticleQuery;
+	Query LightQuery, ParticleQuery, ParticleDrawQuery;
 			
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
@@ -610,6 +610,7 @@ int main(int argc, char* argv[])
 		oss << std::setw(6) << std::setfill('0') << _frameRate;
 		oss << " - Light: " << std::setw(6) << std::setfill('0') << LightQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
+		oss << " (" << std::setw(6) << std::setfill('0') << ParticleDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
 	
 		for(size_t i = 0; i < ShadowCount; ++i)
@@ -669,6 +670,7 @@ int main(int argc, char* argv[])
 		_offscreenRender.clear();
 		
 		// Particles
+		ParticleDrawQuery.begin(Query::Target::TimeElapsed);
 		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		ParticleDraw.use();
 		
@@ -680,6 +682,7 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), (const GLvoid *) offsetof(struct Particle, speed_lifetime)); // speed_lifetime
 		
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
+		ParticleDrawQuery.end();
 		
 		// Meshes
 			
