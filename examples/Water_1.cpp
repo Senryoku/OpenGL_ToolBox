@@ -400,7 +400,8 @@ int main(int argc, char* argv[])
 	ParticleUpdateGS.compile();
 	ParticleUpdate.attachShader(ParticleUpdateVS);
 	ParticleUpdate.attachShader(ParticleUpdateGS);
-	ParticleUpdate.setTransformFeedbackVaryings<2>({"position_type", "speed_lifetime"}, true);
+	const char* varyings[2] = {"position_type", "speed_lifetime"};
+	glTransformFeedbackVaryings(ParticleUpdate.getName(), 2, varyings, GL_INTERLEAVED_ATTRIBS);
 	ParticleUpdate.link();
 	
 	if(!ParticleUpdate) return 0;
@@ -428,39 +429,23 @@ int main(int argc, char* argv[])
 	
 	if(!WaterUpdate.getProgram()) return 0;
 	
-	Program& WaterDrawTF = ResourcesManager::getInstance().getProgram("WaterDrawTF");
-	VertexShader& WaterDrawTFVS = ResourcesManager::getInstance().getShader<VertexShader>("WaterDraw_TF_VS");
-	WaterDrawTFVS.loadFromFile("src/GLSL/Water/draw_tf_vs.glsl");
-	WaterDrawTFVS.compile();
-	GeometryShader& WaterDrawTFGS = ResourcesManager::getInstance().getShader<GeometryShader>("WaterDraw_TF_GS");
-	WaterDrawTFGS.loadFromFile("src/GLSL/Water/draw_tf_gs.glsl");
-	WaterDrawTFGS.compile();
-	WaterDrawTF.attachShader(WaterDrawTFVS);
-	WaterDrawTF.attachShader(WaterDrawTFGS);
-	WaterDrawTF.setTransformFeedbackVaryings<2>({"water", "ground"}, false);
-	WaterDrawTF.link();
-	
-	if(!WaterDrawTF) return 0;
-	
-	ComputeShader& WaterComputeNormals = ResourcesManager::getInstance().getShader<ComputeShader>("WaterComputeNormals");
-	WaterComputeNormals.loadFromFile("src/GLSL/normals_cs.glsl");
-	WaterComputeNormals.compile();
-	
-	if(!WaterComputeNormals.getProgram()) return 0;
-	
 	Program& WaterDraw = ResourcesManager::getInstance().getProgram("WaterDraw");
 	VertexShader& WaterDrawVS = ResourcesManager::getInstance().getShader<VertexShader>("WaterDraw_VS");
-	WaterDrawVS.loadFromFile("src/GLSL/Water/draw_indexed_vs.glsl");
+	WaterDrawVS.loadFromFile("src/GLSL/Water/draw_vs.glsl");
 	WaterDrawVS.compile();
+	GeometryShader& WaterDrawGS = ResourcesManager::getInstance().getShader<GeometryShader>("WaterDraw_GS");
+	WaterDrawGS.loadFromFile("src/GLSL/Water/draw_gs.glsl");
+	WaterDrawGS.compile();
 	FragmentShader& WaterDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("WaterDraw_FS");
-	WaterDrawFS.loadFromFile("src/GLSL/Water/draw_indexed_fs.glsl");
+	WaterDrawFS.loadFromFile("src/GLSL/Water/draw_fs.glsl");
 	WaterDrawFS.compile();
 	WaterDraw.attachShader(WaterDrawVS);
+	WaterDraw.attachShader(WaterDrawGS);
 	WaterDraw.attachShader(WaterDrawFS);
 	WaterDraw.link();
 	 
 	if(!WaterDraw) return 0;
-	
+		
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
 	
@@ -568,70 +553,12 @@ int main(int argc, char* argv[])
 	ParticleUpdate.bindShaderStorageBlock("InBuffer", water_buffer);
 	ParticleUpdate.setUniform("HeightmapModelMatrix", WaterModelMatrix);
 	
-	WaterComputeNormals.getProgram().setUniform("size_x", (int) water_x);
-	WaterComputeNormals.getProgram().setUniform("size_y", (int) water_z);
-	
-	WaterDrawTF.setUniform("size_x", (int) water_x);
-	WaterDrawTF.setUniform("size_y", (int) water_z);
-	WaterDrawTF.setUniform("cell_size", water_cellsize);
-	WaterDrawTF.setUniform("ModelMatrix", WaterModelMatrix);
-	/*
 	WaterDraw.setUniform("size_x", (int) water_x);
 	WaterDraw.setUniform("size_y", (int) water_z);
 	WaterDraw.setUniform("cell_size", water_cellsize);
 	WaterDraw.setUniform("ModelMatrix", WaterModelMatrix);
 	WaterDraw.bindShaderStorageBlock("InBuffer", water_buffer);
-	*/
-	TransformFeedback water_transform_feedback;
-	water_transform_feedback.init();
-	water_transform_feedback.bind();
-	
-	Buffer water_vertex_buffer;
-	water_vertex_buffer.init(Buffer::Target::VertexAttributes);
-	water_vertex_buffer.bind();
-	water_vertex_buffer.data(nullptr, sizeof(WaterCell) * water.size(), Buffer::Usage::DynamicDraw);
-	
-	water_transform_feedback.bindBuffer(0, water_vertex_buffer);
-	Buffer ground_vertex_buffer;
-	ground_vertex_buffer.init(Buffer::Target::VertexAttributes);
-	ground_vertex_buffer.bind();
-	ground_vertex_buffer.data(nullptr, sizeof(WaterCell) * water.size(), Buffer::Usage::DynamicDraw);
-	water_transform_feedback.bindBuffer(1, ground_vertex_buffer);
-	
-	water_transform_feedback.unbind();
 
-	// Normal Buffers
-	
-	
-	Buffer water_normal_buffer;
-	water_normal_buffer.init(Buffer::Target::ShaderStorage);
-	water_normal_buffer.bind();
-	water_normal_buffer.data(nullptr, sizeof(glm::vec4) * water.size(), Buffer::Usage::DynamicDraw);
-
-	Buffer ground_normal_buffer;
-	ground_normal_buffer.init(Buffer::Target::ShaderStorage);
-	ground_normal_buffer.bind();
-	ground_normal_buffer.data(nullptr, sizeof(glm::vec4) * water.size(), Buffer::Usage::DynamicDraw);
-	
-	Buffer water_indices;
-	water_indices.init(Buffer::Target::VertexIndices);
-	water_indices.bind();
-	std::vector<size_t> tmp_water_indices;
-	for(size_t i = 0; i < water_x - 1; ++i)
-	{
-		for(size_t j = 0; j < water_z - 1; ++j)
-		{
-			tmp_water_indices.push_back(i * water_z + j);
-			tmp_water_indices.push_back(i * water_z + j + 1);
-			tmp_water_indices.push_back((i + 1) * water_z + j);
-			
-			tmp_water_indices.push_back(i * water_z + j + 1);
-			tmp_water_indices.push_back((i + 1) * water_z + j + 1);
-			tmp_water_indices.push_back((i + 1) * water_z + j);
-		}
-	}
-	water_indices.data(tmp_water_indices.data(), sizeof(size_t) * tmp_water_indices.size(), Buffer::Usage::StaticDraw);
-	
 	resize_callback(window, _width, _height);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -686,7 +613,7 @@ int main(int argc, char* argv[])
 	MainCamera.updateView();
 	bool firstStep = true;
 	
-	Query LightQuery, ParticleQuery, ParticleDrawQuery, WaterQuery, WaterTFQuery, WaterDrawQuery, ShadowMapQuery;
+	Query LightQuery, ParticleQuery, ParticleDrawQuery, WaterQuery, WaterDrawQuery, ShadowMapQuery;
 			
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// ShadowMap drawing
@@ -768,8 +695,7 @@ int main(int argc, char* argv[])
 		oss << " - Particles: " << std::setw(6) << std::setfill('0') << ParticleQuery.get<GLuint64>() / 1000000.0 << " ms";
 		oss << " (" << std::setw(6) << std::setfill('0') << ParticleDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
 		oss << " - Water: " << std::setw(6) << std::setfill('0') << WaterQuery.get<GLuint64>() / 1000000.0 << " ms";
-		oss << " (" << std::setw(6) << std::setfill('0') << WaterTFQuery.get<GLuint64>() / 1000000.0 << " + ";
-		oss << std::setw(6) << std::setfill('0') << WaterDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
+		oss << " (" << std::setw(6) << std::setfill('0') << WaterDrawQuery.get<GLuint64>() / 1000000.0 << " ms)";
 		glfwSetWindowTitle(window, ((std::string("OpenGL ToolBox Test - FPS: ") + oss.str()).c_str()));
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -799,7 +725,6 @@ int main(int argc, char* argv[])
 		
 		TransformFeedback::end();
 		ParticleQuery.end();
-		particles_transform_feedback[(ParticleStep + 1) % 2].unbind();
 		TransformFeedback::enableRasterization();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -815,33 +740,6 @@ int main(int argc, char* argv[])
 			WaterUpdate.memoryBarrier();
 		}
 		WaterQuery.end();
-		
-		// Updating vertices
-		TransformFeedback::disableRasterization();
-		WaterTFQuery.begin(Query::Target::TimeElapsed);
-		WaterDrawTF.use();
-		
-		water_buffer.bind(Buffer::Target::VertexAttributes);
-		water_transform_feedback.bind();
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(WaterCell), (const GLvoid *) offsetof(struct WaterCell, data));
-		
-		TransformFeedback::begin(Primitive::Points);
-		glDrawArrays(GL_POINTS, 0, water.size());
-		TransformFeedback::end();
-		
-		water_transform_feedback.unbind();
-		
-		water_vertex_buffer.bind(Buffer::Target::ShaderStorage, 5);
-		water_normal_buffer.bind(Buffer::Target::ShaderStorage, 6);
-		WaterComputeNormals.use();
-		glShaderStorageBlockBinding(WaterComputeNormals.getProgram().getName(), glGetProgramResourceIndex(WaterComputeNormals.getProgram().getName(), GL_SHADER_STORAGE_BLOCK, "VerticesBlock"), 5);
-		glShaderStorageBlockBinding(WaterComputeNormals.getProgram().getName(), glGetProgramResourceIndex(WaterComputeNormals.getProgram().getName(), GL_SHADER_STORAGE_BLOCK, "NormalsBlock"), 6);
-		WaterComputeNormals.compute(water_x / WaterComputeNormals.getWorkgroupSize().x + 1, water_z / WaterComputeNormals.getWorkgroupSize().y + 1, 1);
-		WaterComputeNormals.memoryBarrier();
-		
-		WaterTFQuery.end();
-		TransformFeedback::enableRasterization();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing
@@ -869,17 +767,7 @@ int main(int argc, char* argv[])
 		// Water
 		WaterDrawQuery.begin(Query::Target::TimeElapsed);
 		WaterDraw.use();
-		
-		water_vertex_buffer.bind();
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *) 0);
-		
-		water_normal_buffer.bind(Buffer::Target::VertexAttributes);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *) 0);
-		
-		water_indices.bind();
-		glDrawElements(GL_TRIANGLES, tmp_water_indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawArrays(GL_POINTS, 0, water.size());
 		WaterDrawQuery.end();
 		
 		// Meshes
@@ -924,7 +812,6 @@ int main(int argc, char* argv[])
 		// Blitting
 		Framebuffer<>::unbind(FramebufferTarget::Draw);
 		_offscreenRender.bind(FramebufferTarget::Read);
-		//glReadBuffer(GL_COLOR_ATTACHMENT2);
 		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		
 		////////////////////////////////////////////////////////////////////////////////////////////

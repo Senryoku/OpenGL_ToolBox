@@ -54,19 +54,6 @@ void add_light(int l)
 	local_lights[idx] = l;
 }
 
-
-// Shadow casting lights
-/*
-shared int local_shadows_count; // = 0;
-shared int local_shadows[8];
-
-void add_shadow(int s)
-{
-	int idx = atomicAdd(local_shadows_count, 1);
-	local_shadows[idx] = s;
-}
-*/
-
 float square(float f)
 {
 	return f * f;
@@ -115,7 +102,6 @@ void main(void)
 	if(local_pixel == uvec2(0, 0))
 	{
 		local_lights_count = 0;
-		//local_shadows_count = 0;
 		
 		min_x = highValue;
 		max_x = -highValue;
@@ -161,12 +147,6 @@ void main(void)
 		}
 	}
 	
-	// Test shadow casting lights (Skiped for now.)
-	/*
-	if(gl_LocalInvocationIndex < shadowCount)
-		add_shadow(int(gl_LocalInvocationIndex)); // TODO: Check if usefull
-	*/
-	
 	barrier();
 	
 	//Compute lights' contributions
@@ -183,26 +163,9 @@ void main(void)
 				ColorOut.rgb += (1.0 - square(d/lightRadius)) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
 		}
 		
-		/*
-		for(int shadow = 0; shadow < local_shadows_count; ++shadow)
-		{
-			vec4 sc = Shadows[local_shadows[shadow]].depthMVP * vec4(position.xyz, 1.0);
-			if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
-				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
-			{				
-				if(textureProj(ShadowMaps[local_shadows[shadow]], sc.xyw).z + bias >= sc.z/sc.w)
-				{
-					ColorOut.rgb += phong(position.xyz, normal, color, Shadows[local_shadows[shadow]].position.xyz, Shadows[local_shadows[shadow]].color.rgb);
-				}
-			}
-		}
-		*/
-		
 		for(int shadow = 0; shadow < shadowCount; ++shadow)
 		{
 			vec4 sc = Shadows[shadow].depthMVP * vec4(position.xyz, 1.0);
-			//if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
-			//	(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f))
 			if((sc.x/sc.w >= 0 && sc.x/sc.w <= 1.f) &&
 				(sc.y/sc.w >= 0 && sc.y/sc.w <= 1.f) && ((sc.x/sc.w * 2.0 - 1.0)*(sc.x/sc.w * 2.0 - 1.0) + (sc.y/sc.w * 2.0 - 1.0)*(sc.y/sc.w * 2.0 - 1.0) < 1.0))
 			{				
