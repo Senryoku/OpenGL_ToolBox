@@ -468,10 +468,8 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Ground
 	
-	Texture2D GroundTexture;
-	GroundTexture.load("in/Textures/Tex0.jpg");
-	Texture2D GroundNormalMap;
-	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
+	Texture2D GroundTexture("in/Textures/Tex0.jpg");
+	Texture2D GroundNormalMap("in/Textures/Tex0_n.jpg");
 	
 	Mesh Plane;
 	float s = 100.f;
@@ -490,38 +488,11 @@ int main(int argc, char* argv[])
 	
 	_meshInstances.push_back(MeshInstance(Plane));
 	
-	auto Model = Mesh::load("in/3DModels/dragon/Figurine Dragon N170112.3DS");
-	Texture2D ModelTexture;
-	ModelTexture.load("in/3DModels/dragon/AS2_concrete_02.jpg");
-	for(auto part : Model)
-	{
-		part->createVAO();
-		part->getMaterial().setShadingProgram(Deferred);
-		part->getMaterial().setUniform("Texture", ModelTexture);
-		part->getMaterial().setUniform("useNormalMap", 0);
-		_meshInstances.push_back(MeshInstance(*part, glm::scale(glm::mat4(1.0), glm::vec3(0.04))));
-	}
-	
-	auto Model1 = Mesh::load("in/3DModels/sculpt/Figurine N030611.3DS");
-	Texture2D Model1Texture;
-	Model1Texture.load("in/3DModels/sculpt/Stucco 1060 x 819 px 0705.jpg");
-	//Texture2D Model1NormalMap;
-	//Model1NormalMap.load("in/3DModels/alduin/OBJ/tex/alduin_n.jpg");
-	
-	for(auto m : Model1)
-	{
-		m->createVAO();
-		m->getMaterial().setShadingProgram(Deferred);
-		m->getMaterial().setUniform("Texture", Model1Texture);
-		m->getMaterial().setUniform("useNormalMap", 0);
-		_meshInstances.push_back(MeshInstance(*m, glm::scale(glm::translate(glm::mat4(1.0), glm::vec3(-7.0, 0.0, -6.0)), glm::vec3(0.025))));
-	}
-	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
 	std::vector<Particle> particles;
-	for(int i = 0; i < 250; ++i)
+	for(int i = 0; i < 1; ++i)
 		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
@@ -547,24 +518,21 @@ int main(int argc, char* argv[])
 	int cloth_width = 25;
 	int cloth_height = 25;
 	float cellsize = 1.0;
-	glm::vec3 cloth_position = glm::vec3(10.0, 0.0, 0.0);
+	glm::vec3 cloth_position = glm::vec3(- cloth_width / 2.0f, 0.0, 0.0);
 	for(int i = 0; i < cloth_width; ++i)
 		for(int j = 0; j < cloth_height; ++j)
 			cloth.push_back(Cloth(cloth_position + glm::vec3{i * cellsize, j * cellsize, 0.0}, 
-								  glm::vec3{0.0},
-								  (j == cloth_height - 1 && (i == 0 || i == cloth_width - 1) ) ? 0.0 : 1.0,
+								  cloth_position + glm::vec3{i * cellsize, j * cellsize, 0.0},
+								  (j == cloth_height - 1 && (i == 0 || i == cloth_width - 1) ) ? -1.0 : 1.0,
 								  0.0));
 	
-	ShaderStorage cloth_buffers[2];
-	for(int i = 0; i < 2; ++i)
-	{
-		cloth_buffers[i].init();
-		cloth_buffers[i].bind(i + 4);
-		cloth_buffers[i].data(cloth.data(), sizeof(Cloth) * cloth.size(), Buffer::Usage::DynamicDraw);
-	}
+	ClothUpdate.getProgram().setUniform("iterations", 10);
+	ClothUpdate.getProgram().setUniform("constraints_iterations", 10);
+	ShaderStorage cloth_buffer;
+	cloth_buffer.init();
+	cloth_buffer.bind(4);
+	cloth_buffer.data(cloth.data(), sizeof(Cloth) * cloth.size(), Buffer::Usage::DynamicDraw);
 	
-	size_t ClothStep = 0;
-
 	resize_callback(window, _width, _height);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -726,13 +694,13 @@ int main(int argc, char* argv[])
 		// Cloth Update
 		
 		ClothUpdate.getProgram().setUniform("time", _frameTime);
-		ClothUpdate.getProgram().setUniform("size_x", (int) cloth_width);
-		ClothUpdate.getProgram().setUniform("size_y", (int) cloth_height);
-		ClothUpdate.getProgram().setUniform("cell_size", cellsize);
+		ClothUpdate.getProgram().setUniform("width", (int) cloth_width);
+		ClothUpdate.getProgram().setUniform("height", (int) cloth_height);
+		ClothUpdate.getProgram().setUniform("cellsize", cellsize);
+		ClothUpdate.getProgram().setUniform("acceleration", 3.0f * glm::vec3(20.0f * std::cos(_time * 0.1f), -9.81, 20.0f * std::sin(_time * 0.1f)));
 		ClothUpdate.use();
 		
-		ClothUpdate.getProgram().bindShaderStorageBlock("InBuffer", cloth_buffers[ClothStep]);
-		ClothUpdate.getProgram().bindShaderStorageBlock("OutBuffer", cloth_buffers[(ClothStep + 1) % 2]);
+		ClothUpdate.getProgram().bindShaderStorageBlock("InBuffer", cloth_buffer);
 	 
 		ClothQuery.begin(Query::Target::TimeElapsed);
 		ClothUpdate.compute(cloth_width / ClothUpdate.getWorkgroupSize().x + 1, cloth_height / ClothUpdate.getWorkgroupSize().y + 1, 1);
@@ -763,7 +731,7 @@ int main(int argc, char* argv[])
 		ClothDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		ClothDraw.use();
 		
-		cloth_buffers[(ClothStep + 1) % 2].bind(Buffer::Target::VertexAttributes);
+		cloth_buffer.bind(Buffer::Target::VertexAttributes);
 		
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
@@ -788,7 +756,6 @@ int main(int argc, char* argv[])
 			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
 		
 		ParticleStep = (ParticleStep + 1) % 2;
-		ClothStep = (ClothStep + 1) % 2;
 			
 		// Post processing
 		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
