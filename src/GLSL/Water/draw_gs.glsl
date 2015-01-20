@@ -54,6 +54,32 @@ bool valid(vec2 c)
 		c.x < size_x && c.y < size_y;
 }
 
+vec2 local_coord;
+vec3 large_neighbors[5][5];
+vec3 large_neighbors_g[5][5];
+
+vec3 get(vec2 off)
+{
+	return large_neighbors[int(2 + off.x)][int(2 + off.y)];
+}
+
+vec3 get_g(vec2 off)
+{
+	return large_neighbors_g[int(2 + off.x)][int(2 + off.y)];
+}
+
+void init_neighbors(vec2 coord, vec2 off)
+{
+	vec2 c = coord + off;
+	if(!valid(c)) return;
+	vec2 tmp = Ins[to1D(c)].data.xy;
+	large_neighbors[int(2 + off.x)][int(2 + off.y)].xz = c * cell_size;
+	large_neighbors[int(2 + off.x)][int(2 + off.y)].y = tmp.x;
+	
+	large_neighbors_g[int(2 + off.x)][int(2 + off.y)].xz = c * cell_size;
+	large_neighbors_g[int(2 + off.x)][int(2 + off.y)].y = tmp.y;
+}
+
 void computeNormals(vec2 coord, out vec3 n, out vec3 n_g)
 {
 	vec3 neighbors[4];
@@ -62,14 +88,9 @@ void computeNormals(vec2 coord, out vec3 n, out vec3 n_g)
 	{
 		vec2 c = coord + o[i];
 		if(!valid(c)) c = coord;
-		vec2 h = Ins[to1D(c)].data.xy;
-		neighbors[i].xz = c * cell_size;
-		neighbors[i].y = h.x;
+		neighbors[i] = get(c - local_coord);
 		if(draw_ground)
-		{
-			neighbors_g[i].xz = c * cell_size;
-			neighbors_g[i].y = h.y;
-		}
+			neighbors_g[i] = get_g(c - local_coord);
 	}
 	
 	n = normalize(cross((neighbors[1] - neighbors[3]), (neighbors[2] - neighbors[0])));
@@ -86,15 +107,9 @@ void main()
 {
 	mat4 VP = ProjectionMatrix * ViewMatrix;
 	vec2 coord = to2D(in_id[0]);
-	vec3 pos;
-	pos.xz = coord * cell_size;
-	pos.y = Ins[to1D(coord)].data.x;
-	pos = vec3(ModelMatrix * vec4(pos, 1.0));
-	
+	local_coord = coord;
+	vec3 pos;	
 	vec3 pos_g;
-	pos_g.xz = coord * cell_size;
-	pos_g.y = Ins[to1D(coord)].data.y;
-	pos_g = vec3(ModelMatrix * vec4(pos_g, 1.0));
 	
 	vec3 neighbors[4];
 	vec3 neighbors_normal[4];
@@ -104,23 +119,26 @@ void main()
 	bool b0 = (coord.x > 0 && coord.y < size_y - 1);
 	bool b1 = (coord.y > 0 && coord.x < size_x - 1);
 	
+	init_neighbors(coord, vec2(-1.0, 1.0));
+	init_neighbors(coord, vec2(1.0, 1.0));
+	init_neighbors(coord, vec2(1.0, -1.0));
+	init_neighbors(coord, vec2(-1.0, -1.0));
+	init_neighbors(coord, vec2(0.0, 0.0));
+	
+	pos = vec3(ModelMatrix * vec4(get(vec2(0.0)), 1.0));
+	pos_g = vec3(ModelMatrix * vec4(get_g(vec2(0.0)), 1.0));
 	for(int i = 0; i < 4; ++i)
 	{
 		vec2 c = coord + o[i];
 		if(!valid(c)) c = coord;
-		vec2 h = Ins[to1D(c)].data.xy;
 		
-		neighbors[i].xz = c * cell_size;
-		neighbors[i].y = h.x;
+		init_neighbors(coord, o[i]);
+		init_neighbors(coord, 2.0f * o[i]);
 		
-		neighbors[i] = vec3(ModelMatrix * vec4(neighbors[i], 1.0));
+		neighbors[i] = vec3(ModelMatrix * vec4(get(c - coord), 1.0));
 		
 		if(draw_ground)
-		{
-			neighbors_g[i].xz = c * cell_size;
-			neighbors_g[i].y = h.y;
-			neighbors_g[i] = vec3(ModelMatrix * vec4(neighbors_g[i], 1.0));
-		}
+			neighbors_g[i] = vec3(ModelMatrix * vec4(get_g(c - coord), 1.0));
 			
 		if(!b0 && i < 2) continue;
 		if(!b1 && i >= 2) continue;
@@ -130,6 +148,15 @@ void main()
 	vec3 n = normalize(cross((neighbors[1] - neighbors[3]), (neighbors[2] - neighbors[0])));
 	vec3 n_g;
 	if(draw_ground) n_g = normalize(cross((neighbors_g[1] - neighbors_g[3]), (neighbors_g[2] - neighbors_g[0])));
+	
+	// Approximate Normals
+	/*
+	for(int i = 0; i < 4; ++i)
+	{
+		neighbors_normal[i] = n;
+		neighbors_normal_g[i] = n_g;
+	}
+	*/
 	
 	if(b0)
 	{

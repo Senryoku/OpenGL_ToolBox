@@ -623,6 +623,30 @@ int main(int argc, char* argv[])
 	
 	Query LightQuery, ParticleQuery, ParticleDrawQuery, WaterQuery, WaterDrawQuery, ShadowMapQuery;
 			
+	////////////////////////////////////////////////////////////////////////////////////////////
+	// ShadowMap drawing
+	
+	ShadowMapQuery.begin(Query::Target::TimeElapsed);
+	for(size_t i = 0; i < ShadowCount; ++i)
+	{
+		MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
+		MainLights[i].updateMatrices();
+		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
+		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
+		
+		MainLights[i].bind();
+		
+		for(auto& b : _meshInstances)
+			if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+			{
+				Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
+				b.getMesh().draw();
+			}
+	
+		MainLights[i].unbind();
+	}
+	ShadowMapQuery.end();
+		
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
 	{	
@@ -724,30 +748,6 @@ int main(int argc, char* argv[])
 			WaterUpdate.memoryBarrier();
 		}
 		WaterQuery.end();
-		
-		////////////////////////////////////////////////////////////////////////////////////////////
-		// ShadowMap drawing
-		
-		ShadowMapQuery.begin(Query::Target::TimeElapsed);
-		for(size_t i = 0; i < ShadowCount; ++i)
-		{
-			MainLights[i].lookAt(glm::vec3(0.0, 0.0, 0.0));
-			MainLights[i].updateMatrices();
-			ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
-			ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
-			
-			MainLights[i].bind();
-			
-			for(auto& b : _meshInstances)
-				if(isVisible(MainLights[i].getProjectionMatrix(), MainLights[i].getViewMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-				{
-					Light::getShadowMapProgram().setUniform("ModelMatrix", b.getModelMatrix());
-					b.getMesh().draw();
-				}
-		
-			MainLights[i].unbind();
-		}
-		ShadowMapQuery.end();
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Actual drawing

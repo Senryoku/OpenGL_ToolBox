@@ -49,6 +49,7 @@ void main()
 	
 	for(int it = 0; it < iterations; ++it)
 	{
+		vec4 local;
 		if(inbound)
 		{
 			// Ground
@@ -99,27 +100,29 @@ void main()
 			// Update Height
 			vec2 grad;
 			
+			local = Ins[idx].data;
 			if(coord.x == size_x - 1)
-				grad.x = 0.0 - Ins[idx].data.z;
+				grad.x = 0.0 - local.z;
 			else
-				grad.x = Ins[to1D(ivec2(coord.x + 1, coord.y))].data.z - Ins[idx].data.z;
+				grad.x = Ins[to1D(ivec2(coord.x + 1, coord.y))].data.z - local.z;
 				
 			if(coord.y == size_y - 1)
-				grad.y = 0.0 - Ins[idx].data.w;
+				grad.y = 0.0 - local.w;
 			else
-				grad.y = Ins[to1D(ivec2(coord.x, coord.y + 1))].data.w - Ins[idx].data.w;
+				grad.y = Ins[to1D(ivec2(coord.x, coord.y + 1))].data.w - local.w;
 			
 			grad = grad / cell_size;
 				
 			float div = grad.x + grad.y;
-			Ins[idx].data.x -= Ins[idx].data.x * t * div;
+			local.x -= local.x * t * div;
+			Ins[idx].data.x = local.x;
 		}
 		
 		barrier();
 		if(inbound)
 		{
 			// Update velocities, works on Water Height (.x) + Ground Height (.y)
-			float h = Ins[idx].data.x + Ins[idx].data.y;
+			float h = local.x + local.y;
 			float h2 = moyheight;
 			if(coord.x > 0)
 				h2 = Ins[to1D(ivec2(coord.x - 1, coord.y))].data.x + Ins[to1D(ivec2(coord.x - 1, coord.y))].data.y;
