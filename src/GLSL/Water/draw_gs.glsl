@@ -74,7 +74,7 @@ void init_neighbors(vec2 coord, vec2 off)
 	if(!valid(c)) return;
 	vec2 tmp = Ins[to1D(c)].data.xy;
 	large_neighbors[int(2 + off.x)][int(2 + off.y)].xz = c * cell_size;
-	large_neighbors[int(2 + off.x)][int(2 + off.y)].y = tmp.x;
+	large_neighbors[int(2 + off.x)][int(2 + off.y)].y = tmp.x + tmp.y;
 	
 	large_neighbors_g[int(2 + off.x)][int(2 + off.y)].xz = c * cell_size;
 	large_neighbors_g[int(2 + off.x)][int(2 + off.y)].y = tmp.y;
