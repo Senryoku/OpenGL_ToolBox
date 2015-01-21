@@ -90,7 +90,8 @@ vec3 phong(vec3 p, vec3 N, vec3 V, vec3 diffuse, vec3 lp, vec3 lc, bool t)
 	return diffuseFactor * diffuse * lc + specularFactor * lc;
 }
 
-const int highValue = 1000000;
+const int highValue = 2147483647;
+const float boxfactor = 1000.0f; // Minimize the impact of the use of int for bounding boxes
 
 layout (local_size_x = 16, local_size_y = 16) in;
 void main(void)
@@ -120,21 +121,23 @@ void main(void)
 	// Compute Bounding Box
 	if(isVisible)
 	{
-		colmat = imageLoad(ColorMaterial, ivec2(pixel));
 		position = imageLoad(PositionDepth, ivec2(pixel));
-		
 		isVisible = isVisible && position.w > 0.0 && position.w < 1.0;
-		
-		if(isVisible && colmat.w != MATERIAL_UNLIT)
+		if(isVisible)
 		{
-			atomicMin(min_x, int(position.x - 1.0));
-			atomicMax(max_x, int(position.x + 1.0));
-			atomicMin(min_y, int(position.y - 1.0));
-			atomicMax(max_y, int(position.y + 1.0));
-			atomicMin(min_z, int(position.z - 1.0));
-			atomicMax(max_z, int(position.z + 1.0));
+			colmat = imageLoad(ColorMaterial, ivec2(pixel));
 			
-			lit = 1;
+			if(isVisible && colmat.w != MATERIAL_UNLIT)
+			{
+				atomicMin(min_x, int(boxfactor * position.x - 1.0));
+				atomicMax(max_x, int(boxfactor * position.x + 1.0));
+				atomicMin(min_y, int(boxfactor * position.y - 1.0));
+				atomicMax(max_y, int(boxfactor * position.y + 1.0));
+				atomicMin(min_z, int(boxfactor * position.z - 1.0));
+				atomicMax(max_z, int(boxfactor * position.z + 1.0));
+				
+				lit = 1;
+			}
 		}
 	}
 	barrier();
@@ -142,8 +145,8 @@ void main(void)
 	// Construct boundingbox
 	if(lit > 0)
 	{
-		vec3 min_bbox = vec3(min_x, min_y, min_z);
-		vec3 max_bbox = vec3(max_x, max_y, max_z);
+		vec3 min_bbox = vec3(min_x, min_y, min_z) / boxfactor;
+		vec3 max_bbox = vec3(max_x, max_y, max_z) / boxfactor;
 
 		// Test lights
 		for(int i = 0; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
@@ -160,7 +163,7 @@ void main(void)
 	barrier();
 	
 	//Compute lights' contributions
-	if(isVisible && lit > 0 && colmat.w != MATERIAL_UNLIT)
+	if(lit > 0 && isVisible && colmat.w != MATERIAL_UNLIT)
 	{
 		vec3 color = colmat.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
