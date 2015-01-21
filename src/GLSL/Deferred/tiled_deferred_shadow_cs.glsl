@@ -37,17 +37,15 @@ layout(binding = 2, rgba32f) uniform readonly image2D Normal;
 layout(binding = 3) uniform sampler2D ShadowMaps[8];
 
 // Bounding Box
-shared int min_x;
-shared int min_y;
-shared int min_z;
-shared int max_x;
-shared int max_y;
-shared int max_z;
+shared ivec3 bbmin;
+shared ivec3 bbmax;
 
 // Lights
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
 shared int lit;
+
+shared LightStruct final_lights;
 
 void add_light(int l)
 {
@@ -90,7 +88,7 @@ vec3 phong(vec3 p, vec3 N, vec3 V, vec3 diffuse, vec3 lp, vec3 lc, bool t)
 	return diffuseFactor * diffuse * lc + specularFactor * lc;
 }
 
-const int highValue = 2147483647;
+const int highValue = 2147483646;
 const float boxfactor = 1000.0f; // Minimize the impact of the use of int for bounding boxes
 
 layout (local_size_x = 16, local_size_y = 16) in;
@@ -108,12 +106,8 @@ void main(void)
 	{
 		local_lights_count = 0;
 		
-		min_x = highValue;
-		max_x = -highValue;
-		min_y = highValue;
-		max_y = -highValue;
-		min_z = highValue;
-		max_z = -highValue;
+		bbmin = ivec3(highValue);
+		bbmax = -bbmin;
 		lit = 0;
 	}
 	barrier();
@@ -129,12 +123,15 @@ void main(void)
 			
 			if(isVisible && colmat.w != MATERIAL_UNLIT)
 			{
-				atomicMin(min_x, int(boxfactor * position.x - 1.0));
-				atomicMax(max_x, int(boxfactor * position.x + 1.0));
-				atomicMin(min_y, int(boxfactor * position.y - 1.0));
-				atomicMax(max_y, int(boxfactor * position.y + 1.0));
-				atomicMin(min_z, int(boxfactor * position.z - 1.0));
-				atomicMax(max_z, int(boxfactor * position.z + 1.0));
+				ivec3 scaledp = ivec3(boxfactor * position + 1.0);
+				ivec3 scaledm = ivec3(boxfactor * position - 1.0);
+				
+				atomicMin(bbmin.x, scaledm.x);
+				atomicMin(bbmin.y, scaledm.y);
+				atomicMin(bbmin.z, scaledm.z);
+				atomicMax(bbmax.x, scaledp.x);
+				atomicMax(bbmax.y, scaledp.y);
+				atomicMax(bbmax.z, scaledp.z);
 				
 				lit = 1;
 			}
@@ -145,24 +142,21 @@ void main(void)
 	// Construct boundingbox
 	if(lit > 0)
 	{
-		vec3 min_bbox = vec3(min_x, min_y, min_z) / boxfactor;
-		vec3 max_bbox = vec3(max_x, max_y, max_z) / boxfactor;
+		vec3 min_bbox = vec3(bbmin) / boxfactor;
+		vec3 max_bbox = vec3(bbmax) / boxfactor;
 
 		// Test lights
-		for(int i = 0; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
+		for(int i = int(gl_LocalInvocationIndex); i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
 		{
-			int l = int(gl_LocalInvocationIndex) + i;
-			if(l < lightCount)
-			{
-				if(sphereAABBIntersect(min_bbox, max_bbox, Lights[l].position.xyz, lightRadius))
-					add_light(l);
-			}
+				if(sphereAABBIntersect(min_bbox, max_bbox, Lights[i].position.xyz, lightRadius))
+					add_light(i);
 		}
 	}
 	
 	barrier();
 	
 	//Compute lights' contributions
+	
 	if(lit > 0 && isVisible && colmat.w != MATERIAL_UNLIT)
 	{
 		vec3 color = colmat.xyz;
@@ -209,7 +203,7 @@ void main(void)
 					
 					vec3 R = normalize(reflect(-L, tmp_normal));
 
-					float specularFactor = pow(max(dot(R, V), 0.f), 8.0);
+					float specularFactor = pow(max(dot(R, V), 0.f), 64.0);
 												
 					ColorOut.rgb += diffuseFactor * color * Shadows[shadow].color.rgb + specularFactor * Shadows[shadow].color.rgb;
 				}
