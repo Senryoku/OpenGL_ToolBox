@@ -3,11 +3,6 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
-layout(location = 0)
-uniform mat4 ModelViewMatrix;
-layout(location = 1)
-uniform mat4 ProjectionMatrix;
-
 const mat4 CubeFaceMatrix[6] = mat4[6](
 mat4(
 		 0.0,  0.0,  1.0,  0.0,

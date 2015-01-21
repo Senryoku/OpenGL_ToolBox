@@ -679,7 +679,7 @@ int main(int argc, char* argv[])
 	
 	Light MainLights[ShadowCount];
 	MainLights[0].init();
-	MainLights[0].setColor(glm::vec4(0.3));
+	MainLights[0].setColor(glm::vec4(1.0));
 	MainLights[0].setPosition(glm::vec3(0.0, 40.0, 100.0));
 	MainLights[0].lookAt(glm::vec3(0.0, 10.0, 0.0));
 	
@@ -725,6 +725,14 @@ int main(int argc, char* argv[])
 		MainLights[i].unbind();
 	}
 	ShadowMapQuery.end();
+	
+	Skybox Sky({"in/Textures/cubemaps/Park2/posx.jpg",
+				"in/Textures/cubemaps/Park2/negx.jpg",
+				"in/Textures/cubemaps/Park2/posy.jpg",
+				"in/Textures/cubemaps/Park2/negy.jpg",
+				"in/Textures/cubemaps/Park2/posz.jpg",
+				"in/Textures/cubemaps/Park2/negz.jpg"
+	});
 		
 	glfwGetCursorPos(window, &_mouse_x, &_mouse_y); // init mouse position
 	while(!glfwWindowShouldClose(window))
@@ -737,7 +745,7 @@ int main(int argc, char* argv[])
 		{
 			_time += _timescale * _frameTime;
 			_frameTime *= _timescale;
-			if(_frameTime > 0.008) _frameTime = 0.008; // In case the window is moved
+			if(_frameTime > 1.0/60.0) _frameTime = 1.0/60.0; // In case the window is moved
 		} else _frameTime = 0.0;
 		
 		// Camera Management
@@ -869,6 +877,8 @@ int main(int argc, char* argv[])
 		glDepthMask(GL_TRUE);
 		_offscreenRender.clear();
 		
+		Sky.draw(_projection, MainCamera.getMatrix());
+		
 		// Particles
 		ParticleDrawQuery.begin(Query::Target::TimeElapsed);
 		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
@@ -931,6 +941,9 @@ int main(int argc, char* argv[])
 		glDepthMask(GL_FALSE);
 		// Water
 		WaterDrawQuery.begin(Query::Target::TimeElapsed);
+		Sky.getCubemap().bind(0);
+		WaterDraw.setUniform("EnvMap", 0);
+		WaterDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		WaterDraw.use();
 		
 		water_vertex_buffer.bind();
