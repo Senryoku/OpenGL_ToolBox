@@ -9,7 +9,7 @@ out layout(location = 2) vec4 worldNormalOut;
 
 void main()
 {	
-	colorMaterialOut = vec4(0.2, 0.2, 0.8, 1.0);
+	colorMaterialOut = vec4(0.4, 0.4, 0.8, 0.8);
 	worldPositionOut.xyz = in_position.xyz;
 	worldPositionOut.w = gl_FragCoord.z;
 	worldNormalOut.xyz = normalize(in_normal.xyz);

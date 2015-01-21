@@ -11,6 +11,7 @@ struct HeightmapCell
 uniform int size_x = 200;
 uniform int size_y = 200;
 uniform float cell_size;
+uniform float respawn_speed = 2.0f;
 uniform mat4 HeightmapModelMatrix = mat4(1.0);
 layout(std140, binding = 4) buffer InBuffer
 {
@@ -96,7 +97,7 @@ void main()
 	{
 		position_type.xyz = vec3(0.0, 10.0, 0.0);
 		position_type.w = inter_position_type[0].w;
-		speed_lifetime.xyz = 2.0 * vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].z)), 
+		speed_lifetime.xyz = respawn_speed * vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].z)), 
 								  2.0 + 3.0 * rand(inter_position_type[0].yx),
 								  -2.5 + 5.0 * rand(vec2(inter_position_type[0].x, lifetime)));
 		speed_lifetime.w = 20.0 * rand(inter_position_type[0].xy);
@@ -111,7 +112,8 @@ void main()
 		const vec2 coord = (inverse(HeightmapModelMatrix) * vec4(position_type.xyz, 1.0)).xz / cell_size;
 		if(valid(coord))
 		{
-			float alt = Ins[to1D(coord)].data.x;
+			vec2 tmp_alt = Ins[to1D(coord)].data.xy;
+			float alt = tmp_alt.x + tmp_alt.y;
 			// Under Water
 			if(position_type.y - particle_size * 0.5 < alt)
 			{
@@ -119,7 +121,7 @@ void main()
 				speed_lifetime.xyz += vec3(0.0, buoyancy * clamp(displ / particle_size, 0.0, 1.0) * 9.81, 0.0) * time;
 				Density = WaterDensity;
 				// Just came under.
-				if(old_pos.y + particle_size * 0.5 > alt)
+				if(old_pos.y - particle_size * 0.5 > alt)
 				{
 					Ins[to1D(coord)].data.x -= displ;
 					for(int i = 0; i < 8; ++i)
@@ -144,10 +146,10 @@ void main()
 				}
 			}
 		
-			if(position_type.y - particle_size * 0.5 < Ins[to1D(coord)].data.y)
+			if(position_type.y - particle_size * 0.5 < tmp_alt.y)
 			{
 				speed_lifetime.xyz = 0.9 * reflect(speed_lifetime.xyz, computeNormalGroundHeightmap(coord));
-				position_type.y = Ins[to1D(coord)].data.y + particle_size * 0.5;
+				position_type.y = tmp_alt.y + particle_size * 0.5;
 			}
 		}
 		

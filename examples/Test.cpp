@@ -62,6 +62,7 @@ bool		_paused = false;
 bool		_video = false;
 
 Framebuffer<Texture2D, 3>	_offscreenRender;
+Framebuffer<Texture2D, 3>	_offscreenRenderTransparency;
 	
 void screen(const std::string& path)
 {
@@ -91,11 +92,17 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	_projection = glm::perspective(inRad, (float) _width/_height, 0.1f, 1000.0f);
 	
 	_offscreenRender = Framebuffer<Texture2D, 3>(_width, _height);
-	// Special format for world positions and normals.
 	_offscreenRender.getColor(0).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.getColor(1).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.getColor(2).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
 	_offscreenRender.init();
+	
+	_offscreenRenderTransparency = Framebuffer<Texture2D, 3>(_width, _height);
+	_offscreenRenderTransparency.getColor(0).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
+	_offscreenRenderTransparency.getColor(1).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
+	_offscreenRenderTransparency.getColor(2).create(nullptr, _width, _height, GL_RGBA32F, GL_RGBA, false);
+	_offscreenRenderTransparency.getDepth() = _offscreenRender.getDepth();
+	_offscreenRenderTransparency.init();
 	
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
 }
@@ -461,6 +468,19 @@ int main(int argc, char* argv[])
 	 
 	if(!WaterDraw) return 0;
 	
+	VertexShader& BlendVS = ResourcesManager::getInstance().getShader<VertexShader>("BlendVS");
+	BlendVS.loadFromFile("src/GLSL/vs.glsl");
+	BlendVS.compile();
+
+	FragmentShader& BlendFS = ResourcesManager::getInstance().getShader<FragmentShader>("BlendFS");
+	BlendFS.loadFromFile("src/GLSL/blend_fs.glsl");
+	BlendFS.compile();
+	
+	Program& Blend = ResourcesManager::getInstance().getProgram("Blend");
+	Blend.attachShader(BlendVS);
+	Blend.attachShader(BlendFS);
+	Blend.link();
+	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Camera Initialization
 	
@@ -482,36 +502,21 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Ground
 	
-	Texture2D GroundTexture;
-	GroundTexture.load("in/Textures/Tex0.jpg");
-	Texture2D GroundNormalMap;
-	GroundNormalMap.load("in/Textures/Tex0_n.jpg");
-	
-	Mesh Plane;
-	float s = 100.f;
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 20.f)));
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(-s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(0.f, 0.f)));
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 0.f)));
-	Plane.getVertices().push_back(Mesh::Vertex(glm::vec3(s, 0.f, -s), glm::vec3(0.f, 1.0f, 0.0f), glm::vec2(20.f, 20.f)));
-	Plane.getTriangles().push_back(Mesh::Triangle(0, 1, 2));
-	Plane.getTriangles().push_back(Mesh::Triangle(0, 2, 3));
-	Plane.setBoundingBox({glm::vec3(-s, 0.f, -s), glm::vec3(s, 0.f, s)});
-	Plane.createVAO();
-	Plane.getMaterial().setShadingProgram(Deferred);
-	Plane.getMaterial().setUniform("Texture", GroundTexture);
-	Plane.getMaterial().setUniform("useNormalMap", 1);
-	Plane.getMaterial().setUniform("NormalMap", GroundNormalMap);
-	
-	_meshInstances.push_back(MeshInstance(Plane));
+	Texture2D GroundTexture("in/Textures/Tex0.jpg");
+	Texture2D GroundNormalMap("in/Textures/Tex0_n.jpg");
+	GroundTexture.bind(0);
+	Deferred.setUniform("Texture", (int) 0);
+	GroundNormalMap.bind(1);
+	Deferred.setUniform("NormalMap", (int) 1);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
 	const size_t ParticleCount = 100;
-	const float ParticleSize = 0.1;
+	const float ParticleSize = 0.2;
 	std::vector<Particle> particles;
 	for(int i = 0; i < (int) ParticleCount; ++i)
-		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 4.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
+		particles.push_back(Particle(i, glm::vec3{i * 0.01, 10.0, i * 0.02}, 20.0f * std::cos(1.0f * i) * glm::vec3{std::cos(3.14 * 0.02 * i), (i % 10) * 0.25, std::sin(3.14 * 0.02 * i)}, 10.0));
 	
 	Buffer particles_buffers[2];
 	TransformFeedback particles_transform_feedback[2];
@@ -529,14 +534,15 @@ int main(int argc, char* argv[])
 	
 	size_t ParticleStep = 0;
 	ParticleUpdate.setUniform("particle_size", ParticleSize);
+	ParticleUpdate.setUniform("respawn_speed", 6.0f);
 	ParticleDraw.setUniform("particle_size", ParticleSize);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Water
 	std::vector<WaterCell> water;
-	size_t water_x = 200;
-	size_t water_z = 200;
-	float water_cellsize = 0.1;
+	size_t water_x = 300;
+	size_t water_z = 300;
+	float water_cellsize = 0.2;
 	float water_moyheight = 2.0;
 			
 	for(size_t i = 0; i < water_x; ++i)
@@ -575,13 +581,7 @@ int main(int argc, char* argv[])
 	WaterDrawTF.setUniform("size_y", (int) water_z);
 	WaterDrawTF.setUniform("cell_size", water_cellsize);
 	WaterDrawTF.setUniform("ModelMatrix", WaterModelMatrix);
-	/*
-	WaterDraw.setUniform("size_x", (int) water_x);
-	WaterDraw.setUniform("size_y", (int) water_z);
-	WaterDraw.setUniform("cell_size", water_cellsize);
-	WaterDraw.setUniform("ModelMatrix", WaterModelMatrix);
-	WaterDraw.bindShaderStorageBlock("InBuffer", water_buffer);
-	*/
+
 	TransformFeedback water_transform_feedback;
 	water_transform_feedback.init();
 	water_transform_feedback.bind();
@@ -601,8 +601,6 @@ int main(int argc, char* argv[])
 	water_transform_feedback.unbind();
 
 	// Normal Buffers
-	
-	
 	Buffer water_normal_buffer;
 	water_normal_buffer.init(Buffer::Target::ShaderStorage);
 	water_normal_buffer.bind();
@@ -617,6 +615,7 @@ int main(int argc, char* argv[])
 	water_indices.init(Buffer::Target::VertexIndices);
 	water_indices.bind();
 	std::vector<size_t> tmp_water_indices;
+	tmp_water_indices.reserve((water_x - 1) * (water_z - 1) * 3 * 2);
 	for(size_t i = 0; i < water_x - 1; ++i)
 	{
 		for(size_t j = 0; j < water_z - 1; ++j)
@@ -631,7 +630,22 @@ int main(int argc, char* argv[])
 		}
 	}
 	water_indices.data(tmp_water_indices.data(), sizeof(size_t) * tmp_water_indices.size(), Buffer::Usage::StaticDraw);
+	tmp_water_indices.clear();
 	
+	Buffer water_texcoord_buffer;
+	water_texcoord_buffer.init(Buffer::Target::VertexIndices);
+	water_texcoord_buffer.bind();
+	std::vector<glm::vec2> tmp_water_texcoord;
+	tmp_water_texcoord.resize(water_x * water_z);
+	for(size_t i = 0; i < water_x; ++i)
+	{
+		for(size_t j = 0; j < water_z; ++j)
+		{
+				tmp_water_texcoord[i*water_z + j] = glm::vec2(((float) i) / water_x, ((float) j) / water_z);
+		}
+	}
+	water_texcoord_buffer.data(tmp_water_texcoord.data(), sizeof(glm::vec2) * tmp_water_texcoord.size(), Buffer::Usage::StaticDraw);
+	tmp_water_texcoord.clear();
 	resize_callback(window, _width, _height);
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -723,7 +737,7 @@ int main(int argc, char* argv[])
 		{
 			_time += _timescale * _frameTime;
 			_frameTime *= _timescale;
-			if(_frameTime > 0.2) _frameTime = 0.2; // In case the window is moved
+			if(_frameTime > 0.008) _frameTime = 0.008; // In case the window is moved
 		} else _frameTime = 0.0;
 		
 		// Camera Management
@@ -835,8 +849,12 @@ int main(int argc, char* argv[])
 		water_vertex_buffer.bind(Buffer::Target::ShaderStorage, 5);
 		water_normal_buffer.bind(Buffer::Target::ShaderStorage, 6);
 		WaterComputeNormals.use();
-		glShaderStorageBlockBinding(WaterComputeNormals.getProgram().getName(), glGetProgramResourceIndex(WaterComputeNormals.getProgram().getName(), GL_SHADER_STORAGE_BLOCK, "VerticesBlock"), 5);
-		glShaderStorageBlockBinding(WaterComputeNormals.getProgram().getName(), glGetProgramResourceIndex(WaterComputeNormals.getProgram().getName(), GL_SHADER_STORAGE_BLOCK, "NormalsBlock"), 6);
+		WaterComputeNormals.compute(water_x / WaterComputeNormals.getWorkgroupSize().x + 1, water_z / WaterComputeNormals.getWorkgroupSize().y + 1, 1);
+		WaterComputeNormals.memoryBarrier();
+		
+		ground_vertex_buffer.bind(Buffer::Target::ShaderStorage, 5);
+		ground_normal_buffer.bind(Buffer::Target::ShaderStorage, 6);
+		WaterComputeNormals.use();
 		WaterComputeNormals.compute(water_x / WaterComputeNormals.getWorkgroupSize().x + 1, water_z / WaterComputeNormals.getWorkgroupSize().y + 1, 1);
 		WaterComputeNormals.memoryBarrier();
 		
@@ -848,6 +866,7 @@ int main(int argc, char* argv[])
 		
 		// Offscreen
 		_offscreenRender.bind();
+		glDepthMask(GL_TRUE);
 		_offscreenRender.clear();
 		
 		// Particles
@@ -866,6 +885,50 @@ int main(int argc, char* argv[])
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
 		ParticleDrawQuery.end();
 		
+		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
+		for(size_t i = 0; i < particles.size(); ++i)
+			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
+		
+		ParticleStep = (ParticleStep + 1) % 2;
+		
+		// Ground
+		GroundTexture.bind(0);
+		Deferred.setUniform("Texture", (int) 0);
+		GroundNormalMap.bind(1);
+		Deferred.setUniform("NormalMap", (int) 1);
+		Deferred.setUniform("ModelMatrix", glm::mat4(1.0));
+		Deferred.use();
+		ground_vertex_buffer.bind();
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (const GLvoid *) 0);
+		
+		ground_normal_buffer.bind(Buffer::Target::VertexAttributes);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (const GLvoid *) 0);
+		
+		water_texcoord_buffer.bind(Buffer::Target::VertexAttributes);
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid *) 0);
+		
+		water_indices.bind();
+		glDrawElements(GL_TRIANGLES, (water_x - 1) * (water_z - 1) * 3 * 2, GL_UNSIGNED_INT, 0);
+		
+		// Meshes
+			
+		for(auto& b : _meshInstances)
+		{
+			if(isVisible(_projection, MainCamera.getMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
+				b.draw();
+		}
+		
+		_offscreenRender.unbind();		
+		
+		////////////////////////////////////////////////////////////////
+		// Transparency Offscreen
+		
+		_offscreenRenderTransparency.bind();	
+		_offscreenRenderTransparency.clear(BufferBit::Color); // Keep depth buffer from opaque pass
+		glDepthMask(GL_FALSE);
 		// Water
 		WaterDrawQuery.begin(Query::Target::TimeElapsed);
 		WaterDraw.use();
@@ -879,54 +942,42 @@ int main(int argc, char* argv[])
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *) 0);
 		
 		water_indices.bind();
-		glDrawElements(GL_TRIANGLES, tmp_water_indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, (water_x - 1) * (water_z - 1) * 3 * 2, GL_UNSIGNED_INT, 0);
 		WaterDrawQuery.end();
-		
-		// Meshes
-			
-		for(auto& b : _meshInstances)
-		{
-			if(isVisible(_projection, MainCamera.getMatrix(), b.getModelMatrix(), b.getMesh().getBoundingBox()))
-				b.draw();
-		}
-		
-		_offscreenRender.unbind();		
-		
-		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
-		//DeferredCS.getProgram().bindUniformBlock("LightBlock", particles_buffers[ParticleStep]); // Not anymore, but it was cool.
-		for(size_t i = 0; i < particles.size(); ++i)
-			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
-		
-		ParticleStep = (ParticleStep + 1) % 2;
-		
-		// Post processing
-		// Restore Viewport (binding the framebuffer modifies it - should I make the unbind call restore it ? How ?)
-		glViewport(0, 0, _width, _height);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
-		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		_offscreenRenderTransparency.unbind();
+				
+		////////////////////////////////////////////////////////////////
+		// Lightning
+		LightQuery.begin(Query::Target::TimeElapsed);
 		for(size_t i = 0; i < ShadowCount; ++i)
 			MainLights[i].getShadowMap().bind(i + 3);
 		DeferredShadowCS.getProgram().setUniform("ColorMaterial", (int) 0);
 		DeferredShadowCS.getProgram().setUniform("PositionDepth", (int) 1);
 		DeferredShadowCS.getProgram().setUniform("Normal", (int) 2);	
-		
 		DeferredShadowCS.getProgram().setUniform("cameraPosition", MainCamera.getPosition());
 		DeferredShadowCS.getProgram().setUniform("lightRadius", LightRadius);
-		LightQuery.begin(Query::Target::TimeElapsed);
+		
+		// Opaque lightning
+		_offscreenRender.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+		_offscreenRender.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		_offscreenRender.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
 		DeferredShadowCS.compute(_resolution.x / DeferredShadowCS.getWorkgroupSize().x + 1, _resolution.y / DeferredShadowCS.getWorkgroupSize().y + 1, 1);
-		DeferredShadowCS.memoryBarrier();
+		
+		// Transparent lightning
+		_offscreenRenderTransparency.getColor(0).bindImage(0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+		_offscreenRenderTransparency.getColor(1).bindImage(1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		_offscreenRenderTransparency.getColor(2).bindImage(2, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		DeferredShadowCS.compute(_resolution.x / DeferredShadowCS.getWorkgroupSize().x + 1, _resolution.y / DeferredShadowCS.getWorkgroupSize().y + 1, 1);
+		
+		ComputeShader::memoryBarrier();
 		LightQuery.end();
 		
-		// Blitting
-		Framebuffer<>::unbind(FramebufferTarget::Draw);
-		_offscreenRender.bind(FramebufferTarget::Read);
-		//glReadBuffer(GL_COLOR_ATTACHMENT2);
-		glBlitFramebuffer(0, 0, _resolution.x, _resolution.y, 0, 0, _resolution.x, _resolution.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-		
+		// Blending to default framebuffer
+		_offscreenRender.getColor(0).bind(0);
+		_offscreenRenderTransparency.getColor(0).bind(1);
+		Blend.use();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
 		glfwSwapBuffers(window);
@@ -937,7 +988,7 @@ int main(int argc, char* argv[])
 			static int framecount = 0;
 			screen("out/video/" + StringConversion::to_string(framecount) + ".png");
 			framecount++;
-			if(framecount > 60)
+			if(framecount > 5 * 60)
 			{
 				framecount = 0;
 				_video = false;

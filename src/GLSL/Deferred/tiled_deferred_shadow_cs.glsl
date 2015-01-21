@@ -47,6 +47,7 @@ shared int max_z;
 // Lights
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
+shared int lit;
 
 void add_light(int l)
 {
@@ -71,16 +72,19 @@ bool sphereAABBIntersect(vec3 min, vec3 max, vec3 center, float radius)
     return r > 0;
 }
 
-vec3 phong(vec3 p, vec3 N, vec3 diffuse, vec3 lp, vec3 lc)
+vec3 phong(vec3 p, vec3 N, vec3 V, vec3 diffuse, vec3 lp, vec3 lc, bool t)
 {
 	vec3 L = normalize(lp - p);
 	float dNL = dot(N, L);
+	if(t && dNL < 0.0)
+	{
+		N = -N;
+		dNL = -dNL;
+	}
 	
 	float diffuseFactor = max(dNL, minDiffuse);
 	
-	vec3 V = normalize(cameraPosition - p);
 	vec3 R = normalize(reflect(-L, N));
-	
 	float specularFactor = pow(max(dot(R, V), 0.f), 64.0);
 								
 	return diffuseFactor * diffuse * lc + specularFactor * lc;
@@ -109,6 +113,7 @@ void main(void)
 		max_y = -highValue;
 		min_z = highValue;
 		max_z = -highValue;
+		lit = 0;
 	}
 	barrier();
 		
@@ -128,39 +133,51 @@ void main(void)
 			atomicMax(max_y, int(position.y + 1.0));
 			atomicMin(min_z, int(position.z - 1.0));
 			atomicMax(max_z, int(position.z + 1.0));
+			
+			lit = 1;
 		}
 	}
 	barrier();
 	
 	// Construct boundingbox
-	vec3 min_bbox = vec3(min_x, min_y, min_z);
-	vec3 max_bbox = vec3(max_x, max_y, max_z);
-
-	// Test lights
-	for(int i = 0; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
+	if(lit > 0)
 	{
-		int l = int(gl_LocalInvocationIndex) + i;
-		if(l < lightCount)
+		vec3 min_bbox = vec3(min_x, min_y, min_z);
+		vec3 max_bbox = vec3(max_x, max_y, max_z);
+
+		// Test lights
+		for(int i = 0; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
 		{
-			if(sphereAABBIntersect(min_bbox, max_bbox, Lights[l].position.xyz, lightRadius))
-				add_light(l);
+			int l = int(gl_LocalInvocationIndex) + i;
+			if(l < lightCount)
+			{
+				if(sphereAABBIntersect(min_bbox, max_bbox, Lights[l].position.xyz, lightRadius))
+					add_light(l);
+			}
 		}
 	}
 	
 	barrier();
 	
 	//Compute lights' contributions
-	if(isVisible && colmat.w != MATERIAL_UNLIT)
+	if(isVisible && lit > 0 && colmat.w != MATERIAL_UNLIT)
 	{
 		vec3 color = colmat.xyz;
 		vec3 normal = normalize(imageLoad(Normal, ivec2(pixel)).xyz);
 		
 		vec4 ColorOut = vec4(0.0, 0.0, 0.0, 1.0);
+	
+		vec3 V = normalize(cameraPosition - position.xyz);
+		
+		bool transparent = colmat.a > 0.0 && colmat.a < 1.0;
+		if(transparent)
+			ColorOut.a = colmat.a;
+		
 		for(int l2 = 0; l2 < local_lights_count; ++l2)
 		{
 			float d = length(position.xyz - Lights[local_lights[l2]].position.xyz);
 			if(d < lightRadius)
-				ColorOut.rgb += (1.0 - square(d/lightRadius)) * phong(position.xyz, normal, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb);
+				ColorOut.rgb += (1.0 - square(d/lightRadius)) * phong(position.xyz, normal, V, color, Lights[local_lights[l2]].position.xyz, Lights[local_lights[l2]].color.rgb, transparent);
 		}
 		
 		for(int shadow = 0; shadow < shadowCount; ++shadow)
@@ -176,13 +193,18 @@ void main(void)
 					
 					// So... this is just the call to phong(...) but inlined by hand...
 					
+					vec3 tmp_normal = normal;
 					vec3 L = normalize(Shadows[shadow].position.xyz - position.xyz);
-					float dNL = dot(normal, L);
-
+					float dNL = dot(tmp_normal, L);
+					if(transparent && dNL < 0)
+					{
+						tmp_normal *= -1.0;
+						dNL = -dNL;
+					}
+					
 					float diffuseFactor = max(dNL, minDiffuse);
-
-					vec3 V = normalize(cameraPosition - position.xyz);
-					vec3 R = normalize(reflect(-L, normal));
+					
+					vec3 R = normalize(reflect(-L, tmp_normal));
 
 					float specularFactor = pow(max(dot(R, V), 0.f), 8.0);
 												

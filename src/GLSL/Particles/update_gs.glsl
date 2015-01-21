@@ -5,6 +5,7 @@ layout(points, max_vertices = 1) out;
 
 uniform float time = 0.0;
 uniform float particle_size = 0.25;
+uniform float respawn_speed = 2.0;
 
 layout(location = 0) in vec4 inter_position_type[];
 layout(location = 1) in vec4 inter_speed_lifetime[];
@@ -25,9 +26,9 @@ void main()
 	{
 		position_type.xyz = vec3(0.0, 10.0, 0.0);
 		position_type.w = inter_position_type[0].w;
-		speed_lifetime.xyz = 2.0 * vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].z)), 
-								  2.0 + 3.0 * rand(inter_position_type[0].yx),
-								  -2.5 + 5.0 * rand(vec2(inter_position_type[0].x, lifetime)));
+		speed_lifetime.xyz = respawn_speed * vec3(-2.5 + 5.0 * rand(vec2(lifetime, inter_position_type[0].z)), 
+														2.0 + 3.0 * rand(inter_position_type[0].yx),
+														-2.5 + 5.0 * rand(vec2(inter_position_type[0].x, lifetime)));
 		speed_lifetime.w = 20.0 * rand(inter_position_type[0].xy);
 	} else {
 		vec3 speed = inter_speed_lifetime[0].xyz + vec3(0.0, -9.0, 0.0) * time;
