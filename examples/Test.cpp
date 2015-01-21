@@ -824,6 +824,10 @@ int main(int argc, char* argv[])
 		particles_transform_feedback[(ParticleStep + 1) % 2].unbind();
 		TransformFeedback::enableRasterization();
 		
+		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
+		for(size_t i = 0; i < particles.size(); ++i)
+			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
+		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Water Update
 		WaterUpdate.use();
@@ -880,6 +884,7 @@ int main(int argc, char* argv[])
 		Sky.draw(_projection, MainCamera.getMatrix());
 		
 		// Particles
+		glDisable(GL_CULL_FACE);
 		ParticleDrawQuery.begin(Query::Target::TimeElapsed);
 		ParticleDraw.setUniform("cameraPosition", MainCamera.getPosition());
 		ParticleDraw.setUniform("cameraRight", MainCamera.getRight());
@@ -895,11 +900,8 @@ int main(int argc, char* argv[])
 		particles_transform_feedback[(ParticleStep + 1) % 2].draw(Primitive::Points);
 		ParticleDrawQuery.end();
 		
-		// Use particles as lights, really sub optimal, but the light and particle structures were not designed to work together :)
-		for(size_t i = 0; i < particles.size(); ++i)
-			Buffer::copySubData(particles_buffers[(ParticleStep + 1) % 2], LightBuffer, sizeof(Particle) * i, sizeof(LightStruct) * i, sizeof(glm::vec4));
-		
 		ParticleStep = (ParticleStep + 1) % 2;
+		glEnable(GL_CULL_FACE);
 		
 		// Ground
 		GroundTexture.bind(0);

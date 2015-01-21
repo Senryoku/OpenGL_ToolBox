@@ -22,6 +22,7 @@ Camera::Camera(glm::vec3 position,
 	_direction(direction),
 	_up(up)
 {
+	_cross = glm::normalize(glm::cross(_direction, _up));
 }
 
 
