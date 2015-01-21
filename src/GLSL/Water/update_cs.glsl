@@ -46,7 +46,7 @@ bool valid(vec2 c)
 {
 	return (c.x >= 0 && c.y >= 0 && c.x < size_x && c.y < size_y);
 }
-
+/*
 bool inWorkgroup(ivec2 c)
 {
 	return c / gl_WorkGroupSize.xy == coord / gl_WorkGroupSize.xy;
@@ -61,7 +61,7 @@ vec4 get(ivec2 c)
 	else 
 		return Ins[to1D(c)].data;
 }
-
+*/
 layout (local_size_x = 16, local_size_y = 16) in;
 void main()
 {
@@ -70,20 +70,19 @@ void main()
 	int idx = to1D(coord);
 	bool inbound = coord.x < size_x && coord.y < size_y && idx < size_x * size_y;
 
-	if(inbound)
-		neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = Ins[idx].data;
+	//if(inbound)
+	//	neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = Ins[idx].data;
 	barrier();
 	
 	for(int it = 0; it < iterations; ++it)
 	{
 		vec4 local;
-		if(inbound)
+		if(inbound) // Advect water height (data.x) and velocity (data.zw)
 		{
 			// Ground
 			// ... Ground is constant.
 			
-			// Advect water height (data.x)
-			vec2 mod_coord = coord - t * neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y].zw / cell_size;
+			vec2 mod_coord = coord - t * Ins[to1D(coord)].data.zw / cell_size;
 			vec2 fract_mod_coord = fract(mod_coord);
 			
 			vec4 v00;
@@ -96,7 +95,7 @@ void main()
 			if(!valid(trunc_coord))
 				v00 = vec4(moyheight, 0.0, 0.0, 0.0);
 			else
-				v00 = Ins[to1D(trunc_coord)].data;;
+				v00 = Ins[to1D(trunc_coord)].data;
 				//v00 = get(trunc_coord);
 				
 			trunc_coord = ivec2(mod_coord + vec2(0.0, 1.0));
@@ -119,8 +118,8 @@ void main()
 			
 			vec3 local = interpolate(fract_mod_coord, v00.xzw, v01.xzw, v10.xzw, v11.xzw);
 			
-			neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y].xzw = local;
 			Ins[idx].data.xzw = local;
+			//neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y].xzw = local;
 		}
 		
 		barrier();
@@ -147,8 +146,7 @@ void main()
 			float div = grad.x + grad.y;
 			local.x -= local.x * t * div;
 			Ins[idx].data.x = local.x;
-			neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y].x = local.x;
-			
+			//neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y].x = local.x;
 		}
 		
 		barrier();
@@ -170,8 +168,8 @@ void main()
 			local.z += 9.81 * ( (h2 - h) / cell_size ) * t;
 			local.w += 9.81 * ( (h3 - h) / cell_size ) * t;
 			
-			neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = local;
 			Ins[idx].data = local;
+			//neighbors[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = local;
 		}
 	}
 }

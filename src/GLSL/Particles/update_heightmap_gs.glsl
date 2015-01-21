@@ -123,7 +123,7 @@ void main()
 				// Just came under.
 				if(old_pos.y - particle_size * 0.5 > alt)
 				{
-					Ins[to1D(coord)].data.x -= displ;
+					Ins[to1D(coord)].data.x -= (displ - speed_lifetime.y * time);
 					for(int i = 0; i < 8; ++i)
 					{
 						vec2 c = coord + o8[i];
