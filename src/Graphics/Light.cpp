@@ -89,14 +89,14 @@ void Light::initPrograms()
 		s_depthVS->compile();
 		s_depthFS->loadFromFile("src/GLSL/depth_fs.glsl");
 		s_depthFS->compile();
-		s_depthProgram->attachShader(*s_depthVS);
-		s_depthProgram->attachShader(*s_depthFS);
+		s_depthProgram->attach(*s_depthVS);
+		s_depthProgram->attach(*s_depthFS);
 		s_depthProgram->link();
 		
 		s_depthInstanceVS->loadFromFile("src/GLSL/depth_instance_vs.glsl");
 		s_depthInstanceVS->compile();
-		s_depthInstanceProgram->attachShader(*s_depthInstanceVS);
-		s_depthInstanceProgram->attachShader(*s_depthFS);
+		s_depthInstanceProgram->attach(*s_depthInstanceVS);
+		s_depthInstanceProgram->attach(*s_depthFS);
 		s_depthInstanceProgram->link();
 	}
 }

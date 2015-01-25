@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <Texture3D.hpp>
@@ -489,7 +488,7 @@ int main(int argc, char* argv[])
 	std::vector<std::pair<size_t, std::string>>			_tweakbars;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	// attach
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/Tex0.jpg");

@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <Texture3D.hpp>
@@ -387,13 +386,13 @@ int main(int argc, char* argv[])
 	Reflective.setUniform("lightCount", LightCount);
 	for(size_t i = 0; i < LightCount; ++i)
 	{
-		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		CubeNormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		Reflective.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		NormalMap.bindUniformBlock(std::string("LightBlock[").append(std::to_string(i)).append("]"), LightBuffers[i]);
+		CubeNormalMap.bindUniformBlock(std::string("LightBlock[").append(std::to_string(i)).append("]"), LightBuffers[i]);
+		Reflective.bindUniformBlock(std::string("LightBlock[").append(std::to_string(i)).append("]"), LightBuffers[i]);
 		
-		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
-		CubeNormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
-		Reflective.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+		NormalMap.setUniform(std::string("ShadowMap[").append(std::to_string(i)).append("]"), (int) i + 2);
+		CubeNormalMap.setUniform(std::string("ShadowMap[").append(std::to_string(i)).append("]"), (int) i + 2);
+		Reflective.setUniform(std::string("ShadowMap[").append(std::to_string(i)).append("]"), (int) i + 2);
 	}
 	
 	std::vector<MeshInstance>							_meshInstances;
@@ -430,13 +429,13 @@ int main(int argc, char* argv[])
 		
 		m->createVAO();
 		
-		m->getMaterial().createAntTweakBar("GladOS " + StringConversion::to_string(meshNum));
+		m->getMaterial().createAntTweakBar("GladOS " + std::to_string(meshNum));
 		_meshInstances.push_back(MeshInstance(*m));
 		++meshNum;
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	// attach
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");
@@ -487,7 +486,7 @@ int main(int argc, char* argv[])
 		m->getMaterial().setUniform("diffuse", glm::vec4(0.1f, 0.1f, 0.1f, 1.f));
 		m->getMaterial().setUniform("poissonSamples", &_poissonSamples);
 		m->getMaterial().setUniform("poissonDiskRadius", &_poissonDiskRadius);
-		m->getMaterial().createAntTweakBar("Reflective " + StringConversion::to_string(meshNum));
+		m->getMaterial().createAntTweakBar("Reflective " + std::to_string(meshNum));
 		
 		//m->computeNormals();
 		m->createVAO();

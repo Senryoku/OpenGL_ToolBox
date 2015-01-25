@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <Texture3D.hpp>
@@ -524,8 +523,8 @@ int main(int argc, char* argv[])
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
-		//DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(StringConversion::to_string(i)).append("]"), ShadowBuffers[i]);
-		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
+		//DeferredShadowCS.getProgram().bindUniformBlock(std::string("ShadowBlock[").append(std::to_string(i)).append("]"), ShadowBuffers[i]);
+		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(std::to_string(i)).append("]"), (int) i + 3);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -535,7 +534,7 @@ int main(int argc, char* argv[])
 	std::vector<std::pair<size_t, std::string>>			_tweakbars;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	// attach
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/Tex0.jpg");

@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <Texture3D.hpp>
@@ -408,18 +407,18 @@ int main(int argc, char* argv[])
 	InstantiatedBalls.setUniform("lightCount", LightCount);
 	for(size_t i = 0; i < LightCount; ++i)
 	{
-		NormalMap.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
-		InstantiatedBalls.bindUniformBlock(std::string("LightBlock[").append(StringConversion::to_string(i)).append("]"), LightBuffers[i]);
+		NormalMap.bindUniformBlock(std::string("LightBlock[").append(std::to_string(i)).append("]"), LightBuffers[i]);
+		InstantiatedBalls.bindUniformBlock(std::string("LightBlock[").append(std::to_string(i)).append("]"), LightBuffers[i]);
 		
-		NormalMap.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
-		InstantiatedBalls.setUniform(std::string("ShadowMap[").append(StringConversion::to_string(i)).append("]"), (int) i + 2);
+		NormalMap.setUniform(std::string("ShadowMap[").append(std::to_string(i)).append("]"), (int) i + 2);
+		InstantiatedBalls.setUniform(std::string("ShadowMap[").append(std::to_string(i)).append("]"), (int) i + 2);
 		
 		MainLights[i].bind();
 		MainLights[i].unbind();
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	// attach
 	
 	Texture2D GroundTexture;
 	GroundTexture.load("in/Textures/stone/cracked_c.png");

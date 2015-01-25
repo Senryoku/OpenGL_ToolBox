@@ -73,27 +73,27 @@ void main()
 			
 			ivec2 trunc_coord;
 			trunc_coord = ivec2(mod_coord);
-			if(!valid(trunc_coord))
-				v00 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v00 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v00 = Ins[to1D(trunc_coord)].data;
 				
 			trunc_coord = ivec2(mod_coord + vec2(0.0, 1.0));
-			if(!valid(trunc_coord))
-				v01 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v01 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v01 = Ins[to1D(trunc_coord)].data;
 				
 			trunc_coord = ivec2(mod_coord + vec2(1.0, 0.0));
-			if(!valid(trunc_coord))
-				v10 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v10 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v10 = Ins[to1D(trunc_coord)].data;
 				
 			trunc_coord = ivec2(mod_coord + vec2(1.0, 1.0));
-			if(!valid(trunc_coord))
-				v11 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v11 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v11 = Ins[to1D(trunc_coord)].data;
 			
 			local.xzw = interpolate(fract_mod_coord, v00.xzw, v01.xzw, v10.xzw, v11.xzw);
@@ -109,14 +109,14 @@ void main()
 			// Update Height
 			vec2 grad;
 			
-			if(coord.x == size_x - 1)
-				grad.x = 0.0 - local.z;
-			else
+			(coord.x == size_x - 1) ?
+				grad.x = 0.0 - local.z
+			:
 				grad.x = Ins[to1D(ivec2(coord.x + 1, coord.y))].data.z - local.z;
 				
-			if(coord.y == size_y - 1)
-				grad.y = 0.0 - local.w;
-			else
+			(coord.y == size_y - 1) ?
+				grad.y = 0.0 - local.w
+			:
 				grad.y = Ins[to1D(ivec2(coord.x, coord.y + 1))].data.w - local.w;
 			
 			grad = grad / cell_size;
@@ -134,11 +134,17 @@ void main()
 			float h = local.x + local.y;
 			float h2 = moyheight;
 			if(coord.x > 0)
-				h2 = Ins[to1D(ivec2(coord.x - 1, coord.y))].data.x + Ins[to1D(ivec2(coord.x - 1, coord.y))].data.y;
-				
+			{
+				vec2 val = Ins[to1D(ivec2(coord.x - 1, coord.y))].data.xy;
+				h2 = val.x + val.y;
+			}
+			
 			float h3 = moyheight;
 			if(coord.y > 0)
-				h3 = Ins[to1D(ivec2(coord.x, coord.y - 1))].data.x + Ins[to1D(ivec2(coord.x, coord.y - 1))].data.y;
+			{
+				vec2 val = Ins[to1D(ivec2(coord.x, coord.y - 1))].data.xy;
+				h3 = val.x + val.y;
+			}
 			
 			local.zw *= (1.0 - damping*t);
 			

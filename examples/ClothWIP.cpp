@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <CubeMap.hpp>
@@ -466,7 +465,7 @@ int main(int argc, char* argv[])
 	std::vector<MeshInstance>							_meshInstances;
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Ground
+	// attach
 	
 	Texture2D GroundTexture("in/Textures/Tex0.jpg");
 	Texture2D GroundNormalMap("in/Textures/Tex0_n.jpg");
@@ -578,7 +577,7 @@ int main(int argc, char* argv[])
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
-		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
+		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(std::to_string(i)).append("]"), (int) i + 3);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -792,7 +791,7 @@ int main(int argc, char* argv[])
 		if(_video)
 		{
 			static int framecount = 0;
-			screen("out/video/" + StringConversion::to_string(framecount) + ".png");
+			screen("out/video/" + std::to_string(framecount) + ".png");
 			framecount++;
 			if(framecount > 60)
 			{

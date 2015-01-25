@@ -15,7 +15,6 @@
 
 #include <TimeManager.hpp>
 #include <ResourcesManager.hpp>
-#include <StringConversion.hpp>
 #include <Material.hpp>
 #include <Texture2D.hpp>
 #include <CubeMap.hpp>
@@ -388,8 +387,8 @@ int main(int argc, char* argv[])
 	DeferredFS.compile();
 	
 	Program& Deferred = ResourcesManager::getInstance().getProgram("Deferred");
-	Deferred.attachShader(DeferredVS);
-	Deferred.attachShader(DeferredFS);
+	Deferred.attach(DeferredVS);
+	Deferred.attach(DeferredFS);
 	Deferred.link();
 	
 	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
@@ -405,8 +404,8 @@ int main(int argc, char* argv[])
 	GeometryShader& ParticleUpdateGS = ResourcesManager::getInstance().getShader<GeometryShader>("ParticleUpdate_GS");
 	ParticleUpdateGS.loadFromFile("src/GLSL/Particles/update_heightmap_gs.glsl");
 	ParticleUpdateGS.compile();
-	ParticleUpdate.attachShader(ParticleUpdateVS);
-	ParticleUpdate.attachShader(ParticleUpdateGS);
+	ParticleUpdate.attach(ParticleUpdateVS);
+	ParticleUpdate.attach(ParticleUpdateGS);
 	ParticleUpdate.setTransformFeedbackVaryings<2>({"position_type", "speed_lifetime"}, true);
 	ParticleUpdate.link();
 	
@@ -422,9 +421,9 @@ int main(int argc, char* argv[])
 	FragmentShader& ParticleDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("ParticleDraw_FS");
 	ParticleDrawFS.loadFromFile("src/GLSL/Particles/draw_fs.glsl");
 	ParticleDrawFS.compile();
-	ParticleDraw.attachShader(ParticleDrawVS);
-	ParticleDraw.attachShader(ParticleDrawGS);
-	ParticleDraw.attachShader(ParticleDrawFS);
+	ParticleDraw.attach(ParticleDrawVS);
+	ParticleDraw.attach(ParticleDrawGS);
+	ParticleDraw.attach(ParticleDrawFS);
 	ParticleDraw.link();
 	 
 	if(!ParticleDraw) return 0;
@@ -442,8 +441,8 @@ int main(int argc, char* argv[])
 	GeometryShader& WaterDrawTFGS = ResourcesManager::getInstance().getShader<GeometryShader>("WaterDraw_TF_GS");
 	WaterDrawTFGS.loadFromFile("src/GLSL/Water/draw_tf_gs.glsl");
 	WaterDrawTFGS.compile();
-	WaterDrawTF.attachShader(WaterDrawTFVS);
-	WaterDrawTF.attachShader(WaterDrawTFGS);
+	WaterDrawTF.attach(WaterDrawTFVS);
+	WaterDrawTF.attach(WaterDrawTFGS);
 	WaterDrawTF.setTransformFeedbackVaryings<2>({"water", "ground"}, false);
 	WaterDrawTF.link();
 	
@@ -462,8 +461,8 @@ int main(int argc, char* argv[])
 	FragmentShader& WaterDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("WaterDraw_FS");
 	WaterDrawFS.loadFromFile("src/GLSL/Water/draw_indexed_fs.glsl");
 	WaterDrawFS.compile();
-	WaterDraw.attachShader(WaterDrawVS);
-	WaterDraw.attachShader(WaterDrawFS);
+	WaterDraw.attach(WaterDrawVS);
+	WaterDraw.attach(WaterDrawFS);
 	WaterDraw.link();
 	 
 	if(!WaterDraw) return 0;
@@ -477,8 +476,8 @@ int main(int argc, char* argv[])
 	BlendFS.compile();
 	
 	Program& Blend = ResourcesManager::getInstance().getProgram("Blend");
-	Blend.attachShader(BlendVS);
-	Blend.attachShader(BlendFS);
+	Blend.attach(BlendVS);
+	Blend.attach(BlendFS);
 	Blend.link();
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -691,7 +690,7 @@ int main(int argc, char* argv[])
 		ShadowStruct tmpShadows = {glm::vec4(MainLights[i].getPosition(), 1.0),  MainLights[i].getColor(), MainLights[i].getBiasedMatrix()};
 		ShadowBuffers[i].data(&tmpShadows, sizeof(ShadowStruct), Buffer::Usage::DynamicDraw);
 		
-		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(StringConversion::to_string(i)).append("]"), (int) i + 3);
+		DeferredShadowCS.getProgram().setUniform(std::string("ShadowMaps[").append(std::to_string(i)).append("]"), (int) i + 3);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1001,7 +1000,7 @@ int main(int argc, char* argv[])
 		if(_video)
 		{
 			static int framecount = 0;
-			screen("out/video/" + StringConversion::to_string(framecount) + ".png");
+			screen("out/video/" + std::to_string(framecount) + ".png");
 			framecount++;
 			if(framecount > 5 * 60)
 			{

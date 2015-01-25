@@ -45,8 +45,8 @@ void Skybox::draw(const glm::mat4& p, const glm::mat4& mv)
 		FS.loadFromFile("src/GLSL/Skybox/skybox_fs.glsl");
 		FS.compile();
 		
-		P.attachShader(VS);
-		P.attachShader(FS);
+		P.attach(VS);
+		P.attach(FS);
 		P.link();
 	}
 	
@@ -84,9 +84,9 @@ void Skybox::cubedraw()
 		FS.loadFromFile("src/GLSL/Skybox/skybox_cube_fs.glsl");
 		FS.compile();
 		
-		P.attachShader(VS);
-		P.attachShader(GS);
-		P.attachShader(FS);
+		P.attach(VS);
+		P.attach(GS);
+		P.attach(FS);
 		P.link();
 	}
 	

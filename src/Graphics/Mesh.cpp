@@ -6,7 +6,6 @@
 #include <assimp/scene.h> 			// Output data structure
 #include <assimp/postprocess.h> // Post processing flags
 
-#include <StringConversion.hpp>
 #include <ResourcesManager.hpp>
 
 //////////////////////// Mesh::Triangle ///////////////////////////
@@ -130,7 +129,7 @@ std::vector<Mesh*> Mesh::load(const std::string& path)
 			aiMesh* LoadedMesh = scene->mMeshes[meshIdx];
 			
 			std::string name(path);
-			name.append("::" + StringConversion::to_string(meshIdx));
+			name.append("::" + std::to_string(meshIdx));
 			name.append(scene->mMeshes[meshIdx]->mName.C_Str());
 			while(ResourcesManager::getInstance().isMesh(name))
 			{
