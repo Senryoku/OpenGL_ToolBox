@@ -362,8 +362,8 @@ int main(int argc, char* argv[])
 	GodRaysFS.compile();
 	
 	Program& GodRaysProgram = ResourcesManager::getInstance().getProgram("GodRays");
-	GodRaysProgram.attachShader(GodRaysVS);
-	GodRaysProgram.attachShader(GodRaysFS);
+	GodRaysProgram.attach(GodRaysVS);
+	GodRaysProgram.attach(GodRaysFS);
 	GodRaysProgram.link();
 	
 	if(!GodRaysProgram) return 0;
@@ -377,8 +377,8 @@ int main(int argc, char* argv[])
 	FS.compile();
 	
 	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
-	NormalMap.attachShader(VS);
-	NormalMap.attachShader(FS);
+	NormalMap.attach(VS);
+	NormalMap.attach(FS);
 	NormalMap.link();
 	
 	if(!NormalMap) return 0;
@@ -392,8 +392,8 @@ int main(int argc, char* argv[])
 	LightRenderingFS.compile();
 	
 	Program& LightRendering = ResourcesManager::getInstance().getProgram("LightRendering");
-	LightRendering.attachShader(LightRenderingVS);
-	LightRendering.attachShader(LightRenderingFS);
+	LightRendering.attach(LightRenderingVS);
+	LightRendering.attach(LightRenderingFS);
 	LightRendering.link();
 	
 	if(!LightRendering) return 0;
@@ -415,8 +415,8 @@ int main(int argc, char* argv[])
 	PostProcessFS.compile();
 	
 	Program& PostProcess = ResourcesManager::getInstance().getProgram("PostProcess");
-	PostProcess.attachShader(PostProcessVS);
-	PostProcess.attachShader(PostProcessFS);
+	PostProcess.attach(PostProcessVS);
+	PostProcess.attach(PostProcessFS);
 	PostProcess.link();
 	
 	if(!PostProcess) return 0;

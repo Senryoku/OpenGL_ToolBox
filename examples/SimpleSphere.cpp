@@ -170,8 +170,8 @@ int main(int argc, char* argv[])
 	SimplePhongFS.compile();
 	
 	Program& SimplePhong = ResourcesManager::getInstance().getProgram("SimplePhong");
-	SimplePhong.attachShader(SimplePhongVS);
-	SimplePhong.attachShader(SimplePhongFS);
+	SimplePhong.attach(SimplePhongVS);
+	SimplePhong.attach(SimplePhongFS);
 	SimplePhong.link();
 	
 	Camera MainCamera;		

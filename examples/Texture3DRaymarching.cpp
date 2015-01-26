@@ -273,8 +273,8 @@ int main(int argc, char* argv[])
 	ShaderToyFS.compile();
 	
 	Program& ShaderToy = ResourcesManager::getInstance().getProgram("Texture3D Test");
-	ShaderToy.attachShader(RayTracerVS);
-	ShaderToy.attachShader(ShaderToyFS);
+	ShaderToy.attach(RayTracerVS);
+	ShaderToy.attach(ShaderToyFS);
 	ShaderToy.link();
 	
 	Material Mat(ShaderToy);

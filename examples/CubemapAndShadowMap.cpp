@@ -305,16 +305,16 @@ int main(int argc, char* argv[])
 	GS.compile();
 	
 	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
-	NormalMap.attachShader(VS);
-	NormalMap.attachShader(FS);
+	NormalMap.attach(VS);
+	NormalMap.attach(FS);
 	NormalMap.link();
 	
 	if(!NormalMap) return 0;
 	
 	Program& CubeNormalMap = ResourcesManager::getInstance().getProgram("CubeNormalMap");
-	CubeNormalMap.attachShader(VS);
-	CubeNormalMap.attachShader(GS);
-	CubeNormalMap.attachShader(FS);
+	CubeNormalMap.attach(VS);
+	CubeNormalMap.attach(GS);
+	CubeNormalMap.attach(FS);
 	CubeNormalMap.link();
 	
 	if(!CubeNormalMap) return 0;
@@ -328,8 +328,8 @@ int main(int argc, char* argv[])
 	ReflectiveFS.compile();
 		
 	Program& Reflective = ResourcesManager::getInstance().getProgram("Reflective");
-	Reflective.attachShader(ReflectiveVS);
-	Reflective.attachShader(ReflectiveFS);
+	Reflective.attach(ReflectiveVS);
+	Reflective.attach(ReflectiveFS);
 	Reflective.link();
 	
 	if(!Reflective) return 0;

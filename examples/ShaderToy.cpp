@@ -170,8 +170,8 @@ int main(int argc, char* argv[])
 	RayTracerFS.compile();
 	
 	Program& RayTracer = ResourcesManager::getInstance().getProgram("RayTracer");
-	RayTracer.attachShader(RayTracerVS);
-	RayTracer.attachShader(RayTracerFS);
+	RayTracer.attach(RayTracerVS);
+	RayTracer.attach(RayTracerFS);
 	RayTracer.link();
 
 	FragmentShader& EyeFS = ResourcesManager::getInstance().getShader<FragmentShader>("EyeFS");
@@ -179,8 +179,8 @@ int main(int argc, char* argv[])
 	EyeFS.compile();
 	
 	Program& Eye = ResourcesManager::getInstance().getProgram("Eye");
-	Eye.attachShader(RayTracerVS);
-	Eye.attachShader(EyeFS);
+	Eye.attach(RayTracerVS);
+	Eye.attach(EyeFS);
 	Eye.link();
 	
 	CubeMap& CM = ResourcesManager::getInstance().getTexture<CubeMap>("Sky");

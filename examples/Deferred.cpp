@@ -369,8 +369,8 @@ int main(int argc, char* argv[])
 	DeferredFS.compile();
 	
 	Program& Deferred = ResourcesManager::getInstance().getProgram("Deferred");
-	Deferred.attachShader(DeferredVS);
-	Deferred.attachShader(DeferredFS);
+	Deferred.attach(DeferredVS);
+	Deferred.attach(DeferredFS);
 	Deferred.link();
 	
 	if(!Deferred) return 0;
@@ -384,8 +384,8 @@ int main(int argc, char* argv[])
 	DeferredLightFS.compile();
 	
 	Program& DeferredLight = ResourcesManager::getInstance().getProgram("DeferredLight");
-	DeferredLight.attachShader(DeferredLightVS);
-	DeferredLight.attachShader(DeferredLightFS);
+	DeferredLight.attach(DeferredLightVS);
+	DeferredLight.attach(DeferredLightFS);
 	DeferredLight.link();
 	
 	if(!DeferredLight) return 0;
@@ -399,8 +399,8 @@ int main(int argc, char* argv[])
 	DeferredColorFS.compile();
 	
 	Program& DeferredColor = ResourcesManager::getInstance().getProgram("DeferredColor");
-	DeferredColor.attachShader(DeferredColorVS);
-	DeferredColor.attachShader(DeferredColorFS);
+	DeferredColor.attach(DeferredColorVS);
+	DeferredColor.attach(DeferredColorFS);
 	DeferredColor.link();
 	
 	if(!DeferredColor) return 0;
@@ -414,8 +414,8 @@ int main(int argc, char* argv[])
 	PostProcessFS.compile();
 	
 	Program& PostProcess = ResourcesManager::getInstance().getProgram("PostProcess");
-	PostProcess.attachShader(PostProcessVS);
-	PostProcess.attachShader(PostProcessFS);
+	PostProcess.attach(PostProcessVS);
+	PostProcess.attach(PostProcessFS);
 	PostProcess.link();
 	
 	if(!PostProcess) return 0;
@@ -433,8 +433,8 @@ int main(int argc, char* argv[])
 	FullScreenTextureFS.compile();
 	
 	Program& FullScreenTexture = ResourcesManager::getInstance().getProgram("FullScreenTexture");
-	FullScreenTexture.attachShader(PostProcessVS);
-	FullScreenTexture.attachShader(FullScreenTextureFS);
+	FullScreenTexture.attach(PostProcessVS);
+	FullScreenTexture.attach(FullScreenTextureFS);
 	FullScreenTexture.link();
 	
 	if(!FullScreenTexture) return 0;

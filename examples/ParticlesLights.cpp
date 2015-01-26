@@ -369,8 +369,8 @@ int main(int argc, char* argv[])
 	DeferredFS.compile();
 	
 	Program& Deferred = ResourcesManager::getInstance().getProgram("Deferred");
-	Deferred.attachShader(DeferredVS);
-	Deferred.attachShader(DeferredFS);
+	Deferred.attach(DeferredVS);
+	Deferred.attach(DeferredFS);
 	Deferred.link();
 	
 	ComputeShader& DeferredShadowCS = ResourcesManager::getInstance().getShader<ComputeShader>("DeferredShadowCS");
@@ -386,8 +386,8 @@ int main(int argc, char* argv[])
 	GeometryShader& ParticleUpdateGS = ResourcesManager::getInstance().getShader<GeometryShader>("ParticleUpdate_GS");
 	ParticleUpdateGS.loadFromFile("src/GLSL/Particles/update_gs.glsl");
 	ParticleUpdateGS.compile();
-	ParticleUpdate.attachShader(ParticleUpdateVS);
-	ParticleUpdate.attachShader(ParticleUpdateGS);
+	ParticleUpdate.attach(ParticleUpdateVS);
+	ParticleUpdate.attach(ParticleUpdateGS);
 	const char* varyings[2] = {"position_type", "speed_lifetime"};
 	glTransformFeedbackVaryings(ParticleUpdate.getName(), 2, varyings, GL_INTERLEAVED_ATTRIBS);
 	ParticleUpdate.link();
@@ -404,9 +404,9 @@ int main(int argc, char* argv[])
 	FragmentShader& ParticleDrawFS = ResourcesManager::getInstance().getShader<FragmentShader>("ParticleDraw_FS");
 	ParticleDrawFS.loadFromFile("src/GLSL/Particles/draw_fs.glsl");
 	ParticleDrawFS.compile();
-	ParticleDraw.attachShader(ParticleDrawVS);
-	ParticleDraw.attachShader(ParticleDrawGS);
-	ParticleDraw.attachShader(ParticleDrawFS);
+	ParticleDraw.attach(ParticleDrawVS);
+	ParticleDraw.attach(ParticleDrawGS);
+	ParticleDraw.attach(ParticleDrawFS);
 	ParticleDraw.link();
 	 
 	if(!ParticleDraw) return 0;

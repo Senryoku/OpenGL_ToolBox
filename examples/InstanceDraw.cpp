@@ -339,8 +339,8 @@ int main(int argc, char* argv[])
 	FS.compile();
 	
 	Program& NormalMap = ResourcesManager::getInstance().getProgram("NormalMap");
-	NormalMap.attachShader(VS);
-	NormalMap.attachShader(FS);
+	NormalMap.attach(VS);
+	NormalMap.attach(FS);
 	NormalMap.link();
 
 	if(!NormalMap) return 0;
@@ -354,8 +354,8 @@ int main(int argc, char* argv[])
 	InstantiatedBallsFS.compile();
 	
 	Program& InstantiatedBalls = ResourcesManager::getInstance().getProgram("InstantiatedBalls");
-	InstantiatedBalls.attachShader(InstantiatedBallsVS);
-	InstantiatedBalls.attachShader(InstantiatedBallsFS);
+	InstantiatedBalls.attach(InstantiatedBallsVS);
+	InstantiatedBalls.attach(InstantiatedBallsFS);
 	InstantiatedBalls.link();
 	
 	if(!InstantiatedBalls) return 0;
