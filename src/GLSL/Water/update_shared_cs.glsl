@@ -62,10 +62,12 @@ ivec2 getLocal(ivec2 c)
 vec4 get(ivec2 c)
 {
 	ivec2 local = getLocal(c);
-	if(inWorkgroup(local))
-		return neighbors[local.x][local.y];
-	else 
-		return Ins[to1D(c)].data;
+	vec4 r;
+	(inWorkgroup(local)) ?
+		r = neighbors[local.x][local.y]
+	:
+		r = Ins[to1D(c)].data;
+	return r;
 }
 
 layout (local_size_x = 16, local_size_y = 16) in;
@@ -95,27 +97,27 @@ void main()
 			
 			ivec2 trunc_coord;
 			trunc_coord = ivec2(mod_coord);
-			if(!valid(trunc_coord))
-				v00 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v00 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v00 = get(trunc_coord);
 				
 			trunc_coord = ivec2(mod_coord + vec2(0.0, 1.0));
-			if(!valid(trunc_coord))
-				v01 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v01 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v01 = get(trunc_coord);
 				
 			trunc_coord = ivec2(mod_coord + vec2(1.0, 0.0));
-			if(!valid(trunc_coord))
-				v10 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v10 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v10 = get(trunc_coord);
 				
 			trunc_coord = ivec2(mod_coord + vec2(1.0, 1.0));
-			if(!valid(trunc_coord))
-				v11 = vec4(moyheight, 0.0, 0.0, 0.0);
-			else
+			(!valid(trunc_coord)) ?
+				v11 = vec4(moyheight, 0.0, 0.0, 0.0)
+			:
 				v11 = get(trunc_coord);
 			
 			local.xzw = interpolate(fract_mod_coord, v00.xzw, v01.xzw, v10.xzw, v11.xzw);
@@ -135,14 +137,14 @@ void main()
 			// Update Height
 			vec2 grad;
 			
-			if(coord.x == size_x - 1)
-				grad.x = 0.0 - local.z;
-			else
+			(coord.x == size_x - 1) ?
+				grad.x = 0.0 - local.z
+			:
 				grad.x = get(ivec2(coord.x + 1, coord.y)).z - local.z;
 				
-			if(coord.y == size_y - 1)
-				grad.y = 0.0 - local.w;
-			else
+			(coord.y == size_y - 1) ?
+				grad.y = 0.0 - local.w
+			:
 				grad.y = get(ivec2(coord.x, coord.y + 1)).w - local.w;
 			
 			grad = grad / cell_size;

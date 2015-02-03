@@ -177,7 +177,7 @@ void main(void)
 	vec3 max_bbox = vec3(max_x, max_y, max_z);
 
 	// Test lights
-	for(int i = 0; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
+	for(int i = 0; i < int(lightCount); i += int(gl_WorkGroupSize.x) * int(gl_WorkGroupSize.y))
 	{
 		int l = int(gl_LocalInvocationIndex) + i;
 		if(l < lightCount)

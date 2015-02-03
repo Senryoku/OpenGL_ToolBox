@@ -37,15 +37,17 @@ layout(binding = 2, rgba32f) uniform readonly image2D Normal;
 layout(binding = 3) uniform sampler2D ShadowMaps[8];
 
 // Bounding Box
-shared ivec3 bbmin;
-shared ivec3 bbmax;
+shared int bbmin_x;
+shared int bbmin_y;
+shared int bbmin_z;
+shared int bbmax_x;
+shared int bbmax_y;
+shared int bbmax_z;
 
 // Lights
 shared int local_lights_count; // = 0;
 shared int local_lights[1024];
 shared int lit;
-
-shared LightStruct final_lights;
 
 void add_light(int l)
 {
@@ -89,7 +91,7 @@ vec3 phong(vec3 p, vec3 N, vec3 V, vec3 diffuse, vec3 lp, vec3 lc, bool t)
 }
 
 const int highValue = 2147483646;
-const float boxfactor = 1000.0f; // Minimize the impact of the use of int for bounding boxes
+const float boxfactor = 10000.0f; // Minimize the impact of the use of int for bounding boxes
 
 layout (local_size_x = 16, local_size_y = 16) in;
 void main(void)
@@ -106,8 +108,12 @@ void main(void)
 	{
 		local_lights_count = 0;
 		
-		bbmin = ivec3(highValue);
-		bbmax = -bbmin;
+		bbmin_x = highValue;
+		bbmin_y = highValue;
+		bbmin_z = highValue;
+		bbmax_x = -highValue;
+		bbmax_y = -highValue;
+		bbmax_z = -highValue;
 		lit = 0;
 	}
 	barrier();
@@ -126,12 +132,12 @@ void main(void)
 				ivec3 scaledp = ivec3(boxfactor * position + 1.0);
 				ivec3 scaledm = ivec3(boxfactor * position - 1.0);
 				
-				atomicMin(bbmin.x, scaledm.x);
-				atomicMin(bbmin.y, scaledm.y);
-				atomicMin(bbmin.z, scaledm.z);
-				atomicMax(bbmax.x, scaledp.x);
-				atomicMax(bbmax.y, scaledp.y);
-				atomicMax(bbmax.z, scaledp.z);
+				atomicMin(bbmin_x, scaledm.x);
+				atomicMin(bbmin_y, scaledm.y);
+				atomicMin(bbmin_z, scaledm.z);
+				atomicMax(bbmax_x, scaledp.x);
+				atomicMax(bbmax_y, scaledp.y);
+				atomicMax(bbmax_z, scaledp.z);
 				
 				lit = 1;
 			}
@@ -142,14 +148,15 @@ void main(void)
 	// Construct boundingbox
 	if(lit > 0)
 	{
-		vec3 min_bbox = vec3(bbmin) / boxfactor;
-		vec3 max_bbox = vec3(bbmax) / boxfactor;
+		// FIXME: Problem here!! Wrong min/max, or sphereAABBIntersect bug!
+		vec3 min_bbox = (vec3(bbmin_x, bbmin_y, bbmin_z) - 1.0) / boxfactor;
+		vec3 max_bbox = (vec3(bbmax_x, bbmax_y, bbmax_z) + 1.0) / boxfactor;
 
 		// Test lights
-		for(int i = int(gl_LocalInvocationIndex); i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
+		for(uint i = gl_LocalInvocationIndex; i < lightCount; i += gl_WorkGroupSize.x * gl_WorkGroupSize.y)
 		{
-				if(sphereAABBIntersect(min_bbox, max_bbox, Lights[i].position.xyz, lightRadius))
-					add_light(i);
+			if(sphereAABBIntersect(min_bbox, max_bbox, Lights[i].position.xyz, lightRadius))
+				add_light(int(i));
 		}
 	}
 	
@@ -185,27 +192,7 @@ void main(void)
 			{				
 				if(textureProj(ShadowMaps[shadow], sc.xyw).z + bias >= sc.z/sc.w)
 				{
-					// Ok, WHAT the actual FUCK ?! Inlining seem to fail here... compiler bug ? Oô
-					//ColorOut.rgb += phong(position.xyz, normal, color, Shadows[shadow].position.xyz, Shadows[shadow].color.rgb);
-					
-					// So... this is just the call to phong(...) but inlined by hand...
-					
-					vec3 tmp_normal = normal;
-					vec3 L = normalize(Shadows[shadow].position.xyz - position.xyz);
-					float dNL = dot(tmp_normal, L);
-					if(transparent && dNL < 0)
-					{
-						tmp_normal *= -1.0;
-						dNL = -dNL;
-					}
-					
-					float diffuseFactor = max(dNL, minDiffuse);
-					
-					vec3 R = normalize(reflect(-L, tmp_normal));
-
-					float specularFactor = pow(max(dot(R, V), 0.f), 64.0);
-												
-					ColorOut.rgb += diffuseFactor * color * Shadows[shadow].color.rgb + specularFactor * Shadows[shadow].color.rgb;
+					ColorOut.rgb += phong(position.xyz, normal, V, color, Shadows[shadow].position.xyz, Shadows[shadow].color.rgb, transparent);
 				}
 			}
 		}

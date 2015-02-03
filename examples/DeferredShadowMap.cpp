@@ -329,6 +329,7 @@ int main(int argc, char* argv[])
 	}
 
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(0);
 	
 	if(glewInit() != GLEW_OK)
 	{

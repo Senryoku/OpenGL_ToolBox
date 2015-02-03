@@ -358,6 +358,7 @@ int main(int argc, char* argv[])
 	}
 
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(0);
 	
 	if(glewInit() != GLEW_OK)
 	{
@@ -511,7 +512,7 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Particles
 	
-	const size_t ParticleCount = 100;
+	const size_t ParticleCount = 250;
 	const float ParticleSize = 0.2;
 	std::vector<Particle> particles;
 	for(int i = 0; i < (int) ParticleCount; ++i)
