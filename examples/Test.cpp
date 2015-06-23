@@ -5,8 +5,7 @@
 #include <random>
 #include <iomanip>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp> // glm::lookAt, glm::perspective
@@ -141,7 +140,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				if(_msaa)
 				{
 					glEnable(GL_MULTISAMPLE);
-					glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+					////glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 					
 					GLint  iMultiSample = 0;
 					GLint  iNumSamples = 0;
@@ -360,7 +359,7 @@ int main(int argc, char* argv[])
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(0);
 	
-	if(glewInit() != GLEW_OK)
+	if(gl3wInit())
 	{
 		std::cerr << "Error: couldn't initialize GLEW." << std::endl;
 		exit(EXIT_FAILURE);

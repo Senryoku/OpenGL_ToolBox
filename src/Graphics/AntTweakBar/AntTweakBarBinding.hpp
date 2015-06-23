@@ -2,8 +2,7 @@
 
 #include <array>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>

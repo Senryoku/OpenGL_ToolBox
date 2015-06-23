@@ -4,8 +4,7 @@
 #include <map>
 #include <random>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp> // glm::lookAt, glm::perspective
@@ -139,7 +138,7 @@ int main(int argc, char* argv[])
 
 	glfwMakeContextCurrent(window);
 	
-	if(glewInit() != GLEW_OK)
+	if(gl3wInit())
 	{
 		std::cerr << "Error: couldn't initialize GLEW." << std::endl;
 		exit(EXIT_FAILURE);

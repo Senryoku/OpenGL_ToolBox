@@ -4,8 +4,7 @@
 #include <map>
 #include <random>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
 #include <glm/gtx/transform.hpp>
@@ -47,7 +46,7 @@ void resize_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, _width, _height);
 	_resolution = glm::vec3(_width, _height, 0.0);
 	
-	glOrtho(-1.0f, -1.0f, 1.0f, 1.0f, 0.1f, 10000.0f);
+	//glOrtho(-1.0f, -1.0f, 1.0f, 1.0f, 0.1f, 10000.0f);
 	
 	TwWindowSize(_width, _height);
 	std::cout << "Reshaped to " << width << "*" << height  << " (" << ((GLfloat) _width)/_height << ")" << std::endl;
@@ -156,7 +155,7 @@ int main(int argc, char* argv[])
 
 	glfwMakeContextCurrent(window);
 	
-	if(glewInit() != GLEW_OK)
+	if(gl3wInit())
 	{
 		std::cerr << "Error: couldn't initialize GLEW." << std::endl;
 		exit(EXIT_FAILURE);

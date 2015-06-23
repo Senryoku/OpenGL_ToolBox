@@ -5,7 +5,7 @@ cmake_policy(SET CMP0048 OLD)
 
 project (OpenGL_Toolbox)
 set (OpenGL_Toolbox_VERSION_MAJOR 0)
-set (OpenGL_Toolbox_VERSION_MINOR 1)
+set (OpenGL_Toolbox_VERSION_MINOR 2)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -23,6 +23,12 @@ ADD_DEFINITIONS(${OpenGL_DEFINITIONS})
 FIND_PACKAGE(PkgConfig)
 
 SET(EXT_LIB_BUILD "extlib_build" CACHE FILEPATH "Where the external libraries will be build.")
+
+#GL3W
+SET(GL3W_INCLUDE_DIR "../gl3w/include" CACHE FILEPATH "GL3W_INCLUDE_DIR")
+SET(GL3W_LIBRARY_DIRS "../gl3w" CACHE FILEPATH "GL3W_LIBRARY_DIRS")
+INCLUDE_DIRECTORIES(${GL3W_INCLUDE_DIR})
+LINK_DIRECTORIES(${GL3W_LIBRARY_DIRS})
 
 #GLFW
 IF(${PkgConfig_FOUND})
@@ -108,7 +114,7 @@ add_library(OpenGL_Toolbox STATIC ${SOURCE_FILES})
 foreach(Exe ${EXECUTABLES})
 	get_filename_component(Target ${Exe} NAME_WE [CACHE])
 	add_executable(${Target} ${Exe})
-	TARGET_LINK_LIBRARIES(${Target} ${SenOGL_LIBRARY} OpenGL_Toolbox ${ANTTWEAKBAR_LIBRARY} assimp.dll glfw3 ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
+	TARGET_LINK_LIBRARIES(${Target} ${SenOGL_LIBRARY} OpenGL_Toolbox ${ANTTWEAKBAR_LIBRARY} assimp.dll glfw3 ${GLFW_LIBRARIES} libgl3w.a ${OPENGL_LIBRARIES})
 	MESSAGE(STATUS "Adding rule for ${Target}.")
 endforeach(Exe)
 

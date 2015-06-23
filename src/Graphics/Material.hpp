@@ -5,8 +5,7 @@
 #include <iostream>
 #include <memory>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
 #include <Shaders.hpp>
