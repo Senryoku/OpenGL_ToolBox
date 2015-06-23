@@ -540,17 +540,17 @@ int main(int argc, char* argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Water
 	std::vector<WaterCell> water;
-	size_t water_x = 300;
-	size_t water_z = 300;
-	float water_cellsize = 0.2;
+	size_t water_x = 1024;
+	size_t water_z = 1024;
+	float water_cellsize = 0.05;
 	float water_moyheight = 2.0;
 			
 	for(size_t i = 0; i < water_x; ++i)
 		for(size_t j = 0; j < water_z; ++j)
 			water.push_back(WaterCell{glm::vec4{
 										//water_moyheight,
-										water_moyheight + 1.5 * std::cos(0.05 * std::sqrt(((double) i - water_x * 0.2)*((double) i - water_x * 0.2) + ((double) j - water_z * 0.2) *((double) j - water_z * 0.2))), 
-										0.2 + 0.2 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
+										water_moyheight + 0.5 * std::cos(0.05 * std::sqrt(((double) i - water_x * 0.2)*((double) i - water_x * 0.2) + ((double) j - water_z * 0.2) *((double) j - water_z * 0.2))), 
+										0.2 + 0.1 * std::cos(0.1 * std::sqrt(((double) i - water_x * 0.5)*((double) i - water_x * 0.5) + ((double) j - water_z/2.0) *((double) j - water_z/2.0))), 
 										0.0,
 										0.0}});
 
@@ -940,7 +940,6 @@ int main(int argc, char* argv[])
 		
 		_offscreenRenderTransparency.bind();	
 		_offscreenRenderTransparency.clear(BufferBit::Color); // Keep depth buffer from opaque pass
-		glDepthMask(GL_FALSE);
 		// Water
 		WaterDrawQuery.begin(Query::Target::TimeElapsed);
 		Sky.getCubemap().bind(0);
@@ -960,7 +959,8 @@ int main(int argc, char* argv[])
 		glDrawElements(GL_TRIANGLES, (water_x - 1) * (water_z - 1) * 3 * 2, GL_UNSIGNED_INT, 0);
 		WaterDrawQuery.end();
 		_offscreenRenderTransparency.unbind();
-				
+		
+		glDepthMask(GL_FALSE);
 		////////////////////////////////////////////////////////////////
 		// Lightning
 		LightQuery.begin(Query::Target::TimeElapsed);
@@ -1008,6 +1008,12 @@ int main(int argc, char* argv[])
 				framecount = 0;
 				_video = false;
 			}
+		}
+		
+		if(glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+		{
+			float val = 8.0;
+			water_buffer.subData((water_x + 1)*water_z/2 * sizeof(glm::vec4), sizeof(float), &val);
 		}
 		
 		firstStep = false;
